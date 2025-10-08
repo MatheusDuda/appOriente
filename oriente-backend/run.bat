@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando Oriente Backend (FastAPI)...
+python run.py
