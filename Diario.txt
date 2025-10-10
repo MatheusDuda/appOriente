@@ -9,11 +9,11 @@
 - path=/usuarios            file=src/pages/Usuarios/Usuarios.tsx             status=done
 - path=/permissoes          file=src/pages/Permissoes/Permissoes.tsx         status=done
 - path=/equipes             file=src/pages/Equipes/Equipes.tsx               status=done
-- path=/projetos            file=src/pages/Projetos/Projetos.tsx             status=todo
-- path=/chat                file=src/pages/Chat/Chat.tsx                     status=pendente
-- path=/notificacoes        file=src/pages/Notificacoes/Notificacoes.tsx     status=todo
-- path=/perfil              file=src/pages/Perfil/Perfil.tsx                 status=todo
-- path=/configuracoes       file=src/pages/Configuracoes/Configuracoes.tsx   status=todo
+- path=/projetos            file=src/pages/Projetos/Projetos.tsx             status=done
+- path=/chat                file=src/pages/Chat/Chat.tsx                     status=done
+- path=/notificacoes        file=src/pages/Notificacoes/Notificacoes.tsx     status=done
+- path=/perfil              file=src/pages/Perfil/Perfil.tsx                 status=done
+- path=/configuracoes       file=src/pages/Configuracoes/Configuracoes.tsx   status=done
 
 [UI.STATES]  ; estados/componentes que nao sao rotas dedicadas (menus, popups, formularios)
 ; 4.6.4  Menu lateral
@@ -42,23 +42,23 @@
 - id=EQP-004   name="Pop-up adicionar membro"                    file=src/components/Equipes/AdicionarMembro.tsx      status=done          print=public/prints/26-adicionar-membro.png
 
 ; 4.6.17-4.6.23 Projetos & Tarefas (kanban)
-- id=PRJ-001   name="Projetos (board/kanban)"                    file=src/pages/Projetos/Projetos.tsx                 status=todo          print=public/prints/27-projetos.png
-- id=PRJ-002   name="Pop-up nova coluna"                         file=src/components/Projetos/NovaColunaDialog.tsx    status=todo          print=public/prints/18-nova-coluna.png
-- id=PRJ-003   name="Selecao criar projeto"                      file=src/components/Projetos/SelecionarCriar.tsx     status=todo          print=public/prints/19-selecao-criar-projeto.png
-- id=PRJ-004   name="Criar projeto"                               file=src/pages/Projetos/CriarProjeto.tsx             status=todo          print=public/prints/20-criar-projeto.png
-- id=TSK-001   name="Criar tarefa"                                file=src/components/Tarefas/CriarTarefa.tsx          status=todo          print=public/prints/21-criar-tarefa.png
-- id=TSK-002   name="Tarefa (detalhe)"                             file=src/pages/Tarefas/Tarefa.tsx                    status=todo          print=public/prints/22-tarefa.png
-- id=TSK-003   name="Opcoes da tarefa (menu/acoes)"               file=src/components/Tarefas/Opcoes.tsx               status=todo          print=public/prints/23-opcoes-tarefa.png
+- id=PRJ-001   name="Projetos (board/kanban)"                    file=src/pages/Projetos/Projetos.tsx                 status=done          print=public/prints/27-projetos.png
+- id=PRJ-002   name="Pop-up nova coluna"                         file=src/components/Projetos/NovaColunaDialog.tsx    status=done          print=public/prints/18-nova-coluna.png
+- id=PRJ-003   name="Selecao criar projeto"                      file=src/components/Projetos/SelecionarCriar.tsx     status=done          print=public/prints/19-selecao-criar-projeto.png
+- id=PRJ-004   name="Criar projeto"                               file=src/pages/Projetos/CriarProjeto.tsx             status=done          print=public/prints/20-criar-projeto.png
+- id=TSK-001   name="Criar tarefa"                                file=src/components/Tarefas/CriarTarefa.tsx          status=done          print=public/prints/21-criar-tarefa.png
+- id=TSK-002   name="Tarefa (detalhe)"                             file=src/pages/Tarefas/Tarefa.tsx                    status=done          print=public/prints/22-tarefa.png
+- id=TSK-003   name="Opcoes da tarefa (menu/acoes)"               file=src/components/Tarefas/Opcoes.tsx               status=done          print=public/prints/23-opcoes-tarefa.png
 
 ; 4.6.24-4.6.26 Bate-papo
-- id=CHAT-001  name="Bate-papo (lista/conversas)"                file=src/pages/Chat/Chat.tsx                         status=pendente      print=public/prints/24-chat.png
-- id=CHAT-002  name="Selecao p/ criar grupo"                      file=src/components/Chat/CriarGrupo.tsx              status=pendente      print=public/prints/25-selecao-grupo.png
-- id=CHAT-003  name="Criar grupo de bate-papo"                    file=src/components/Chat/CriarGrupo.tsx              status=pendente      print=public/prints/26-criar-grupo.png
+- id=CHAT-001  name="Bate-papo (lista/conversas)"                file=src/pages/Chat/Chat.tsx                         status=done          print=public/prints/24-chat.png
+- id=CHAT-002  name="Selecao p/ criar grupo"                      file=src/components/Chat/CriarGrupo.tsx              status=done          print=public/prints/25-selecao-grupo.png
+- id=CHAT-003  name="Criar grupo de bate-papo"                    file=src/components/Chat/CriarGrupo.tsx              status=done          print=public/prints/26-criar-grupo.png
 
 ; 4.6.29-4.6.31 Notificacoes / Perfil / Configuracoes
-- id=SYS-001   name="Notificacoes"                                file=src/pages/Notificacoes/Notificacoes.tsx         status=todo          print=public/prints/29-notificacoes.png
-- id=SYS-002   name="Perfil do usuario"                           file=src/pages/Perfil/Perfil.tsx                     status=todo          print=public/prints/30-perfil.png
-- id=SYS-003   name="Configuracoes"                               file=src/pages/Configuracoes/Configuracoes.tsx       status=todo          print=public/prints/31-configuracoes.png
+- id=SYS-001   name="Notificacoes"                                file=src/pages/Notificacoes/Notificacoes.tsx         status=done          print=public/prints/29-notificacoes.png
+- id=SYS-002   name="Perfil do usuario"                           file=src/pages/Perfil/Perfil.tsx                     status=done          print=public/prints/30-perfil.png
+- id=SYS-003   name="Configuracoes"                               file=src/pages/Configuracoes/Configuracoes.tsx       status=done          print=public/prints/31-configuracoes.png
 
 [LOG]
 - 2025-10-05 Dashboard base implementado com cards, progresso e agenda.
@@ -76,3 +76,15 @@
 - 2025-10-06 Pagina Gerenciar Permissoes (PERM-001) implementada com checkboxes por modulo (Usuarios, Projetos, Tarefas, Relatorios, Equipes, Configuracoes).
 - 2025-10-06 Modulo Equipes completo: lista em cards com busca (EQP-001/002), overflow de acoes, pagina editar/criar equipe com gerenciamento de membros (EQP-003), dialog adicionar membros com selecao multipla (EQP-004).
 - 2025-10-06 Chat tipo WhatsApp implementado (CHAT-001/002/003): layout 2 colunas, lista de conversas com busca e badges, area de mensagens com baloes alinhados, check duplo, scroll automatico, dialog criar grupo com 2 etapas. Status: pendente (erro de importacao de tipos a resolver).
+- 2025-10-07 Modulo Projetos (kanban) completo: board com drag-and-drop usando @dnd-kit, seletor de projetos (PRJ-001), dialog nova coluna (PRJ-002), menu criar novo projeto (PRJ-003), pagina criar projeto com formulario completo (PRJ-004), dialog criar tarefa com prioridade/responsaveis/tags/data limite (TSK-001). Build funcional em 21.31s.
+- 2025-10-07 Pagina de detalhes da tarefa (TSK-002) implementada com layout 2 colunas: area principal com descricao/anexos/comentarios, sidebar com detalhes (status, prioridade, responsaveis, data limite, tags). Cards de tarefa no kanban agora navegam para a pagina de detalhes ao clicar. Build em 20.89s.
+- 2025-10-07 REFATORACAO COMPLETA: Todo modulo de Projetos/Tarefas refatorado de portugues para ingles. Tipos (Task, Column, Project), propriedades (title, description, priority, assignees, dueDate), funcoes (handleAddColumn, handleSelectProject), componentes (NewColumnDialog, CreateTask). Nomenclatura padronizada seguindo best practices da industria. Build funcional em 15.81s.
+- 2025-10-09 Modulo Chat resolvido: erro de importacao de tipos corrigido, build funcional em 21.28s. Status atualizado de pendente para done (CHAT-001/002/003).
+- 2025-10-09 Menu de opcoes da tarefa (TSK-003) implementado: componente Opcoes.tsx criado com acoes (editar, duplicar, arquivar, adicionar responsavel, alterar data, excluir), integrado na pagina de detalhes da tarefa com IconButton MoreVert. Build funcional em 15.51s.
+- 2025-10-09 Pagina Notificacoes (SYS-001) completa: sistema de notificacoes com tabs (todas/nao-lidas), tipos de notificacao (tarefa, equipe, chat, sistema), menu de acoes (marcar como lida, excluir), botao marcar todas como lidas. Build em 14.90s.
+- 2025-10-09 Pagina Perfil (SYS-002) completa: card de perfil com avatar, informacoes pessoais editaveis (nome, email, telefone, cargo, departamento), secao sobre/bio, modo edicao com botoes salvar/cancelar. Build em 15.04s.
+- 2025-10-09 Pagina Configuracoes (SYS-003) completa: secoes notificacoes (email, push, tarefas, comentarios, mencoes), aparencia (tema claro/escuro/automatico, idioma pt-BR/en-US/es-ES), privacidade (perfil publico, mostrar email/telefone), zona de perigo (alterar senha, desativar/excluir conta). Build funcional em 14.65s. TODAS AS FEATURES DO SISTEMA IMPLEMENTADAS!
+- 2025-10-09 ROTAS CONFIGURADAS: Adicionados imports e rotas para Notificacoes, Perfil e Configuracoes no routes/index.tsx. Agora todas as paginas sao acessiveis via navegacao. Build funcional em 14.89s.
+- 2025-10-09 Dropdown de notificacoes na Topbar implementado: menu popup no icone de sino mostrando as 3 notificacoes mais recentes, badge com contador de nao-lidas, preview com icone/titulo/mensagem/timestamp, botao "Ver todas as notificacoes" que navega para /notificacoes, estado visual para notificacoes nao-lidas. Build funcional em 14.82s.
+- 2025-10-09 Acoes do menu de opcoes da tarefa (TSK-003) implementadas: dialogs de confirmacao para excluir e arquivar tarefas, snackbars de feedback para todas as acoes (editar, duplicar, arquivar, adicionar responsavel, alterar data, excluir), navegacao de volta para /projetos apos exclusao. Build funcional em 14.97s.
+- 2025-10-09 Ajuste no kanban: adicionado activationConstraint de 8px no PointerSensor para permitir cliques nos cards sem interferir no drag-and-drop. Agora e possivel clicar nos cards para abrir detalhes da tarefa, e arrastar 8px para mover entre colunas. Build funcional em 15.00s.

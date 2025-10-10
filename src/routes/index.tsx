@@ -11,7 +11,12 @@ import Permissoes from "../pages/Permissoes/Permissoes";
 import Equipes from "../pages/Equipes/Equipes";
 import EditarEquipe from "../pages/Equipes/EditarEquipe";
 import Chat from "../pages/Chat/Chat";
-// TODO: crie as demais páginas e importe aqui (Projetos, Notificações, Perfil, Configurações)
+import Projetos from "../pages/Projetos/Projetos";
+import CriarProjeto from "../pages/Projetos/CriarProjeto";
+import Tarefa from "../pages/Tarefas/Tarefa";
+import Notificacoes from "../pages/Notificacoes/Notificacoes";
+import Perfil from "../pages/Perfil/Perfil";
+import Configuracoes from "../pages/Configuracoes/Configuracoes";
 
 import { useAuth } from "../contexts/AuthContext";
 
@@ -55,12 +60,12 @@ export default function AppRoutes() {
                         <Route path="/equipes" element={<Equipes />} />
                         <Route path="/equipes/:id" element={<EditarEquipe />} />
                         <Route path="/chat" element={<Chat />} />
-                        {/* Ex.:
-                <Route path="/projetos" element={<Projetos />} />
-                <Route path="/notificacoes" element={<Notificacoes />} />
-                <Route path="/perfil" element={<Perfil />} />
-                <Route path="/configuracoes" element={<Configuracoes />} />
-            */}
+                        <Route path="/projetos" element={<Projetos />} />
+                        <Route path="/projetos/novo" element={<CriarProjeto />} />
+                        <Route path="/tarefas/:id" element={<Tarefa />} />
+                        <Route path="/notificacoes" element={<Notificacoes />} />
+                        <Route path="/perfil" element={<Perfil />} />
+                        <Route path="/configuracoes" element={<Configuracoes />} />
                     </Route>
                 </Route>
 
