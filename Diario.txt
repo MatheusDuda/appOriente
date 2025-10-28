@@ -88,3 +88,137 @@
 - 2025-10-09 Dropdown de notificacoes na Topbar implementado: menu popup no icone de sino mostrando as 3 notificacoes mais recentes, badge com contador de nao-lidas, preview com icone/titulo/mensagem/timestamp, botao "Ver todas as notificacoes" que navega para /notificacoes, estado visual para notificacoes nao-lidas. Build funcional em 14.82s.
 - 2025-10-09 Acoes do menu de opcoes da tarefa (TSK-003) implementadas: dialogs de confirmacao para excluir e arquivar tarefas, snackbars de feedback para todas as acoes (editar, duplicar, arquivar, adicionar responsavel, alterar data, excluir), navegacao de volta para /projetos apos exclusao. Build funcional em 14.97s.
 - 2025-10-09 Ajuste no kanban: adicionado activationConstraint de 8px no PointerSensor para permitir cliques nos cards sem interferir no drag-and-drop. Agora e possivel clicar nos cards para abrir detalhes da tarefa, e arrastar 8px para mover entre colunas. Build funcional em 15.00s.
+- 2025-10-26 MELHORIAS DE UX/VALIDACAO: Link "Esqueci minha senha" corrigido (Login.tsx:126) - agora navega para /forgot-password usando RouterLink. Campos de login tornados controlados com validacao completa: email (regex), senha (min 6 chars), mensagens de erro em tempo real, estado de loading, campos desabilitados durante submit. Build funcional em 40.43s.
+- 2025-10-26 DARK MODE IMPLEMENTADO: Criado ThemeContext (src/contexts/ThemeContext.tsx) com suporte a 3 modos (light/dark/auto), persistencia em localStorage, deteccao automatica de preferencias do sistema. Temas otimizados para ambos modos (cores, sombras, backgrounds). Pagina Configuracoes conectada ao context - mudancas de tema sao instantaneas e persistidas. main.tsx refatorado para usar novo ThemeProvider. Build funcional em 40.43s.
+
+[PROXIMAS.IMPLEMENTACOES]
+; Backend: FastAPI (Python) + PostgreSQL
+; Frontend: Integracao com API, validacao avancada, otimizacoes
+
+PRIORIDADE ALTA:
+1. [API.INTEGRATION] Camada de servicos de API
+   - Criar cliente HTTP base (axios) com interceptors (src/services/api.ts)
+   - Implementar services por modulo: authService, usersService, projectsService, tasksService, teamsService, chatService, notificationsService
+   - Configurar variaveis de ambiente (.env.development, .env.production)
+   - Adicionar tratamento de erros centralizado e retry logic
+   - Implementar refresh token automatico
+   - Tipos TypeScript para requests/responses (src/types/api.ts)
+
+2. [AUTH.REAL] Autenticacao real com FastAPI
+   - Integrar Login.tsx com POST /api/auth/login
+   - Integrar ForgotPassword.tsx com POST /api/auth/forgot-password
+   - Integrar ResetPassword.tsx com POST /api/auth/reset-password
+   - Implementar fluxo de refresh token (JWT)
+   - Adicionar loading states e error handling em todas as telas de auth
+
+3. [FORMS.VALIDATION] Validacao avancada de formularios
+   - Instalar Zod ou Yup para schema validation
+   - Instalar react-hook-form para gerenciamento de formularios
+   - Refatorar formularios: Login, CadastrarUsuario, EditarUsuario, CriarProjeto, CriarTarefa
+   - Adicionar validacoes customizadas (senha forte, CPF, telefone)
+
+4. [STATE.MANAGEMENT] Gestao de estado global
+   - Escolher biblioteca (Zustand recomendado / Redux Toolkit)
+   - Criar stores: authStore, projectsStore, tasksStore, notificationsStore, usersStore
+   - Substituir estados locais mockados por dados do store
+   - Implementar sincronizacao com backend (optimistic updates)
+
+PRIORIDADE MEDIA:
+5. [RESPONSIVE.DESIGN] Responsividade mobile
+   - Adicionar breakpoints mobile-first em todos os componentes
+   - Ajustar Sidebar para drawer mobile (hamburger menu)
+   - Otimizar Kanban para touch (melhorar drag-and-drop mobile)
+   - Testar em diferentes viewports (320px, 768px, 1024px, 1440px)
+
+6. [WEBSOCKETS] Real-time com WebSockets
+   - Implementar WebSocket client (src/services/websocket.ts)
+   - Chat em tempo real (envio/recebimento de mensagens)
+   - Notificacoes push em tempo real
+   - Atualizacoes de tarefas no kanban (colaboracao em tempo real)
+   - Status online/offline de usuarios
+
+7. [FILE.UPLOAD] Upload de arquivos
+   - Implementar upload de avatar (Perfil)
+   - Implementar upload de anexos em tarefas
+   - Progress bar para uploads
+   - Preview de imagens antes do upload
+   - Validacao de tipo/tamanho de arquivo
+
+8. [REPORTS.EXPORT] Exportacao de relatorios
+   - Exportar para PDF (biblioteca jsPDF ou react-pdf)
+   - Exportar para CSV/Excel (biblioteca xlsx)
+   - Implementar filtros avancados (data range picker)
+   - Graficos exportaveis (Recharts to image)
+
+PRIORIDADE BAIXA:
+9. [TESTS] Testes automatizados
+   - Configurar Vitest + React Testing Library
+   - Testes unitarios para hooks customizados (useAuth, useTheme)
+   - Testes de componentes criticos (Login, Dashboard, Kanban)
+   - Testes de integracao para fluxos principais
+   - Coverage minimo de 70%
+
+10. [I18N] Internacionalizacao
+   - Instalar react-i18next
+   - Criar arquivos de traducao (pt-BR, en-US, es-ES)
+   - Conectar com seletor de idioma em Configuracoes
+   - Traduzir todas as strings hardcoded
+   - Formatacao de datas/numeros por locale
+
+11. [PWA] Progressive Web App
+   - Configurar service worker (Workbox)
+   - Criar manifest.json (icones, splash screens)
+   - Implementar offline-first para leitura de dados
+   - Push notifications nativas (Web Push API)
+   - Prompt de instalacao (Add to Home Screen)
+
+12. [PERFORMANCE] Otimizacoes de performance
+   - Code splitting com React.lazy() e Suspense
+   - Lazy loading de rotas (dynamic imports)
+   - Memoizacao (React.memo, useMemo, useCallback)
+   - Virtual scrolling para listas longas (react-window)
+   - Otimizacao de bundle (tree shaking, minification)
+   - Lighthouse score >= 90
+
+13. [A11Y] Acessibilidade
+   - Adicionar aria-labels em todos os componentes interativos
+   - Implementar keyboard navigation (tab order, shortcuts)
+   - Focus trap em modais e dialogs
+   - Skip links para navegacao rapida
+   - Testar com screen readers (NVDA, JAWS)
+   - WCAG 2.1 AA compliance
+
+[STACK.TECNOLOGICO]
+Backend:
+- Framework: FastAPI (Python 3.11+)
+- Database: PostgreSQL 15+
+- ORM: SQLAlchemy 2.0
+- Migrations: Alembic
+- Auth: JWT (python-jose)
+- Validation: Pydantic v2
+- WebSockets: FastAPI WebSocket support
+- File Storage: S3 / MinIO / Local
+- Cache: Redis (opcional)
+- Task Queue: Celery + Redis (opcional, para emails/notificacoes)
+
+Frontend:
+- Framework: React 19 + TypeScript
+- Build: Vite 7
+- UI: Material-UI (MUI) 7
+- Routing: React Router DOM 7
+- HTTP Client: Axios
+- State: Zustand (ou Redux Toolkit)
+- Forms: react-hook-form + Zod
+- Charts: Recharts
+- Drag-and-Drop: @dnd-kit
+- WebSockets: native WebSocket API ou socket.io-client
+- i18n: react-i18next (futuro)
+- Tests: Vitest + React Testing Library (futuro)
+
+[NOTAS.IMPORTANTES]
+- Todos os dados atuais sao mockados (hardcoded) - substituir por chamadas API
+- TODOs pendentes: Login.tsx:23, ForgotPassword.tsx:12, ResetPassword.tsx:32
+- Dark mode ja funcional - garantir que API retorne preferencia do usuario
+- Persistir configuracoes do usuario (tema, idioma, notificacoes) no backend
+- Considerar CORS no FastAPI (permitir origem do frontend)
+- Variavel de ambiente VITE_API_URL deve apontar para FastAPI (ex: http://localhost:8000/api)

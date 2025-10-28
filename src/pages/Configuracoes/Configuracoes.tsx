@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Box,
     Paper,
@@ -19,6 +19,7 @@ import {
     SecurityOutlined,
     SaveOutlined,
 } from "@mui/icons-material";
+import { useTheme } from "../../contexts/ThemeContext";
 
 type Configuracoes = {
     notificacoes: {
@@ -29,7 +30,7 @@ type Configuracoes = {
         mencoes: boolean;
     };
     aparencia: {
-        tema: "claro" | "escuro" | "automatico";
+        tema: "light" | "dark" | "auto";
         idioma: "pt-BR" | "en-US" | "es-ES";
     };
     privacidade: {
@@ -48,7 +49,7 @@ const configPadrao: Configuracoes = {
         mencoes: true,
     },
     aparencia: {
-        tema: "claro",
+        tema: "light",
         idioma: "pt-BR",
     },
     privacidade: {
@@ -59,8 +60,20 @@ const configPadrao: Configuracoes = {
 };
 
 export default function Configuracoes() {
+    const { mode, setMode } = useTheme();
     const [config, setConfig] = useState<Configuracoes>(configPadrao);
     const [salvo, setSalvo] = useState(false);
+
+    // Sincroniza o tema do context com o estado local
+    useEffect(() => {
+        setConfig((prev) => ({
+            ...prev,
+            aparencia: {
+                ...prev.aparencia,
+                tema: mode,
+            },
+        }));
+    }, [mode]);
 
     const handleToggle = (
         categoria: keyof Configuracoes,
@@ -82,6 +95,11 @@ export default function Configuracoes() {
         campo: string,
         valor: string
     ) => {
+        // Se for mudança de tema, atualiza o context imediatamente
+        if (categoria === "aparencia" && campo === "tema") {
+            setMode(valor as "light" | "dark" | "auto");
+        }
+
         setConfig({
             ...config,
             [categoria]: {
@@ -274,9 +292,9 @@ export default function Configuracoes() {
                                 handleSelectChange("aparencia", "tema", e.target.value)
                             }
                         >
-                            <MenuItem value="claro">Claro</MenuItem>
-                            <MenuItem value="escuro">Escuro</MenuItem>
-                            <MenuItem value="automatico">Automático (seguir sistema)</MenuItem>
+                            <MenuItem value="light">Claro</MenuItem>
+                            <MenuItem value="dark">Escuro</MenuItem>
+                            <MenuItem value="auto">Automático (seguir sistema)</MenuItem>
                         </Select>
                     </FormControl>
 

@@ -9,7 +9,7 @@ import {
     InputAdornment,
     Link,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
@@ -17,12 +17,50 @@ export default function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [show, setShow] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [errors, setErrors] = useState({ email: "", password: "" });
+    const [loading, setLoading] = useState(false);
+
+    const validateEmail = (email: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        // Validação
+        const newErrors = { email: "", password: "" };
+        let hasError = false;
+
+        if (!email.trim()) {
+            newErrors.email = "E-mail é obrigatório";
+            hasError = true;
+        } else if (!validateEmail(email)) {
+            newErrors.email = "E-mail inválido";
+            hasError = true;
+        }
+
+        if (!password.trim()) {
+            newErrors.password = "Senha é obrigatória";
+            hasError = true;
+        } else if (password.length < 6) {
+            newErrors.password = "Senha deve ter no mínimo 6 caracteres";
+            hasError = true;
+        }
+
+        setErrors(newErrors);
+
+        if (hasError) return;
+
         // TODO: trocar por chamada ao FastAPI
-        login(); // seta token fake
-        navigate("/dashboard", { replace: true });
+        setLoading(true);
+        setTimeout(() => {
+            login(); // seta token fake
+            navigate("/dashboard", { replace: true });
+            setLoading(false);
+        }, 500);
     };
 
     return (
@@ -81,6 +119,14 @@ export default function Login() {
                     variant="filled"
                     type="email"
                     placeholder="email@exemplo.com"
+                    value={email}
+                    onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (errors.email) setErrors({ ...errors, email: "" });
+                    }}
+                    error={!!errors.email}
+                    helperText={errors.email}
+                    disabled={loading}
                     sx={{ mb: 2 }}
                 />
 
@@ -90,6 +136,14 @@ export default function Login() {
                     variant="filled"
                     type={show ? "text" : "password"}
                     placeholder="**************"
+                    value={password}
+                    onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errors.password) setErrors({ ...errors, password: "" });
+                    }}
+                    error={!!errors.password}
+                    helperText={errors.password}
+                    disabled={loading}
                     sx={{ mb: 2 }}
                     InputProps={{
                         endAdornment: (
@@ -98,6 +152,7 @@ export default function Login() {
                                     type="button"
                                     onClick={() => setShow((prev) => !prev)}
                                     edge="end"
+                                    disabled={loading}
                                 >
                                     {show ? <VisibilityOff /> : <Visibility />}
                                 </IconButton>
@@ -112,6 +167,7 @@ export default function Login() {
                     variant="contained"
                     color="primary"
                     type="submit"
+                    disabled={loading}
                     sx={{
                         mt: 1,
                         py: 1.2,
@@ -119,11 +175,16 @@ export default function Login() {
                         fontSize: "1.1rem",
                     }}
                 >
-                    Entrar
+                    {loading ? "Entrando..." : "Entrar"}
                 </Button>
 
                 <Box sx={{ textAlign: "center", mt: 2 }}>
-                    <Link href="#" underline="hover" sx={{ color: "text.secondary" }}>
+                    <Link
+                        component={RouterLink}
+                        to="/forgot-password"
+                        underline="hover"
+                        sx={{ color: "text.secondary" }}
+                    >
                         Esqueci minha senha
                     </Link>
                 </Box>
