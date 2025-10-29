@@ -1,0 +1,224 @@
+﻿[ROUTES.PUBLIC]
+- path=/                    file=src/pages/Login/Login.tsx                   status=done              print=public/prints/11-login.png
+- path=/forgot-password     file=src/pages/Auth/ForgotPassword.tsx           status=done              print=public/prints/12-esqueci-senha.png
+- path=/reset-password      file=src/pages/Auth/ResetPassword.tsx            status=done              print=public/prints/13-redefinir-senha.png
+
+[ROUTES.PRIVATE]
+- path=/dashboard           file=src/pages/Dashboard/Dashboard.tsx           status=done
+- path=/relatorios          file=src/pages/Relatorios/Relatorios.tsx         status=done
+- path=/usuarios            file=src/pages/Usuarios/Usuarios.tsx             status=done
+- path=/permissoes          file=src/pages/Permissoes/Permissoes.tsx         status=done
+- path=/equipes             file=src/pages/Equipes/Equipes.tsx               status=done
+- path=/projetos            file=src/pages/Projetos/Projetos.tsx             status=done
+- path=/chat                file=src/pages/Chat/Chat.tsx                     status=done
+- path=/notificacoes        file=src/pages/Notificacoes/Notificacoes.tsx     status=done
+- path=/perfil              file=src/pages/Perfil/Perfil.tsx                 status=done
+- path=/configuracoes       file=src/pages/Configuracoes/Configuracoes.tsx   status=done
+
+[UI.STATES]  ; estados/componentes que nao sao rotas dedicadas (menus, popups, formularios)
+; 4.6.4  Menu lateral
+- id=NAV-001   name="Menu lateral"                              file=src/components/Sidebar.tsx                      status=done         print=public/prints/14-menu-lateral.png
+; 4.6.27 Menu superior
+- id=NAV-002   name="Menu superior"                             file=src/components/Topbar.tsx                       status=done         print=public/prints/27-menu-superior.png
+; 4.6.28 Selecao para logout do usuario
+- id=NAV-003   name="Selecao de logout"                         file=src/components/Topbar.tsx                       status=done          print=public/prints/28-logout.png
+
+; 4.6.5 Relatorios / 4.6.6 Filtros
+- id=REP-001   name="Relatorios (lista/grade)"                  file=src/pages/Relatorios/Relatorios.tsx             status=done          print=public/prints/15-relatorios.png
+- id=REP-002   name="Filtros de relatorio"                      file=src/components/Relatorios/Filtros.tsx           status=done          print=public/prints/16-filtros.png
+
+; 4.6.7-4.6.12 Usuarios e Permissoes
+- id=USR-001   name="Usuarios (lista)"                          file=src/pages/Usuarios/Usuarios.tsx                 status=done          print=public/prints/17-usuarios.png
+- id=USR-002   name="Overflow de usuarios"                      file=src/components/Usuarios/Overflow.tsx            status=done          print=public/prints/18-overflow-usuarios.png
+- id=USR-003   name="Pop-up confirmar acao (usuarios)"          file=src/components/Common/ConfirmDialog.tsx         status=done          print=public/prints/19-confirmacao.png
+- id=USR-004   name="Formulario editar usuario"                 file=src/components/Usuarios/EditarUsuario.tsx       status=done          print=public/prints/20-editar-usuario.png
+- id=USR-005   name="Formulario cadastrar usuario"              file=src/components/Usuarios/CadastrarUsuario.tsx    status=done          print=public/prints/21-cadastrar-usuario.png
+- id=PERM-001  name="Gerenciar permissoes"                      file=src/pages/Permissoes/Permissoes.tsx             status=done          print=public/prints/22-permissoes.png
+
+; 4.6.13-4.6.16 Equipes
+- id=EQP-001   name="Overflow de equipes"                        file=src/components/Equipes/Overflow.tsx             status=done          print=public/prints/23-overflow-equipes.png
+- id=EQP-002   name="Overflow de equipes (selecionado)"          file=src/components/Equipes/Overflow.tsx             status=done          print=public/prints/24-overflow-equipes-sel.png
+- id=EQP-003   name="Edicao de equipes"                          file=src/pages/Equipes/EditarEquipe.tsx              status=done          print=public/prints/25-editar-equipe.png
+- id=EQP-004   name="Pop-up adicionar membro"                    file=src/components/Equipes/AdicionarMembro.tsx      status=done          print=public/prints/26-adicionar-membro.png
+
+; 4.6.17-4.6.23 Projetos & Tarefas (kanban)
+- id=PRJ-001   name="Projetos (board/kanban)"                    file=src/pages/Projetos/Projetos.tsx                 status=done          print=public/prints/27-projetos.png
+- id=PRJ-002   name="Pop-up nova coluna"                         file=src/components/Projetos/NovaColunaDialog.tsx    status=done          print=public/prints/18-nova-coluna.png
+- id=PRJ-003   name="Selecao criar projeto"                      file=src/components/Projetos/SelecionarCriar.tsx     status=done          print=public/prints/19-selecao-criar-projeto.png
+- id=PRJ-004   name="Criar projeto"                               file=src/pages/Projetos/CriarProjeto.tsx             status=done          print=public/prints/20-criar-projeto.png
+- id=TSK-001   name="Criar tarefa"                                file=src/components/Tarefas/CriarTarefa.tsx          status=done          print=public/prints/21-criar-tarefa.png
+- id=TSK-002   name="Tarefa (detalhe)"                             file=src/pages/Tarefas/Tarefa.tsx                    status=done          print=public/prints/22-tarefa.png
+- id=TSK-003   name="Opcoes da tarefa (menu/acoes)"               file=src/components/Tarefas/Opcoes.tsx               status=done          print=public/prints/23-opcoes-tarefa.png
+
+; 4.6.24-4.6.26 Bate-papo
+- id=CHAT-001  name="Bate-papo (lista/conversas)"                file=src/pages/Chat/Chat.tsx                         status=done          print=public/prints/24-chat.png
+- id=CHAT-002  name="Selecao p/ criar grupo"                      file=src/components/Chat/CriarGrupo.tsx              status=done          print=public/prints/25-selecao-grupo.png
+- id=CHAT-003  name="Criar grupo de bate-papo"                    file=src/components/Chat/CriarGrupo.tsx              status=done          print=public/prints/26-criar-grupo.png
+
+; 4.6.29-4.6.31 Notificacoes / Perfil / Configuracoes
+- id=SYS-001   name="Notificacoes"                                file=src/pages/Notificacoes/Notificacoes.tsx         status=done          print=public/prints/29-notificacoes.png
+- id=SYS-002   name="Perfil do usuario"                           file=src/pages/Perfil/Perfil.tsx                     status=done          print=public/prints/30-perfil.png
+- id=SYS-003   name="Configuracoes"                               file=src/pages/Configuracoes/Configuracoes.tsx       status=done          print=public/prints/31-configuracoes.png
+
+[LOG]
+- 2025-10-05 Dashboard base implementado com cards, progresso e agenda.
+- 2025-10-05 Sidebar e Topbar convertidos para MUI e alinhados ao layout.
+- 2025-10-05 Concluidas telas ForgotPassword e ResetPassword (fluxo de recuperacao).
+- 2025-10-05 Ajustadas configuracoes TypeScript (tsconfig.*), formulario de login com visibilidade de senha, limpeza de arquivos .js antigos e build do Vite ok.
+- 2025-10-05 Testes realizados: Build funcionando (14.80s), servidor dev rodando (localhost:5173). Problemas encontrados: Login.tsx:126 link "Esqueci minha senha" nao funcional (usa href="#"), campos de login nao controlados. Topbar sem menu de logout (NAV-003 pendente).
+- 2025-10-06 Menu de logout implementado (NAV-003) com dropdown de usuario, perfil, configuracoes e sair.
+- 2025-10-06 Dashboard aprimorado com graficos Recharts (barras para tarefas semanais, area para evolucao mensal).
+- 2025-10-06 Sidebar tornada retratil com botao toggle, icones mantidos do mesmo tamanho, estado persistido no localStorage.
+- 2025-10-06 Topbar altura ajustada para 64px.
+- 2025-10-06 Pagina Relatorios (REP-001) implementada com tabela paginada, busca e acoes (visualizar/baixar).
+- 2025-10-06 Componente Filtros (REP-002) criado com selects para tipo, projeto, status e periodo.
+- 2025-10-06 Modulo Usuarios completo: lista com busca (USR-001), menu overflow (USR-002), dialog confirmacao (USR-003), formularios editar (USR-004) e cadastrar (USR-005).
+- 2025-10-06 Pagina Gerenciar Permissoes (PERM-001) implementada com checkboxes por modulo (Usuarios, Projetos, Tarefas, Relatorios, Equipes, Configuracoes).
+- 2025-10-06 Modulo Equipes completo: lista em cards com busca (EQP-001/002), overflow de acoes, pagina editar/criar equipe com gerenciamento de membros (EQP-003), dialog adicionar membros com selecao multipla (EQP-004).
+- 2025-10-06 Chat tipo WhatsApp implementado (CHAT-001/002/003): layout 2 colunas, lista de conversas com busca e badges, area de mensagens com baloes alinhados, check duplo, scroll automatico, dialog criar grupo com 2 etapas. Status: pendente (erro de importacao de tipos a resolver).
+- 2025-10-07 Modulo Projetos (kanban) completo: board com drag-and-drop usando @dnd-kit, seletor de projetos (PRJ-001), dialog nova coluna (PRJ-002), menu criar novo projeto (PRJ-003), pagina criar projeto com formulario completo (PRJ-004), dialog criar tarefa com prioridade/responsaveis/tags/data limite (TSK-001). Build funcional em 21.31s.
+- 2025-10-07 Pagina de detalhes da tarefa (TSK-002) implementada com layout 2 colunas: area principal com descricao/anexos/comentarios, sidebar com detalhes (status, prioridade, responsaveis, data limite, tags). Cards de tarefa no kanban agora navegam para a pagina de detalhes ao clicar. Build em 20.89s.
+- 2025-10-07 REFATORACAO COMPLETA: Todo modulo de Projetos/Tarefas refatorado de portugues para ingles. Tipos (Task, Column, Project), propriedades (title, description, priority, assignees, dueDate), funcoes (handleAddColumn, handleSelectProject), componentes (NewColumnDialog, CreateTask). Nomenclatura padronizada seguindo best practices da industria. Build funcional em 15.81s.
+- 2025-10-09 Modulo Chat resolvido: erro de importacao de tipos corrigido, build funcional em 21.28s. Status atualizado de pendente para done (CHAT-001/002/003).
+- 2025-10-09 Menu de opcoes da tarefa (TSK-003) implementado: componente Opcoes.tsx criado com acoes (editar, duplicar, arquivar, adicionar responsavel, alterar data, excluir), integrado na pagina de detalhes da tarefa com IconButton MoreVert. Build funcional em 15.51s.
+- 2025-10-09 Pagina Notificacoes (SYS-001) completa: sistema de notificacoes com tabs (todas/nao-lidas), tipos de notificacao (tarefa, equipe, chat, sistema), menu de acoes (marcar como lida, excluir), botao marcar todas como lidas. Build em 14.90s.
+- 2025-10-09 Pagina Perfil (SYS-002) completa: card de perfil com avatar, informacoes pessoais editaveis (nome, email, telefone, cargo, departamento), secao sobre/bio, modo edicao com botoes salvar/cancelar. Build em 15.04s.
+- 2025-10-09 Pagina Configuracoes (SYS-003) completa: secoes notificacoes (email, push, tarefas, comentarios, mencoes), aparencia (tema claro/escuro/automatico, idioma pt-BR/en-US/es-ES), privacidade (perfil publico, mostrar email/telefone), zona de perigo (alterar senha, desativar/excluir conta). Build funcional em 14.65s. TODAS AS FEATURES DO SISTEMA IMPLEMENTADAS!
+- 2025-10-09 ROTAS CONFIGURADAS: Adicionados imports e rotas para Notificacoes, Perfil e Configuracoes no routes/index.tsx. Agora todas as paginas sao acessiveis via navegacao. Build funcional em 14.89s.
+- 2025-10-09 Dropdown de notificacoes na Topbar implementado: menu popup no icone de sino mostrando as 3 notificacoes mais recentes, badge com contador de nao-lidas, preview com icone/titulo/mensagem/timestamp, botao "Ver todas as notificacoes" que navega para /notificacoes, estado visual para notificacoes nao-lidas. Build funcional em 14.82s.
+- 2025-10-09 Acoes do menu de opcoes da tarefa (TSK-003) implementadas: dialogs de confirmacao para excluir e arquivar tarefas, snackbars de feedback para todas as acoes (editar, duplicar, arquivar, adicionar responsavel, alterar data, excluir), navegacao de volta para /projetos apos exclusao. Build funcional em 14.97s.
+- 2025-10-09 Ajuste no kanban: adicionado activationConstraint de 8px no PointerSensor para permitir cliques nos cards sem interferir no drag-and-drop. Agora e possivel clicar nos cards para abrir detalhes da tarefa, e arrastar 8px para mover entre colunas. Build funcional em 15.00s.
+- 2025-10-26 MELHORIAS DE UX/VALIDACAO: Link "Esqueci minha senha" corrigido (Login.tsx:126) - agora navega para /forgot-password usando RouterLink. Campos de login tornados controlados com validacao completa: email (regex), senha (min 6 chars), mensagens de erro em tempo real, estado de loading, campos desabilitados durante submit. Build funcional em 40.43s.
+- 2025-10-26 DARK MODE IMPLEMENTADO: Criado ThemeContext (src/contexts/ThemeContext.tsx) com suporte a 3 modos (light/dark/auto), persistencia em localStorage, deteccao automatica de preferencias do sistema. Temas otimizados para ambos modos (cores, sombras, backgrounds). Pagina Configuracoes conectada ao context - mudancas de tema sao instantaneas e persistidas. main.tsx refatorado para usar novo ThemeProvider. Build funcional em 40.43s.
+
+[PROXIMAS.IMPLEMENTACOES]
+; Backend: FastAPI (Python) + PostgreSQL
+; Frontend: Integracao com API, validacao avancada, otimizacoes
+
+PRIORIDADE ALTA:
+1. [API.INTEGRATION] Camada de servicos de API
+   - Criar cliente HTTP base (axios) com interceptors (src/services/api.ts)
+   - Implementar services por modulo: authService, usersService, projectsService, tasksService, teamsService, chatService, notificationsService
+   - Configurar variaveis de ambiente (.env.development, .env.production)
+   - Adicionar tratamento de erros centralizado e retry logic
+   - Implementar refresh token automatico
+   - Tipos TypeScript para requests/responses (src/types/api.ts)
+
+2. [AUTH.REAL] Autenticacao real com FastAPI
+   - Integrar Login.tsx com POST /api/auth/login
+   - Integrar ForgotPassword.tsx com POST /api/auth/forgot-password
+   - Integrar ResetPassword.tsx com POST /api/auth/reset-password
+   - Implementar fluxo de refresh token (JWT)
+   - Adicionar loading states e error handling em todas as telas de auth
+
+3. [FORMS.VALIDATION] Validacao avancada de formularios
+   - Instalar Zod ou Yup para schema validation
+   - Instalar react-hook-form para gerenciamento de formularios
+   - Refatorar formularios: Login, CadastrarUsuario, EditarUsuario, CriarProjeto, CriarTarefa
+   - Adicionar validacoes customizadas (senha forte, CPF, telefone)
+
+4. [STATE.MANAGEMENT] Gestao de estado global
+   - Escolher biblioteca (Zustand recomendado / Redux Toolkit)
+   - Criar stores: authStore, projectsStore, tasksStore, notificationsStore, usersStore
+   - Substituir estados locais mockados por dados do store
+   - Implementar sincronizacao com backend (optimistic updates)
+
+PRIORIDADE MEDIA:
+5. [RESPONSIVE.DESIGN] Responsividade mobile
+   - Adicionar breakpoints mobile-first em todos os componentes
+   - Ajustar Sidebar para drawer mobile (hamburger menu)
+   - Otimizar Kanban para touch (melhorar drag-and-drop mobile)
+   - Testar em diferentes viewports (320px, 768px, 1024px, 1440px)
+
+6. [WEBSOCKETS] Real-time com WebSockets
+   - Implementar WebSocket client (src/services/websocket.ts)
+   - Chat em tempo real (envio/recebimento de mensagens)
+   - Notificacoes push em tempo real
+   - Atualizacoes de tarefas no kanban (colaboracao em tempo real)
+   - Status online/offline de usuarios
+
+7. [FILE.UPLOAD] Upload de arquivos
+   - Implementar upload de avatar (Perfil)
+   - Implementar upload de anexos em tarefas
+   - Progress bar para uploads
+   - Preview de imagens antes do upload
+   - Validacao de tipo/tamanho de arquivo
+
+8. [REPORTS.EXPORT] Exportacao de relatorios
+   - Exportar para PDF (biblioteca jsPDF ou react-pdf)
+   - Exportar para CSV/Excel (biblioteca xlsx)
+   - Implementar filtros avancados (data range picker)
+   - Graficos exportaveis (Recharts to image)
+
+PRIORIDADE BAIXA:
+9. [TESTS] Testes automatizados
+   - Configurar Vitest + React Testing Library
+   - Testes unitarios para hooks customizados (useAuth, useTheme)
+   - Testes de componentes criticos (Login, Dashboard, Kanban)
+   - Testes de integracao para fluxos principais
+   - Coverage minimo de 70%
+
+10. [I18N] Internacionalizacao
+   - Instalar react-i18next
+   - Criar arquivos de traducao (pt-BR, en-US, es-ES)
+   - Conectar com seletor de idioma em Configuracoes
+   - Traduzir todas as strings hardcoded
+   - Formatacao de datas/numeros por locale
+
+11. [PWA] Progressive Web App
+   - Configurar service worker (Workbox)
+   - Criar manifest.json (icones, splash screens)
+   - Implementar offline-first para leitura de dados
+   - Push notifications nativas (Web Push API)
+   - Prompt de instalacao (Add to Home Screen)
+
+12. [PERFORMANCE] Otimizacoes de performance
+   - Code splitting com React.lazy() e Suspense
+   - Lazy loading de rotas (dynamic imports)
+   - Memoizacao (React.memo, useMemo, useCallback)
+   - Virtual scrolling para listas longas (react-window)
+   - Otimizacao de bundle (tree shaking, minification)
+   - Lighthouse score >= 90
+
+13. [A11Y] Acessibilidade
+   - Adicionar aria-labels em todos os componentes interativos
+   - Implementar keyboard navigation (tab order, shortcuts)
+   - Focus trap em modais e dialogs
+   - Skip links para navegacao rapida
+   - Testar com screen readers (NVDA, JAWS)
+   - WCAG 2.1 AA compliance
+
+[STACK.TECNOLOGICO]
+Backend:
+- Framework: FastAPI (Python 3.11+)
+- Database: PostgreSQL 15+
+- ORM: SQLAlchemy 2.0
+- Migrations: Alembic
+- Auth: JWT (python-jose)
+- Validation: Pydantic v2
+- WebSockets: FastAPI WebSocket support
+- File Storage: S3 / MinIO / Local
+- Cache: Redis (opcional)
+- Task Queue: Celery + Redis (opcional, para emails/notificacoes)
+
+Frontend:
+- Framework: React 19 + TypeScript
+- Build: Vite 7
+- UI: Material-UI (MUI) 7
+- Routing: React Router DOM 7
+- HTTP Client: Axios
+- State: Zustand (ou Redux Toolkit)
+- Forms: react-hook-form + Zod
+- Charts: Recharts
+- Drag-and-Drop: @dnd-kit
+- WebSockets: native WebSocket API ou socket.io-client
+- i18n: react-i18next (futuro)
+- Tests: Vitest + React Testing Library (futuro)
+
+[NOTAS.IMPORTANTES]
+- Todos os dados atuais sao mockados (hardcoded) - substituir por chamadas API
+- TODOs pendentes: Login.tsx:23, ForgotPassword.tsx:12, ResetPassword.tsx:32
+- Dark mode ja funcional - garantir que API retorne preferencia do usuario
+- Persistir configuracoes do usuario (tema, idioma, notificacoes) no backend
+- Considerar CORS no FastAPI (permitir origem do frontend)
+- Variavel de ambiente VITE_API_URL deve apontar para FastAPI (ex: http://localhost:8000/api)
