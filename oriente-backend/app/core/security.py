@@ -1,11 +1,8 @@
-from passlib.context import CryptContext
+import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional
 import jwt
 from .config import settings
-
-# Context para hash de senhas (BCrypt)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
@@ -13,7 +10,11 @@ def hash_password(password: str) -> str:
     Gera hash BCrypt da senha
     Equivalente a: passwordEncoder.encode()
     """
-    return pwd_context.hash(password)
+    # Truncar senha se for muito longa (bcrypt tem limite de 72 bytes)
+    password_bytes = password.encode('utf-8')[:72]
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -21,7 +22,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Verifica se a senha corresponde ao hash
     Equivalente a: passwordEncoder.matches()
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncar senha se for muito longa (bcrypt tem limite de 72 bytes)
+    password_bytes = plain_password.encode('utf-8')[:72]
+    hashed_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 def create_access_token(user_id: int, email: str, name: str, role: str) -> str:
