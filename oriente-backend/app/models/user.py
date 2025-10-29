@@ -9,10 +9,16 @@ class UserStatus(str, enum.Enum):
     """
     Status do usuário
     """
-    ONLINE = "ONLINE"         # O usuário está logado e ativo
-    OFFLINE = "OFFLINE"       # O usuário está deslogado
-    SUSPENDED = "SUSPENDED"   # O usuário foi suspenso temporariamente por um administrador
-    DEACTIVATED = "DEACTIVATED"  # A conta do usuário foi desativada permanentemente
+    ACTIVE = "ACTIVE"         # Usuário ativo
+    INACTIVE = "INACTIVE"     # Usuário inativo/desativado
+
+
+class UserRole(str, enum.Enum):
+    """
+    Papel/Role do usuário (RBAC)
+    """
+    ADMIN = "ADMIN"           # Administrador do sistema
+    USER = "USER"             # Usuário padrão
 
 
 class User(Base):
@@ -28,13 +34,13 @@ class User(Base):
     # Campos básicos
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
-    password = Column(String, nullable=False)  # Hash da senha (BCrypt)
+    password_hash = Column(String, nullable=False)  # Hash da senha (BCrypt)
 
     # Status do usuário
-    status = Column(SQLEnum(UserStatus), default=UserStatus.OFFLINE, nullable=True)
+    status = Column(SQLEnum(UserStatus), default=UserStatus.ACTIVE, nullable=False)
 
     # Role/Papel (RBAC)
-    role = Column(String, default="USER", nullable=False)
+    role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

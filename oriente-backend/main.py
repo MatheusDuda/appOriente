@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routers import auth, projects
+from app.routers import auth, projects, users
 
 # Criar tabelas no banco de dados
 # Equivalente ao spring.jpa.hibernate.ddl-auto=create-drop
@@ -30,6 +30,7 @@ app.add_middleware(
 # Registrar routers
 app.include_router(auth.router)
 app.include_router(projects.router)
+app.include_router(users.router)
 
 
 @app.get("/")
