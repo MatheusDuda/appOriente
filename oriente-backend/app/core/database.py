@@ -4,9 +4,12 @@ from sqlalchemy.orm import sessionmaker
 from .config import settings
 
 # Criar engine do SQLAlchemy
+# Para SQLite, precisamos adicionar check_same_thread=False
+connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG  # Equivalente ao spring.jpa.show-sql=true
+    echo=settings.DEBUG,  # Equivalente ao spring.jpa.show-sql=true
+    connect_args=connect_args
 )
 
 # Session factory

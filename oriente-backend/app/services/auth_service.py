@@ -28,9 +28,9 @@ class AuthService:
         user = User(
             name=request.name,
             email=request.email,
-            password=hash_password(request.password),  # Hash da senha usando BCrypt
+            password_hash=hash_password(request.password),  # Hash da senha usando BCrypt
             role=request.role if request.role else "USER",
-            status=UserStatus.OFFLINE
+            status=UserStatus.ACTIVE
         )
 
         # Salvar no banco de dados
@@ -56,7 +56,7 @@ class AuthService:
             )
 
         # Verificar senha usando BCrypt
-        if not verify_password(request.password, user.password):
+        if not verify_password(request.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciais inválidas"
