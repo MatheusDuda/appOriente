@@ -9,7 +9,6 @@ sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 
 # Autenticação e segurança
-python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 pyjwt==2.8.0
 
