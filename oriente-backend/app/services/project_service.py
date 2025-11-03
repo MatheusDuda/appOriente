@@ -53,6 +53,10 @@ class ProjectService:
         db.commit()
         db.refresh(project)
 
+        # Criar colunas padrão do Kanban (import aqui para evitar circular import)
+        from app.services.column_service import ColumnService
+        ColumnService.create_default_columns(db, project.id)
+
         return project
 
     @staticmethod
@@ -199,3 +203,36 @@ class ProjectService:
             )
 
         return users
+
+    @staticmethod
+    def user_can_access_project(db: Session, project_id: int, user_id: int) -> bool:
+        """
+        Verifica se o usuário tem acesso ao projeto
+        (é owner ou membro do projeto)
+        """
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            return False
+
+        # Verificar se é owner
+        if project.owner_id == user_id:
+            return True
+
+        # Verificar se é membro
+        user = db.query(User).filter(User.id == user_id).first()
+        if user and user in project.members:
+            return True
+
+        return False
+
+    @staticmethod
+    def user_can_edit_project(db: Session, project_id: int, user_id: int) -> bool:
+        """
+        Verifica se o usuário tem permissão para editar o projeto
+        (apenas owner pode editar)
+        """
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            return False
+
+        return project.owner_id == user_id

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.routers import auth, projects, users
+from app.routers import Columns as columns, Cards as cards
 
 # Criar tabelas no banco de dados
 # Equivalente ao spring.jpa.hibernate.ddl-auto=create-drop
@@ -31,6 +32,10 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(users.router)
+
+# Routers do Kanban
+app.include_router(columns.router, prefix="/api/projects", tags=["Columns"])
+app.include_router(cards.router, prefix="/api/projects", tags=["Cards"])
 
 
 @app.get("/")
