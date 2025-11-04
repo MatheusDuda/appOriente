@@ -13,14 +13,14 @@ class ProjectCreateRequest(BaseModel):
     """
     name: str = Field(..., min_length=2, max_length=100, description="Nome do projeto")
     description: str = Field(..., max_length=500, description="Descrição do projeto")
-    member_emails: Optional[List[EmailStr]] = Field(default=[], description="Lista de emails dos membros")
+    member_names: Optional[List[str]] = Field(default=[], description="Lista de nomes dos membros")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "Projeto X",
                 "description": "Descrição do projeto X",
-                "member_emails": ["membro1@example.com", "membro2@example.com"]
+                "member_names": ["João Silva", "Maria Santos"]
             }
         }
 
@@ -32,18 +32,18 @@ class ProjectUpdateRequest(BaseModel):
     """
     name: Optional[str] = Field(None, min_length=2, max_length=100, description="Nome do projeto")
     description: Optional[str] = Field(None, max_length=500, description="Descrição do projeto")
-    member_emails: Optional[List[EmailStr]] = Field(None, description="Lista de emails dos membros")
+    member_names: Optional[List[str]] = Field(None, description="Lista de nomes dos membros")
 
     def has_updates(self) -> bool:
         """Verifica se há alguma informação a ser atualizada"""
-        return self.name is not None or self.description is not None or self.member_emails is not None
+        return self.name is not None or self.description is not None or self.member_names is not None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "Projeto X Atualizado",
                 "description": "Nova descrição",
-                "member_emails": ["membro1@example.com"]
+                "member_names": ["João Silva"]
             }
         }
 
@@ -57,7 +57,7 @@ class ProjectResponse(BaseModel):
     name: str
     description: Optional[str]
     owner_email: str
-    member_emails: List[str]
+    member_names: List[str]
     created_at: datetime
     updated_at: datetime
 

@@ -39,9 +39,9 @@ class ProjectService:
         # Adicionar owner como membro automaticamente
         project.members.append(owner)
 
-        # Adicionar membros adicionais baseado nos emails
-        if request.member_emails:
-            additional_members = ProjectService._find_users_by_emails(request.member_emails, db)
+        # Adicionar membros adicionais baseado nos nomes
+        if request.member_names:
+            additional_members = ProjectService._find_users_by_names(request.member_names, db)
 
             # Adicionar membros únicos (evitar duplicatas)
             for member in additional_members:
@@ -109,8 +109,8 @@ class ProjectService:
             project.description = request.description
 
         # Atualizar membros se fornecidos
-        if request.member_emails is not None:
-            new_members = ProjectService._find_users_by_emails(request.member_emails, db)
+        if request.member_names is not None:
+            new_members = ProjectService._find_users_by_names(request.member_names, db)
             project.members.clear()
             project.members.append(project.owner)  # Owner sempre é membro
 
@@ -153,14 +153,14 @@ class ProjectService:
         """
         Converte Project para ProjectResponse
         """
-        member_emails = [member.email for member in project.members]
+        member_names = [member.name for member in project.members]
 
         return ProjectResponse(
             id=project.id,
             name=project.name,
             description=project.description,
             owner_email=project.owner.email,
-            member_emails=member_emails,
+            member_names=member_names,
             created_at=project.created_at,
             updated_at=project.updated_at
         )
@@ -181,25 +181,25 @@ class ProjectService:
         )
 
     @staticmethod
-    def _find_users_by_emails(emails: List[str], db: Session) -> List[User]:
+    def _find_users_by_names(names: List[str], db: Session) -> List[User]:
         """
-        Método auxiliar para buscar usuários por lista de emails
+        Método auxiliar para buscar usuários por lista de nomes
         """
         users = []
-        not_found_emails = []
+        not_found_names = []
 
-        for email in emails:
-            user = db.query(User).filter(User.email == email).first()
+        for name in names:
+            user = db.query(User).filter(User.name == name).first()
             if user:
                 users.append(user)
             else:
-                not_found_emails.append(email)
+                not_found_names.append(name)
 
-        # Se houver emails não encontrados, lançar exceção informativa
-        if not_found_emails:
+        # Se houver nomes não encontrados, lançar exceção informativa
+        if not_found_names:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Usuários não encontrados para os emails: {', '.join(not_found_emails)}"
+                detail=f"Usuários não encontrados para os nomes: {', '.join(not_found_names)}"
             )
 
         return users
