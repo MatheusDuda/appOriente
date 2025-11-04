@@ -57,5 +57,12 @@ class User(Base):
         back_populates="members"
     )
 
+    # Cards atribuídos (Many-to-Many)
+    assigned_cards = relationship(
+        "Card",
+        secondary="card_assignees",
+        back_populates="assignees"
+    )
+
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', name='{self.name}')>"

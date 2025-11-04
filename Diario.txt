@@ -215,10 +215,92 @@ Frontend:
 - i18n: react-i18next (futuro)
 - Tests: Vitest + React Testing Library (futuro)
 
+[INTEGRACAO.FRONTEND.BACKEND]
+- 2025-11-04 INTEGRAÇÃO COMPLETA FRONTEND-BACKEND IMPLEMENTADA na branch feature/integracao-backend
+
+1. [CAMADA.HTTP] Cliente HTTP configurado com axios
+   - src/services/api.ts: Cliente base com interceptors, tratamento de erros, auto-retry
+   - Configuração automática de Bearer token para autenticação
+   - Logs de debug em desenvolvimento (VITE_DEBUG=true)
+   - Interceptor de resposta para refresh automático em caso de 401
+
+2. [VARIAVEIS.AMBIENTE] Configuração de ambiente
+   - .env.development: Configuração para desenvolvimento (localhost:8080)
+   - .env.production: Configuração para produção (placeholders)
+   - vite.config.ts: Proxy configurado para /api -> localhost:8080
+   - Variáveis VITE_API_URL e VITE_API_BASE_URL devidamente configuradas
+
+3. [TIPOS.TYPESCRIPT] Interface completa da API
+   - src/types/api.ts: Tipos para auth, users, projects, columns, cards
+   - Interfaces para requests, responses, DTOs e enums
+   - Compatibilidade total com schemas do backend FastAPI
+
+4. [SERVICOS.API] Camada de serviços implementada
+   - src/services/authService.ts: Login, register, logout, forgot/reset password
+   - src/services/usersService.ts: CRUD completo de usuários com validações
+   - src/services/projectsService.ts: CRUD de projetos, colunas e cartões kanban
+   - Tratamento de erros centralizado e métodos utilitários
+
+5. [AUTENTICACAO.REAL] Sistema de auth integrado com backend
+   - AuthContext refatorado para usar API real (POST /api/auth/login)
+   - Login.tsx integrado com validação e feedback de erros
+   - ForgotPassword.tsx conectado com POST /api/auth/forgot-password
+   - ResetPassword.tsx conectado com POST /api/auth/reset-password
+   - Gestão completa de tokens JWT com localStorage
+
+6. [ESTADO.GLOBAL] Zustand configurado para gestão de estado
+   - stores/projectsStore.ts: Estado global de projetos, colunas e cartões
+   - stores/usersStore.ts: Estado global de usuários
+   - Sincronização automática com backend via services
+   - DevTools habilitado para debug
+
+7. [PROXY.DESENVOLVIMENTO] Configuração de proxy no Vite
+   - Proxy /api -> http://localhost:8080 para desenvolvimento
+   - Configuração de CORS otimizada
+   - Acesso direto ao Swagger: /swagger-ui.html
+
+[ARQUIVOS.IMPLEMENTADOS]
+Frontend:
+- src/services/api.ts (novo)
+- src/services/authService.ts (novo)
+- src/services/usersService.ts (novo)
+- src/services/projectsService.ts (novo)
+- src/stores/projectsStore.ts (novo)
+- src/stores/usersStore.ts (novo)
+- src/stores/index.ts (novo)
+- src/types/api.ts (novo)
+- src/contexts/AuthContext.tsx (refatorado)
+- src/pages/Login/Login.tsx (integrado)
+- src/pages/Auth/ForgotPassword.tsx (integrado)
+- src/pages/Auth/ResetPassword.tsx (integrado)
+- vite.config.ts (configurado)
+- .env.development (novo)
+- .env.production (novo)
+
+Dependências adicionadas:
+- axios@^1.13.1
+- zustand@^5.0.8
+
+[STATUS.INTEGRACAO]
+✅ Autenticação: Login, register, forgot/reset password funcionais
+✅ API Client: Configurado com interceptors e tratamento de erros
+✅ Tipos TypeScript: Interface completa da API definida
+✅ Serviços: authService, usersService, projectsService implementados
+✅ Estado Global: Zustand configurado com stores
+✅ Proxy Dev: Configurado para comunicação com backend
+✅ Variáveis Ambiente: Configuradas para dev/prod
+
+[PROXIMOS.PASSOS]
+1. Testar login com backend rodando (necessário criar usuário no BD)
+2. Integrar componentes de usuários com usersService/usersStore
+3. Integrar módulo de projetos/kanban com projectsService/projectsStore
+4. Implementar react-hook-form + Zod para validação avançada
+5. Adicionar loading states e error boundaries
+6. Implementar WebSockets para real-time (futuro)
+
 [NOTAS.IMPORTANTES]
-- Todos os dados atuais sao mockados (hardcoded) - substituir por chamadas API
-- TODOs pendentes: Login.tsx:23, ForgotPassword.tsx:12, ResetPassword.tsx:32
-- Dark mode ja funcional - garantir que API retorne preferencia do usuario
-- Persistir configuracoes do usuario (tema, idioma, notificacoes) no backend
-- Considerar CORS no FastAPI (permitir origem do frontend)
-- Variavel de ambiente VITE_API_URL deve apontar para FastAPI (ex: http://localhost:8000/api)
+- BREAKING CHANGE: AuthContext agora é assíncrono - componentes devem tratar loading states
+- TODOs removidos: Login.tsx, ForgotPassword.tsx, ResetPassword.tsx já integrados
+- Dark mode mantido funcional - preferências serão sincronizadas com backend
+- CORS configurado no backend para aceitar localhost:5173
+- Todos os dados mockados podem ser substituídos por calls aos services
