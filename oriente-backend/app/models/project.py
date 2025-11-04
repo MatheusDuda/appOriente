@@ -44,6 +44,15 @@ class Project(Base):
         back_populates="member_projects"
     )
 
+    # Columns: Um projeto tem várias colunas do kanban
+    columns = relationship("KanbanColumn", back_populates="project", cascade="all, delete-orphan")
+
+    # Cards: Um projeto tem vários cards
+    cards = relationship("Card", back_populates="project", cascade="all, delete-orphan")
+
+    # Tags: Um projeto tem várias tags
+    tags = relationship("Tag", back_populates="project", cascade="all, delete-orphan")
+
     def update_timestamp(self):
         """Atualiza o timestamp manualmente"""
         self.updated_at = datetime.utcnow()
