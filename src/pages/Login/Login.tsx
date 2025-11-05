@@ -15,14 +15,30 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 export default function Login() {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, loading, error, clearError } = useAuth();
     const [show, setShow] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [localError, setLocalError] = useState<string | null>(null);
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        // TODO: trocar por chamada ao FastAPI
-        login(); // seta token fake
-        navigate("/dashboard", { replace: true });
+        setLocalError(null);
+        clearError();
+
+        // Validação simples
+        if (!email || !password) {
+            setLocalError("Por favor, preencha todos os campos");
+            return;
+        }
+
+        try {
+            await login(email, password);
+            navigate("/dashboard", { replace: true });
+        } catch (err) {
+            // Erro já é tratado no contexto
+            console.error("Erro no login:", err);
+        }
     };
 
     return (
@@ -75,12 +91,24 @@ export default function Login() {
                     Acesse sua Conta
                 </Typography>
 
+                {(error || localError) && (
+                    <Typography
+                        variant="body2"
+                        sx={{ color: "error.main", mb: 2, textAlign: "center" }}
+                    >
+                        {localError || error}
+                    </Typography>
+                )}
+
                 <TextField
                     fullWidth
                     label="E-mail"
                     variant="filled"
                     type="email"
                     placeholder="email@exemplo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
                     sx={{ mb: 2 }}
                 />
 
@@ -90,6 +118,9 @@ export default function Login() {
                     variant="filled"
                     type={show ? "text" : "password"}
                     placeholder="**************"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
                     sx={{ mb: 2 }}
                     InputProps={{
                         endAdornment: (
@@ -112,6 +143,7 @@ export default function Login() {
                     variant="contained"
                     color="primary"
                     type="submit"
+                    disabled={loading}
                     sx={{
                         mt: 1,
                         py: 1.2,
@@ -119,7 +151,7 @@ export default function Login() {
                         fontSize: "1.1rem",
                     }}
                 >
-                    Entrar
+                    {loading ? "Entrando..." : "Entrar"}
                 </Button>
 
                 <Box sx={{ textAlign: "center", mt: 2 }}>

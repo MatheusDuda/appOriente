@@ -26,6 +26,7 @@ import {
     NotificationsOutlined,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 type Notificacao = {
     id: number;
@@ -73,6 +74,7 @@ const mockNotificacoesRecentes: Notificacao[] = [
 
 export default function Topbar() {
     const navigate = useNavigate();
+    const { user, logout } = useAuth();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
@@ -94,10 +96,20 @@ export default function Topbar() {
         setNotifAnchorEl(null);
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         handleCloseMenu();
-        localStorage.removeItem("auth_token");
+        await logout();
         navigate("/");
+    };
+
+    // Função para obter as iniciais do nome
+    const getInitials = (name?: string) => {
+        if (!name) return "OR";
+        const parts = name.split(" ");
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
     };
 
     const naoLidasCount = mockNotificacoesRecentes.filter((n) => !n.lida).length;
@@ -292,7 +304,7 @@ export default function Topbar() {
                     aria-expanded={open ? "true" : undefined}
                 >
                     <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 14 }}>
-                        OR
+                        {getInitials(user?.name)}
                     </Avatar>
                 </IconButton>
 
@@ -317,10 +329,10 @@ export default function Topbar() {
                 >
                     <Box sx={{ px: 2, py: 1.5 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            Usuário Oriente
+                            {user?.name || "Usuário"}
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                            usuario@oriente.com
+                            {user?.email || "usuario@oriente.com"}
                         </Typography>
                     </Box>
                     <Divider />
