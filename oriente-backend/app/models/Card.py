@@ -61,6 +61,7 @@ class Card(Base):
     created_by = relationship("User", foreign_keys=[created_by_id])
     assignees = relationship("User", secondary=card_assignees, back_populates="assigned_cards")
     tags = relationship("Tag", secondary=card_tags, back_populates="cards")
+    comments = relationship("Comment", back_populates="card", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Card(id={self.id}, title='{self.title}', column_id={self.column_id})>"
