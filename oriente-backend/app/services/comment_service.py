@@ -7,8 +7,10 @@ from app.models.comment import Comment
 from app.models.comment_audit import CommentAudit
 from app.models.Card import Card
 from app.models.user import User, UserRole
+from app.models.card_history import CardHistoryAction
 from app.schemas.comment import CommentCreate, CommentUpdate, CommentResponse
 from app.services.project_service import ProjectService
+from app.services.card_history_service import CardHistoryService
 
 
 class CommentService:
@@ -52,6 +54,17 @@ class CommentService:
         db.add(comment)
         db.commit()
         db.refresh(comment)
+
+        # Registrar histórico de adição de comentário
+        CardHistoryService.create_history_entry(
+            db=db,
+            action=CardHistoryAction.COMMENT_ADDED,
+            card_id=card_id,
+            project_id=project_id,
+            user_id=user_id,
+            details={"comment_id": comment.id, "preview": comment.content[:50]}
+        )
+        db.commit()
 
         return comment
 
@@ -214,6 +227,10 @@ class CommentService:
                     detail="Apenas ADMIN pode deletar comentários de outros usuários"
                 )
 
+        # Guardar informações do comentário antes de deletar
+        comment_content_preview = comment.content[:50]
+        comment_id = comment.id
+
         # Se ADMIN está deletando comentário de outro usuário, criar registro de auditoria
         if is_admin and not is_author:
             audit = CommentAudit(
@@ -226,6 +243,17 @@ class CommentService:
 
         # Deletar comentário
         db.delete(comment)
+        db.commit()
+
+        # Registrar histórico de remoção de comentário
+        CardHistoryService.create_history_entry(
+            db=db,
+            action=CardHistoryAction.COMMENT_DELETED,
+            card_id=card_id,
+            project_id=project_id,
+            user_id=user_id,
+            details={"comment_id": comment_id, "preview": comment_content_preview}
+        )
         db.commit()
 
     @staticmethod

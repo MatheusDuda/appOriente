@@ -7,11 +7,13 @@ from fastapi import HTTPException, status
 from app.models.Card import Card, Tag, CardStatus, CardPriority
 from app.models.Column import KanbanColumn
 from app.models.user import User
+from app.models.card_history import CardHistoryAction
 from app.schemas.Card import (
     CardCreate, CardUpdate, CardMove, CardStatusUpdate,
     CardFilters, TagCreate, TagUpdate
 )
 from app.services.project_service import ProjectService
+from app.services.card_history_service import CardHistoryService
 
 
 class CardService:
@@ -77,6 +79,17 @@ class CardService:
 
         db.commit()
         db.refresh(card)
+
+        # Registrar histórico de criação
+        CardHistoryService.create_history_entry(
+            db=db,
+            action=CardHistoryAction.CREATED,
+            card_id=card.id,
+            project_id=project_id,
+            user_id=user_id,
+            details={"title": card.title}
+        )
+        db.commit()
 
         return card
 
@@ -177,29 +190,149 @@ class CardService:
                 detail="Sem permissão para editar esta tarefa"
             )
 
+        # Rastrear mudanças para histórico
+        changes = {}
+        old_title = card.title
+        old_description = card.description
+        old_due_date = card.due_date
+        old_assignee_ids = {u.id for u in card.assignees}
+        old_tag_ids = {t.id for t in card.tags}
+
         # Atualizar campos básicos
         update_data = card_data.model_dump(exclude_unset=True, exclude={'assignee_ids', 'tag_ids'})
         for field, value in update_data.items():
             setattr(card, field, value)
 
+        # Detectar mudanças
+        if 'title' in update_data and old_title != card.title:
+            changes['title_changed'] = True
+            changes['old_title'] = old_title
+            changes['new_title'] = card.title
+
+        if 'description' in update_data and old_description != card.description:
+            changes['description_changed'] = True
+
+        if 'due_date' in update_data and old_due_date != card.due_date:
+            changes['deadline_changed'] = True
+
         # Atualizar assignees se informado
+        assignees_changed = False
         if card_data.assignee_ids is not None:
+            new_assignee_ids = set(card_data.assignee_ids) if card_data.assignee_ids else set()
+
+            # Detectar quem foi adicionado e removido
+            added_assignees = new_assignee_ids - old_assignee_ids
+            removed_assignees = old_assignee_ids - new_assignee_ids
+
             # Remover assignees atuais
             card.assignees.clear()
             # Adicionar novos assignees
             if card_data.assignee_ids:
                 CardService._add_assignees(db, card, card_data.assignee_ids, card.project_id)
 
+            assignees_changed = bool(added_assignees or removed_assignees)
+
         # Atualizar tags se informado
+        tags_changed = False
         if card_data.tag_ids is not None:
+            new_tag_ids = set(card_data.tag_ids) if card_data.tag_ids else set()
+
+            # Detectar quais foram adicionadas e removidas
+            added_tags = new_tag_ids - old_tag_ids
+            removed_tags = old_tag_ids - new_tag_ids
+
             # Remover tags atuais
             card.tags.clear()
             # Adicionar novas tags
             if card_data.tag_ids:
                 CardService._add_tags(db, card, card_data.tag_ids, card.project_id)
 
+            tags_changed = bool(added_tags or removed_tags)
+
         db.commit()
         db.refresh(card)
+
+        # Registrar histórico se houve mudanças nos campos básicos
+        if changes:
+            CardHistoryService.create_history_entry(
+                db=db,
+                action=CardHistoryAction.UPDATED,
+                card_id=card.id,
+                project_id=card.project_id,
+                user_id=user_id,
+                details=changes
+            )
+            db.commit()
+
+        # Registrar mudanças de assignees (individualmente)
+        if card_data.assignee_ids is not None:
+            new_assignee_ids = set(card_data.assignee_ids) if card_data.assignee_ids else set()
+            added_assignees = new_assignee_ids - old_assignee_ids
+            removed_assignees = old_assignee_ids - new_assignee_ids
+
+            # Criar histórico para cada assignee adicionado
+            for assignee_id in added_assignees:
+                user = db.query(User).filter(User.id == assignee_id).first()
+                if user:
+                    CardHistoryService.create_history_entry(
+                        db=db,
+                        action=CardHistoryAction.ASSIGNEE_ADDED,
+                        card_id=card.id,
+                        project_id=card.project_id,
+                        user_id=user_id,
+                        details={"assignee_name": user.name, "assignee_id": assignee_id}
+                    )
+
+            # Criar histórico para cada assignee removido
+            for assignee_id in removed_assignees:
+                user = db.query(User).filter(User.id == assignee_id).first()
+                if user:
+                    CardHistoryService.create_history_entry(
+                        db=db,
+                        action=CardHistoryAction.ASSIGNEE_REMOVED,
+                        card_id=card.id,
+                        project_id=card.project_id,
+                        user_id=user_id,
+                        details={"assignee_name": user.name, "assignee_id": assignee_id}
+                    )
+
+            if added_assignees or removed_assignees:
+                db.commit()
+
+        # Registrar mudanças de tags (individualmente)
+        if card_data.tag_ids is not None:
+            new_tag_ids = set(card_data.tag_ids) if card_data.tag_ids else set()
+            added_tags = new_tag_ids - old_tag_ids
+            removed_tags = old_tag_ids - new_tag_ids
+
+            # Criar histórico para cada tag adicionada
+            for tag_id in added_tags:
+                tag = db.query(Tag).filter(Tag.id == tag_id).first()
+                if tag:
+                    CardHistoryService.create_history_entry(
+                        db=db,
+                        action=CardHistoryAction.TAG_ADDED,
+                        card_id=card.id,
+                        project_id=card.project_id,
+                        user_id=user_id,
+                        details={"tag_name": tag.name, "tag_id": tag_id, "tag_color": tag.color}
+                    )
+
+            # Criar histórico para cada tag removida
+            for tag_id in removed_tags:
+                tag = db.query(Tag).filter(Tag.id == tag_id).first()
+                if tag:
+                    CardHistoryService.create_history_entry(
+                        db=db,
+                        action=CardHistoryAction.TAG_REMOVED,
+                        card_id=card.id,
+                        project_id=card.project_id,
+                        user_id=user_id,
+                        details={"tag_name": tag.name, "tag_id": tag_id, "tag_color": tag.color}
+                    )
+
+            if added_tags or removed_tags:
+                db.commit()
 
         return card
 
@@ -260,6 +393,10 @@ class CardService:
         new_column_id = move_data.column_id
         new_position = move_data.new_position
 
+        # Guardar nome da coluna antiga para histórico
+        old_column = db.query(KanbanColumn).filter(KanbanColumn.id == old_column_id).first()
+        old_column_name = old_column.title if old_column else "Desconhecida"
+
         # Se mudou de coluna
         if old_column_id != new_column_id:
             # Ajustar posições na coluna de origem
@@ -285,6 +422,21 @@ class CardService:
 
         db.commit()
         db.refresh(card)
+
+        # Registrar histórico de movimentação (apenas se mudou de coluna)
+        if old_column_id != new_column_id:
+            CardHistoryService.create_history_entry(
+                db=db,
+                action=CardHistoryAction.MOVED,
+                card_id=card.id,
+                project_id=card.project_id,
+                user_id=user_id,
+                details={
+                    "from_column": old_column_name,
+                    "to_column": target_column.title
+                }
+            )
+            db.commit()
 
         return card
 
