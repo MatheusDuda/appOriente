@@ -28,6 +28,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../hooks/useNotifications";
 import type { NotificationType } from "../types/notifications";
+import { authService, type UserData } from "../services/authService";
 
 // Função para obter ícone e cor de fundo baseado no tipo
 const getNotificationStyle = (tipo: NotificationType) => {
@@ -73,11 +74,25 @@ export default function Topbar() {
     const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
+    const [userData, setUserData] = useState<UserData | null>(null);
     const open = Boolean(anchorEl);
     const notifOpen = Boolean(notifAnchorEl);
 
     // Usar hook de notificações apenas quando necessário
     const { notifications, unreadCount, loading, fetchNotifications } = useNotifications(false);
+
+    // Buscar dados do usuário logado
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const user = await authService.getCurrentUser();
+                setUserData(user);
+            } catch (error) {
+                console.error("Erro ao buscar dados do usuário:", error);
+            }
+        };
+        fetchUserData();
+    }, []);
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -117,6 +132,14 @@ export default function Topbar() {
 
     // Pegar apenas as 5 notificações mais recentes
     const notificacoesRecentes = notifications.slice(0, 5);
+
+    // Gerar iniciais do nome do usuário
+    const getInitials = (name: string | undefined): string => {
+        if (!name) return "?";
+        const parts = name.trim().split(" ");
+        if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    };
 
     return (
         <Box
@@ -315,7 +338,7 @@ export default function Topbar() {
                     aria-expanded={open ? "true" : undefined}
                 >
                     <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: 14 }}>
-                        OR
+                        {getInitials(userData?.name)}
                     </Avatar>
                 </IconButton>
 
@@ -340,10 +363,10 @@ export default function Topbar() {
                 >
                     <Box sx={{ px: 2, py: 1.5 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            Usuário Oriente
+                            {userData?.name || "Carregando..."}
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                            usuario@oriente.com
+                            {userData?.email || ""}
                         </Typography>
                     </Box>
                     <Divider />
