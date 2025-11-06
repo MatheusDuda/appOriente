@@ -29,6 +29,9 @@ class Project(Base):
     # Owner (ManyToOne)
     owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
+    # Team (ManyToOne) - Novo campo
+    team_id = Column(Integer, ForeignKey('teams.id'), nullable=False)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -36,6 +39,9 @@ class Project(Base):
     # Relacionamentos
     # Owner: Um projeto tem um dono
     owner = relationship("User", back_populates="owned_projects", foreign_keys=[owner_id])
+
+    # Team: Um projeto pertence a uma equipe
+    team = relationship("Team", back_populates="projects", foreign_keys=[team_id])
 
     # Members: Um projeto tem vários membros (Many-to-Many)
     members = relationship(
@@ -58,4 +64,4 @@ class Project(Base):
         self.updated_at = datetime.utcnow()
 
     def __repr__(self):
-        return f"<Project(id={self.id}, name='{self.name}', owner_id={self.owner_id})>"
+        return f"<Project(id={self.id}, name='{self.name}', owner_id={self.owner_id}, team_id={self.team_id})>"

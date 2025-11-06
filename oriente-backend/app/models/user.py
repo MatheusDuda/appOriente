@@ -64,5 +64,15 @@ class User(Base):
         back_populates="assignees"
     )
 
+    # Equipes onde é líder (One-to-Many)
+    led_teams = relationship("Team", back_populates="leader", foreign_keys="Team.leader_id")
+
+    # Equipes onde é membro (Many-to-Many)
+    member_teams = relationship(
+        "Team",
+        secondary="team_members",
+        back_populates="members"
+    )
+
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', name='{self.name}')>"
