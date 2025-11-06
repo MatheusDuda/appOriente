@@ -8,10 +8,12 @@ import {
     IconButton,
     InputAdornment,
     Link,
+    Alert,
 } from "@mui/material";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { authService } from "../../services/authService";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -21,14 +23,19 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [errors, setErrors] = useState({ email: "", password: "" });
     const [loading, setLoading] = useState(false);
+    const [apiError, setApiError] = useState("");
 
     const validateEmail = (email: string): boolean => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     };
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        // Limpa erro anterior da API
+        setApiError("");
+
 
         // Validação
         const newErrors = { email: "", password: "" };
@@ -54,13 +61,21 @@ export default function Login() {
 
         if (hasError) return;
 
-        // TODO: trocar por chamada ao FastAPI
+        // Chamada à API do FastAPI
         setLoading(true);
-        setTimeout(() => {
-            login(); // seta token fake
+        try {
+            const token = await authService.login({ email, password });
+            login(token); // salva token real no contexto
             navigate("/dashboard", { replace: true });
+        } catch (error: any) {
+            console.error("Erro ao fazer login:", error);
+            const message =
+                error.response?.data?.detail ||
+                "Erro ao fazer login. Verifique suas credenciais.";
+            setApiError(message);
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
     return (
@@ -112,6 +127,13 @@ export default function Login() {
                 >
                     Acesse sua Conta
                 </Typography>
+
+                {apiError && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {apiError}
+                    </Alert>
+                )}
+
 
                 <TextField
                     fullWidth
