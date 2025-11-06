@@ -16,7 +16,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (t) setToken(t);
     }, []);
 
-    const login = (t = "dev-token") => {
+    const login = (t?: string) => {
+        if (!t) {
+            console.error("Token não fornecido para login");
+            return;
+        }
         localStorage.setItem("auth_token", t);
         setToken(t);
     };

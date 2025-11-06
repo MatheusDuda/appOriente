@@ -160,11 +160,18 @@ CREATE TABLE history_logs (
 
 CREATE TABLE notifications (
     id BIGSERIAL PRIMARY KEY,
+    type VARCHAR(50) NOT NULL DEFAULT 'SYSTEM',
+    title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     recipient_user_id BIGINT NOT NULL,
-    FOREIGN KEY (recipient_user_id) REFERENCES users(id)
+    related_entity_type VARCHAR(50),
+    related_entity_id BIGINT,
+    action_url VARCHAR(500),
+    FOREIGN KEY (recipient_user_id) REFERENCES users(id),
+    CONSTRAINT check_notification_type CHECK (type IN ('TASK', 'TEAM', 'SYSTEM')),
+    CONSTRAINT check_related_entity_type CHECK (related_entity_type IS NULL OR related_entity_type IN ('TASK', 'PROJECT', 'TEAM'))
 );
 
 CREATE TABLE reports (

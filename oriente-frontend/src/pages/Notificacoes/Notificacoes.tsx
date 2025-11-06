@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Box,
     Paper,
@@ -15,130 +15,119 @@ import {
     Button,
     Menu,
     MenuItem,
+    CircularProgress,
+    Alert,
 } from "@mui/material";
 import {
     NotificationsOutlined,
     TaskAltOutlined,
     PersonAddOutlined,
-    ChatBubbleOutlineOutlined,
-    WarningAmberOutlined,
     MoreVertOutlined,
     CheckCircleOutlined,
     DeleteOutlined,
     DoneAllOutlined,
 } from "@mui/icons-material";
+import { useNotifications } from "../../hooks/useNotifications";
+import type { NotificationType } from "../../types/notifications";
 
-type TipoNotificacao = "tarefa" | "equipe" | "chat" | "sistema";
-
-type Notificacao = {
-    id: number;
-    tipo: TipoNotificacao;
-    titulo: string;
-    mensagem: string;
-    timestamp: string;
-    lida: boolean;
-    icone: React.ReactNode;
-    corFundo: string;
+// Função para obter ícone e cor de fundo baseado no tipo
+const getNotificationStyle = (tipo: NotificationType) => {
+    switch (tipo) {
+        case "TASK":
+            return {
+                icone: <TaskAltOutlined />,
+                corFundo: "#e3f2fd",
+            };
+        case "TEAM":
+            return {
+                icone: <PersonAddOutlined />,
+                corFundo: "#f3e5f5",
+            };
+        case "SYSTEM":
+            return {
+                icone: <NotificationsOutlined />,
+                corFundo: "#fce4ec",
+            };
+        default:
+            return {
+                icone: <NotificationsOutlined />,
+                corFundo: "#e0e0e0",
+            };
+    }
 };
 
-const mockNotificacoes: Notificacao[] = [
-    {
-        id: 1,
-        tipo: "tarefa",
-        titulo: "Nova tarefa atribuída",
-        mensagem: "João Silva atribuiu você à tarefa 'Implementar autenticação JWT'",
-        timestamp: "5 min atrás",
-        lida: false,
-        icone: <TaskAltOutlined />,
-        corFundo: "#e3f2fd",
-    },
-    {
-        id: 2,
-        tipo: "equipe",
-        titulo: "Adicionado à equipe",
-        mensagem: "Você foi adicionado à equipe 'Desenvolvimento Frontend'",
-        timestamp: "1 hora atrás",
-        lida: false,
-        icone: <PersonAddOutlined />,
-        corFundo: "#f3e5f5",
-    },
-    {
-        id: 3,
-        tipo: "chat",
-        titulo: "Nova mensagem",
-        mensagem: "Maria Santos: Podemos revisar o código amanhã?",
-        timestamp: "2 horas atrás",
-        lida: true,
-        icone: <ChatBubbleOutlineOutlined />,
-        corFundo: "#e8f5e9",
-    },
-    {
-        id: 4,
-        tipo: "tarefa",
-        titulo: "Prazo próximo",
-        mensagem: "A tarefa 'Configurar CI/CD' vence amanhã",
-        timestamp: "3 horas atrás",
-        lida: false,
-        icone: <WarningAmberOutlined />,
-        corFundo: "#fff3e0",
-    },
-    {
-        id: 5,
-        tipo: "sistema",
-        titulo: "Atualização do sistema",
-        mensagem: "Nova versão disponível. Algumas funcionalidades foram melhoradas.",
-        timestamp: "Ontem",
-        lida: true,
-        icone: <NotificationsOutlined />,
-        corFundo: "#fce4ec",
-    },
-    {
-        id: 6,
-        tipo: "tarefa",
-        titulo: "Tarefa concluída",
-        mensagem: "Ana Oliveira marcou a tarefa 'Testes unitários' como concluída",
-        timestamp: "Ontem",
-        lida: true,
-        icone: <TaskAltOutlined />,
-        corFundo: "#e3f2fd",
-    },
-    {
-        id: 7,
-        tipo: "chat",
-        titulo: "Menção em comentário",
-        mensagem: "Carlos Lima mencionou você em um comentário",
-        timestamp: "2 dias atrás",
-        lida: true,
-        icone: <ChatBubbleOutlineOutlined />,
-        corFundo: "#e8f5e9",
-    },
-];
+// Função para formatar timestamp relativo
+const formatarTimestamp = (dataISO: string): string => {
+    const data = new Date(dataISO);
+    const agora = new Date();
+    const diferencaMs = agora.getTime() - data.getTime();
+    const diferencaMinutos = Math.floor(diferencaMs / 60000);
+    const diferencaHoras = Math.floor(diferencaMs / 3600000);
+    const diferencaDias = Math.floor(diferencaMs / 86400000);
+
+    if (diferencaMinutos < 1) return "Agora mesmo";
+    if (diferencaMinutos < 60) return `${diferencaMinutos} min atrás`;
+    if (diferencaHoras < 24) return `${diferencaHoras} hora${diferencaHoras > 1 ? "s" : ""} atrás`;
+    if (diferencaDias === 1) return "Ontem";
+    if (diferencaDias < 7) return `${diferencaDias} dias atrás`;
+
+    return data.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
+};
 
 export default function Notificacoes() {
-    const [notificacoes, setNotificacoes] = useState<Notificacao[]>(mockNotificacoes);
+    const {
+        notifications,
+        unreadCount,
+        loading,
+        error,
+        fetchNotifications,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+        setError,
+    } = useNotifications();
+
     const [tabAtiva, setTabAtiva] = useState<"todas" | "nao-lidas">("todas");
     const [menuAnchorEl, setMenuAnchorEl] = useState<{ el: HTMLElement; id: number } | null>(null);
 
+    // Atualizar notificações ao montar e quando mudar a tab
+    useEffect(() => {
+        const filters = tabAtiva === "nao-lidas" ? { unread_only: true } : {};
+        fetchNotifications(filters);
+    }, [tabAtiva, fetchNotifications]);
+
     const notificacoesFiltradas =
         tabAtiva === "todas"
-            ? notificacoes
-            : notificacoes.filter((n) => !n.lida);
+            ? notifications
+            : notifications.filter((n) => !n.is_read);
 
-    const naoLidasCount = notificacoes.filter((n) => !n.lida).length;
-
-    const handleMarcarComoLida = (id: number) => {
-        setNotificacoes(
-            notificacoes.map((n) => (n.id === id ? { ...n, lida: true } : n))
-        );
+    const handleMarcarComoLida = async (id: number) => {
+        try {
+            await markAsRead(id);
+        } catch (err) {
+            console.error("Erro ao marcar como lida:", err);
+        }
     };
 
-    const handleExcluir = (id: number) => {
-        setNotificacoes(notificacoes.filter((n) => n.id !== id));
-        setMenuAnchorEl(null);
+    const handleExcluir = async (id: number) => {
+        try {
+            await deleteNotification(id);
+            setMenuAnchorEl(null);
+        } catch (err) {
+            console.error("Erro ao excluir:", err);
+        }
     };
 
-    const handleMarcarTodasComoLidas = () => {
-        setNotificacoes(notificacoes.map((n) => ({ ...n, lida: true })));
+    const handleMarcarTodasComoLidas = async () => {
+        try {
+            await markAllAsRead();
+        } catch (err) {
+            console.error("Erro ao marcar todas como lidas:", err);
+        }
     };
 
     const handleAbrirMenu = (event: React.MouseEvent<HTMLElement>, id: number) => {
@@ -151,6 +140,13 @@ export default function Notificacoes() {
 
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {/* Erro */}
+            {error && (
+                <Alert severity="error" onClose={() => setError(null)}>
+                    {error}
+                </Alert>
+            )}
+
             {/* Header */}
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
                 <Box>
@@ -158,16 +154,17 @@ export default function Notificacoes() {
                         Notificações
                     </Typography>
                     <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        {naoLidasCount > 0
-                            ? `Você tem ${naoLidasCount} notificação${naoLidasCount > 1 ? "ões" : ""} não lida${naoLidasCount > 1 ? "s" : ""}`
+                        {unreadCount > 0
+                            ? `Você tem ${unreadCount} notificação${unreadCount > 1 ? "ões" : ""} não lida${unreadCount > 1 ? "s" : ""}`
                             : "Todas as notificações foram lidas"}
                     </Typography>
                 </Box>
-                {naoLidasCount > 0 && (
+                {unreadCount > 0 && (
                     <Button
                         startIcon={<DoneAllOutlined />}
                         variant="outlined"
                         onClick={handleMarcarTodasComoLidas}
+                        disabled={loading}
                     >
                         Marcar todas como lidas
                     </Button>
@@ -182,16 +179,16 @@ export default function Notificacoes() {
                         onChange={(_, value) => setTabAtiva(value)}
                     >
                         <Tab
-                            label={`Todas (${notificacoes.length})`}
+                            label={`Todas (${notifications.length})`}
                             value="todas"
                         />
                         <Tab
                             label={
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                     Não lidas
-                                    {naoLidasCount > 0 && (
+                                    {unreadCount > 0 && (
                                         <Chip
-                                            label={naoLidasCount}
+                                            label={unreadCount}
                                             size="small"
                                             color="primary"
                                             sx={{ height: 20, minWidth: 20 }}
@@ -204,8 +201,22 @@ export default function Notificacoes() {
                     </Tabs>
                 </Box>
 
+                {/* Loading */}
+                {loading && (
+                    <Box
+                        sx={{
+                            py: 8,
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                        }}
+                    >
+                        <CircularProgress />
+                    </Box>
+                )}
+
                 {/* Lista de Notificações */}
-                {notificacoesFiltradas.length === 0 ? (
+                {!loading && notificacoesFiltradas.length === 0 ? (
                     <Box
                         sx={{
                             py: 8,
@@ -228,97 +239,102 @@ export default function Notificacoes() {
                         </Typography>
                     </Box>
                 ) : (
-                    <List sx={{ p: 0 }}>
-                        {notificacoesFiltradas.map((notificacao, index) => (
-                            <Box key={notificacao.id}>
-                                <ListItem
-                                    sx={{
-                                        py: 2.5,
-                                        px: 3,
-                                        bgcolor: notificacao.lida ? "transparent" : "action.hover",
-                                        cursor: "pointer",
-                                        "&:hover": {
-                                            bgcolor: notificacao.lida ? "action.hover" : "action.selected",
-                                        },
-                                        transition: "background-color 0.2s",
-                                    }}
-                                    secondaryAction={
-                                        <IconButton
-                                            edge="end"
-                                            onClick={(e) => handleAbrirMenu(e, notificacao.id)}
-                                        >
-                                            <MoreVertOutlined />
-                                        </IconButton>
-                                    }
-                                    onClick={() => {
-                                        if (!notificacao.lida) {
-                                            handleMarcarComoLida(notificacao.id);
-                                        }
-                                    }}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar
+                    !loading && (
+                        <List sx={{ p: 0 }}>
+                            {notificacoesFiltradas.map((notificacao, index) => {
+                                const style = getNotificationStyle(notificacao.type);
+                                return (
+                                    <Box key={notificacao.id}>
+                                        <ListItem
                                             sx={{
-                                                bgcolor: notificacao.corFundo,
-                                                color: "primary.main",
+                                                py: 2.5,
+                                                px: 3,
+                                                bgcolor: notificacao.is_read ? "transparent" : "action.hover",
+                                                cursor: "pointer",
+                                                "&:hover": {
+                                                    bgcolor: notificacao.is_read ? "action.hover" : "action.selected",
+                                                },
+                                                transition: "background-color 0.2s",
+                                            }}
+                                            secondaryAction={
+                                                <IconButton
+                                                    edge="end"
+                                                    onClick={(e) => handleAbrirMenu(e, notificacao.id)}
+                                                >
+                                                    <MoreVertOutlined />
+                                                </IconButton>
+                                            }
+                                            onClick={() => {
+                                                if (!notificacao.is_read) {
+                                                    handleMarcarComoLida(notificacao.id);
+                                                }
                                             }}
                                         >
-                                            {notificacao.icone}
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                        primary={
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                                                <Typography
-                                                    variant="subtitle2"
-                                                    sx={{ fontWeight: notificacao.lida ? 500 : 600 }}
-                                                >
-                                                    {notificacao.titulo}
-                                                </Typography>
-                                                {!notificacao.lida && (
-                                                    <Box
-                                                        sx={{
-                                                            width: 8,
-                                                            height: 8,
-                                                            borderRadius: "50%",
-                                                            bgcolor: "primary.main",
-                                                        }}
-                                                    />
-                                                )}
-                                            </Box>
-                                        }
-                                        secondary={
-                                            <>
-                                                <Typography
-                                                    component="span"
-                                                    variant="body2"
+                                            <ListItemAvatar>
+                                                <Avatar
                                                     sx={{
-                                                        display: "block",
-                                                        color: "text.secondary",
-                                                        mb: 0.5,
+                                                        bgcolor: style.corFundo,
+                                                        color: "primary.main",
                                                     }}
                                                 >
-                                                    {notificacao.mensagem}
-                                                </Typography>
-                                                <Typography
-                                                    component="span"
-                                                    variant="caption"
-                                                    sx={{ color: "text.disabled" }}
-                                                >
-                                                    {notificacao.timestamp}
-                                                </Typography>
-                                            </>
-                                        }
-                                    />
-                                </ListItem>
+                                                    {style.icone}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                                                        <Typography
+                                                            variant="subtitle2"
+                                                            sx={{ fontWeight: notificacao.is_read ? 500 : 600 }}
+                                                        >
+                                                            {notificacao.title}
+                                                        </Typography>
+                                                        {!notificacao.is_read && (
+                                                            <Box
+                                                                sx={{
+                                                                    width: 8,
+                                                                    height: 8,
+                                                                    borderRadius: "50%",
+                                                                    bgcolor: "primary.main",
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Box>
+                                                }
+                                                secondary={
+                                                    <>
+                                                        <Typography
+                                                            component="span"
+                                                            variant="body2"
+                                                            sx={{
+                                                                display: "block",
+                                                                color: "text.secondary",
+                                                                mb: 0.5,
+                                                            }}
+                                                        >
+                                                            {notificacao.message}
+                                                        </Typography>
+                                                        <Typography
+                                                            component="span"
+                                                            variant="caption"
+                                                            sx={{ color: "text.disabled" }}
+                                                        >
+                                                            {formatarTimestamp(notificacao.created_at)}
+                                                        </Typography>
+                                                    </>
+                                                }
+                                            />
+                                        </ListItem>
                                 {index < notificacoesFiltradas.length - 1 && (
                                     <Box sx={{ px: 3 }}>
                                         <Box sx={{ borderBottom: 1, borderColor: "divider" }} />
                                     </Box>
-                                )}
-                            </Box>
-                        ))}
-                    </List>
+                                        )}
+                                    </Box>
+                                );
+                            })}
+                        </List>
+                    )
                 )}
             </Paper>
 
@@ -346,7 +362,7 @@ export default function Notificacoes() {
                     },
                 }}
             >
-                {menuAnchorEl && !notificacoes.find((n) => n.id === menuAnchorEl.id)?.lida && (
+                {menuAnchorEl && !notifications.find((n) => n.id === menuAnchorEl.id)?.is_read && (
                     <MenuItem
                         onClick={() => {
                             handleMarcarComoLida(menuAnchorEl.id);
