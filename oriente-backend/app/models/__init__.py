@@ -5,6 +5,7 @@ from app.models.Column import KanbanColumn
 from app.models.Card import Card, Tag
 from app.models.comment import Comment
 from app.models.comment_audit import CommentAudit
+from app.models.card_history import CardHistory, CardHistoryAction
 from app.models.notification import Notification
 
 __all__ = [
@@ -16,5 +17,7 @@ __all__ = [
     "Tag",
     "Comment",
     "CommentAudit",
+    "CardHistory",
+    "CardHistoryAction",
     "Notification"
 ]

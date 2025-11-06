@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.routers import auth, projects, users, teams, notifications
-from app.routers import Columns as columns, Cards as cards, comments
+from app.routers import Columns as columns, Cards as cards, comments, card_history
 
 # Criar tabelas no banco de dados
 # Equivalente ao spring.jpa.hibernate.ddl-auto=create-drop
@@ -39,6 +39,7 @@ app.include_router(notifications.router)
 app.include_router(columns.router, prefix="/api/projects", tags=["Columns"])
 app.include_router(cards.router, prefix="/api/projects", tags=["Cards"])
 app.include_router(comments.router, prefix="/api/projects", tags=["Comments"])
+app.include_router(card_history.router, prefix="/api/projects", tags=["Card History"])
 
 
 @app.get("/")
