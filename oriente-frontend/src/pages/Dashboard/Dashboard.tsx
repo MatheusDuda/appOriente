@@ -1,14 +1,9 @@
-import { Fragment } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { Avatar, Box, Button, Chip, Divider, LinearProgress, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Typography } from "@mui/material";
 import { ArrowForwardOutlined, AssignmentOutlined, GroupOutlined, InsertChartOutlined, NotificationsNoneOutlined } from "@mui/icons-material";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
-const stats = [
-    { label: "Projetos ativos", value: "12", auxiliary: "+3 este mes", icon: <InsertChartOutlined fontSize="small" /> },
-    { label: "Tarefas em aberto", value: "48", auxiliary: "15 com vencimento hoje", icon: <AssignmentOutlined fontSize="small" /> },
-    { label: "Equipes", value: "6", auxiliary: "2 novas semana passada", icon: <GroupOutlined fontSize="small" /> },
-    { label: "Alertas", value: "5", auxiliary: "3 pendentes", icon: <NotificationsNoneOutlined fontSize="small" /> },
-];
+import { authService, type UserData } from "../../services/authService";
+import api from "../../services/api";
 
 const upcoming = [
     { title: "Reuniao com equipe Atlas", subtitle: "Hoje, 14:00", chip: "Reuniao" },
@@ -42,6 +37,97 @@ const monthlyProgressData = [
 ];
 
 export default function Dashboard() {
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [stats, setStats] = useState({
+        projetos: 0,
+        tarefas: 0,
+        equipes: 0,
+        alertas: 0,
+    });
+
+    // Buscar dados do usuário logado
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const user = await authService.getCurrentUser();
+                setUserData(user);
+            } catch (error) {
+                console.error("Erro ao buscar dados do usuário:", error);
+            }
+        };
+        fetchUserData();
+    }, []);
+
+    // Buscar estatísticas
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                // Buscar projetos do usuário
+                const projectsResponse = await api.get("/api/projects");
+                const projetos = projectsResponse.data?.data?.length || 0;
+
+                // Buscar equipes do usuário
+                const teamsResponse = await api.get("/api/teams/my-teams");
+                const equipes = teamsResponse.data?.data?.length || 0;
+
+                // Buscar tarefas atribuídas ao usuário
+                const tasksResponse = await api.get("/api/cards/my-assigned");
+                const tarefas = tasksResponse.data?.data?.length || 0;
+
+                // Atualizar alertas (notificações não lidas)
+                const notificationsResponse = await api.get("/api/notifications/count");
+                const alertas = notificationsResponse.data?.data?.unread_count || 0;
+
+                setStats({ projetos, tarefas, equipes, alertas });
+            } catch (error) {
+                console.error("Erro ao buscar estatísticas:", error);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    // Obter saudação baseada no horário
+    const getSaudacao = (): string => {
+        const hora = new Date().getHours();
+        if (hora < 12) return "Bom dia";
+        if (hora < 18) return "Boa tarde";
+        return "Boa noite";
+    };
+
+    // Obter primeiro nome do usuário
+    const getPrimeiroNome = (name: string | undefined): string => {
+        if (!name) return "Usuário";
+        return name.trim().split(" ")[0];
+    };
+
+    // Cards de estatísticas com dados reais
+    const statsCards = [
+        {
+            label: "Projetos ativos",
+            value: stats.projetos.toString(),
+            auxiliary: stats.projetos > 0 ? "Meus projetos" : "Nenhum projeto ainda",
+            icon: <InsertChartOutlined fontSize="small" />
+        },
+        {
+            label: "Tarefas em aberto",
+            value: stats.tarefas.toString(),
+            auxiliary: stats.tarefas > 0 ? "Atribuídas a você" : "Nenhuma tarefa",
+            icon: <AssignmentOutlined fontSize="small" />
+        },
+        {
+            label: "Equipes",
+            value: stats.equipes.toString(),
+            auxiliary: stats.equipes > 0 ? "Você participa" : "Nenhuma equipe",
+            icon: <GroupOutlined fontSize="small" />
+        },
+        {
+            label: "Alertas",
+            value: stats.alertas.toString(),
+            auxiliary: stats.alertas > 0 ? "Notificações não lidas" : "Nenhum alerta",
+            icon: <NotificationsNoneOutlined fontSize="small" />
+        },
+    ];
+
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             <Paper
@@ -57,7 +143,7 @@ export default function Dashboard() {
             >
                 <Box>
                     <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
-                        Bom dia, Oriente!
+                        {getSaudacao()}, {getPrimeiroNome(userData?.name)}!
                     </Typography>
                     <Typography variant="body2" sx={{ color: "text.secondary", maxWidth: 420 }}>
                         Acompanhe os principais indicadores dos seus projetos e mantenha as equipes alinhadas com os objetivos do trimestre.
@@ -85,7 +171,7 @@ export default function Dashboard() {
                     },
                 }}
             >
-                {stats.map((item) => (
+                {statsCards.map((item) => (
                     <Paper key={item.label} sx={{ p: 3, borderRadius: 3 }}>
                         <Stack direction="row" alignItems="center" spacing={2}>
                             <Avatar sx={{ bgcolor: "primary.light", color: "primary.dark", width: 40, height: 40 }}>

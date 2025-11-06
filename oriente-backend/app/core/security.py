@@ -67,7 +67,11 @@ def decode_access_token(token: str) -> Optional[dict]:
         return payload
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except jwt.DecodeError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+    except Exception:
         return None
 
 
