@@ -6,8 +6,20 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-    access_token: string;
-    token_type: string;
+    token: string;
+    type: string;
+    user: {
+        id: number;
+        name: string;
+        email: string;
+        role: string;
+    };
+}
+
+export interface ApiResponse<T = any> {
+    success: boolean;
+    message: string;
+    data: T;
 }
 
 export interface RegisterData {
@@ -32,11 +44,11 @@ class AuthService {
      * @returns Token de acesso JWT
      */
     async login(credentials: LoginCredentials): Promise<string> {
-        const response = await api.post<LoginResponse>(
+        const response = await api.post<ApiResponse<LoginResponse>>(
             "/api/auth/login",
             credentials
         );
-        return response.data.access_token;
+        return response.data.data.token;
     }
 
     /**
@@ -45,8 +57,8 @@ class AuthService {
      * @returns Dados do usuário criado
      */
     async register(data: RegisterData): Promise<UserData> {
-        const response = await api.post<UserData>("/api/auth/register", data);
-        return response.data;
+        const response = await api.post<ApiResponse<UserData>>("/api/auth/register", data);
+        return response.data.data;
     }
 
     /**
@@ -54,8 +66,8 @@ class AuthService {
      * @returns Dados do usuário atual
      */
     async getCurrentUser(): Promise<UserData> {
-        const response = await api.get<UserData>("/api/auth/me");
-        return response.data;
+        const response = await api.get<ApiResponse<UserData>>("/api/auth/me");
+        return response.data.data;
     }
 
     /**

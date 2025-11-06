@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Avatar,
     Badge,
@@ -14,6 +14,7 @@ import {
     ListItemAvatar,
     ListItemText,
     Button,
+    CircularProgress,
 } from "@mui/material";
 import {
     LogoutOutlined,
@@ -22,54 +23,51 @@ import {
     SettingsOutlined,
     TaskAltOutlined,
     PersonAddOutlined,
-    ChatBubbleOutlineOutlined,
     NotificationsOutlined,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { useNotifications } from "../hooks/useNotifications";
+import type { NotificationType } from "../types/notifications";
 
-type Notificacao = {
-    id: number;
-    tipo: "tarefa" | "equipe" | "chat" | "sistema";
-    titulo: string;
-    mensagem: string;
-    timestamp: string;
-    lida: boolean;
-    icone: React.ReactNode;
-    corFundo: string;
+// Função para obter ícone e cor de fundo baseado no tipo
+const getNotificationStyle = (tipo: NotificationType) => {
+    switch (tipo) {
+        case "TASK":
+            return {
+                icone: <TaskAltOutlined fontSize="small" />,
+                corFundo: "#e3f2fd",
+            };
+        case "TEAM":
+            return {
+                icone: <PersonAddOutlined fontSize="small" />,
+                corFundo: "#f3e5f5",
+            };
+        case "SYSTEM":
+            return {
+                icone: <NotificationsOutlined fontSize="small" />,
+                corFundo: "#fce4ec",
+            };
+        default:
+            return {
+                icone: <NotificationsOutlined fontSize="small" />,
+                corFundo: "#e0e0e0",
+            };
+    }
 };
 
-const mockNotificacoesRecentes: Notificacao[] = [
-    {
-        id: 1,
-        tipo: "tarefa",
-        titulo: "Nova tarefa atribuída",
-        mensagem: "João Silva atribuiu você à tarefa 'Implementar autenticação JWT'",
-        timestamp: "5 min atrás",
-        lida: false,
-        icone: <TaskAltOutlined fontSize="small" />,
-        corFundo: "#e3f2fd",
-    },
-    {
-        id: 2,
-        tipo: "equipe",
-        titulo: "Adicionado à equipe",
-        mensagem: "Você foi adicionado à equipe 'Desenvolvimento Frontend'",
-        timestamp: "1 hora atrás",
-        lida: false,
-        icone: <PersonAddOutlined fontSize="small" />,
-        corFundo: "#f3e5f5",
-    },
-    {
-        id: 3,
-        tipo: "chat",
-        titulo: "Nova mensagem",
-        mensagem: "Maria Santos: Podemos revisar o código amanhã?",
-        timestamp: "2 horas atrás",
-        lida: true,
-        icone: <ChatBubbleOutlineOutlined fontSize="small" />,
-        corFundo: "#e8f5e9",
-    },
-];
+// Função para formatar timestamp relativo
+const formatarTimestamp = (dataISO: string): string => {
+    const data = new Date(dataISO);
+    const agora = new Date();
+    const diferencaMs = agora.getTime() - data.getTime();
+    const diferencaMinutos = Math.floor(diferencaMs / 60000);
+    const diferencaHoras = Math.floor(diferencaMs / 3600000);
+
+    if (diferencaMinutos < 1) return "Agora mesmo";
+    if (diferencaMinutos < 60) return `${diferencaMinutos} min atrás`;
+    if (diferencaHoras < 24) return `${diferencaHoras} hora${diferencaHoras > 1 ? "s" : ""} atrás`;
+    return "Há mais de 1 dia";
+};
 
 export default function Topbar() {
     const navigate = useNavigate();
@@ -77,6 +75,9 @@ export default function Topbar() {
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
     const notifOpen = Boolean(notifAnchorEl);
+
+    // Usar hook de notificações apenas quando necessário
+    const { notifications, unreadCount, loading, fetchNotifications } = useNotifications(false);
 
     const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -88,6 +89,8 @@ export default function Topbar() {
 
     const handleOpenNotifMenu = (event: React.MouseEvent<HTMLElement>) => {
         setNotifAnchorEl(event.currentTarget);
+        // Buscar notificações recentes (apenas 5) ao abrir o menu
+        fetchNotifications({ limit: 5 });
     };
 
     const handleCloseNotifMenu = () => {
@@ -100,7 +103,20 @@ export default function Topbar() {
         navigate("/");
     };
 
-    const naoLidasCount = mockNotificacoesRecentes.filter((n) => !n.lida).length;
+    // Buscar contador de não lidas ao montar o componente
+    useEffect(() => {
+        fetchNotifications({ limit: 5 });
+
+        // Atualizar contador a cada 60 segundos
+        const interval = setInterval(() => {
+            fetchNotifications({ limit: 5 });
+        }, 60000);
+
+        return () => clearInterval(interval);
+    }, [fetchNotifications]);
+
+    // Pegar apenas as 5 notificações mais recentes
+    const notificacoesRecentes = notifications.slice(0, 5);
 
     return (
         <Box
@@ -136,7 +152,7 @@ export default function Topbar() {
                     aria-haspopup="true"
                     aria-expanded={notifOpen ? "true" : undefined}
                 >
-                    <Badge badgeContent={naoLidasCount} color="error" overlap="circular">
+                    <Badge badgeContent={unreadCount} color="error" overlap="circular">
                         <NotificationsNoneOutlined />
                     </Badge>
                 </IconButton>
@@ -165,13 +181,17 @@ export default function Topbar() {
                         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                             Notificações
                         </Typography>
-                        {naoLidasCount > 0 && (
-                            <Badge badgeContent={naoLidasCount} color="primary" />
+                        {unreadCount > 0 && (
+                            <Badge badgeContent={unreadCount} color="primary" />
                         )}
                     </Box>
                     <Divider />
 
-                    {mockNotificacoesRecentes.length === 0 ? (
+                    {loading ? (
+                        <Box sx={{ py: 6, textAlign: "center" }}>
+                            <CircularProgress size={32} />
+                        </Box>
+                    ) : notificacoesRecentes.length === 0 ? (
                         <Box sx={{ py: 6, textAlign: "center" }}>
                             <NotificationsOutlined
                                 sx={{ fontSize: 48, color: "text.disabled", mb: 1 }}
@@ -182,90 +202,93 @@ export default function Topbar() {
                         </Box>
                     ) : (
                         <List sx={{ p: 0, maxHeight: 360, overflow: "auto" }}>
-                            {mockNotificacoesRecentes.map((notificacao, index) => (
-                                <Box key={notificacao.id}>
-                                    <ListItem
-                                        sx={{
-                                            py: 1.5,
-                                            px: 2,
-                                            bgcolor: notificacao.lida ? "transparent" : "action.hover",
-                                            cursor: "pointer",
-                                            "&:hover": {
-                                                bgcolor: "action.selected",
-                                            },
-                                        }}
-                                        onClick={() => {
-                                            handleCloseNotifMenu();
-                                            navigate("/notificacoes");
-                                        }}
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar
-                                                sx={{
-                                                    bgcolor: notificacao.corFundo,
-                                                    color: "primary.main",
-                                                    width: 40,
-                                                    height: 40,
-                                                }}
-                                            >
-                                                {notificacao.icone}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            primary={
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{
-                                                            fontWeight: notificacao.lida ? 500 : 600,
-                                                            flex: 1,
-                                                        }}
-                                                    >
-                                                        {notificacao.titulo}
-                                                    </Typography>
-                                                    {!notificacao.lida && (
-                                                        <Box
+                            {notificacoesRecentes.map((notificacao, index) => {
+                                const style = getNotificationStyle(notificacao.type);
+                                return (
+                                    <Box key={notificacao.id}>
+                                        <ListItem
+                                            sx={{
+                                                py: 1.5,
+                                                px: 2,
+                                                bgcolor: notificacao.is_read ? "transparent" : "action.hover",
+                                                cursor: "pointer",
+                                                "&:hover": {
+                                                    bgcolor: "action.selected",
+                                                },
+                                            }}
+                                            onClick={() => {
+                                                handleCloseNotifMenu();
+                                                navigate("/notificacoes");
+                                            }}
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar
+                                                    sx={{
+                                                        bgcolor: style.corFundo,
+                                                        color: "primary.main",
+                                                        width: 40,
+                                                        height: 40,
+                                                    }}
+                                                >
+                                                    {style.icone}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                                        <Typography
+                                                            variant="body2"
                                                             sx={{
-                                                                width: 8,
-                                                                height: 8,
-                                                                borderRadius: "50%",
-                                                                bgcolor: "primary.main",
+                                                                fontWeight: notificacao.is_read ? 500 : 600,
+                                                                flex: 1,
                                                             }}
-                                                        />
-                                                    )}
-                                                </Box>
-                                            }
-                                            secondary={
-                                                <>
-                                                    <Typography
-                                                        component="span"
-                                                        variant="caption"
-                                                        sx={{
-                                                            display: "block",
-                                                            color: "text.secondary",
-                                                            overflow: "hidden",
-                                                            textOverflow: "ellipsis",
-                                                            whiteSpace: "nowrap",
-                                                        }}
-                                                    >
-                                                        {notificacao.mensagem}
-                                                    </Typography>
-                                                    <Typography
-                                                        component="span"
-                                                        variant="caption"
-                                                        sx={{ color: "text.disabled" }}
-                                                    >
-                                                        {notificacao.timestamp}
-                                                    </Typography>
-                                                </>
-                                            }
-                                        />
-                                    </ListItem>
-                                    {index < mockNotificacoesRecentes.length - 1 && (
-                                        <Divider component="li" />
-                                    )}
-                                </Box>
-                            ))}
+                                                        >
+                                                            {notificacao.title}
+                                                        </Typography>
+                                                        {!notificacao.is_read && (
+                                                            <Box
+                                                                sx={{
+                                                                    width: 8,
+                                                                    height: 8,
+                                                                    borderRadius: "50%",
+                                                                    bgcolor: "primary.main",
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Box>
+                                                }
+                                                secondary={
+                                                    <>
+                                                        <Typography
+                                                            component="span"
+                                                            variant="caption"
+                                                            sx={{
+                                                                display: "block",
+                                                                color: "text.secondary",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                whiteSpace: "nowrap",
+                                                            }}
+                                                        >
+                                                            {notificacao.message}
+                                                        </Typography>
+                                                        <Typography
+                                                            component="span"
+                                                            variant="caption"
+                                                            sx={{ color: "text.disabled" }}
+                                                        >
+                                                            {formatarTimestamp(notificacao.created_at)}
+                                                        </Typography>
+                                                    </>
+                                                }
+                                            />
+                                        </ListItem>
+                                        {index < notificacoesRecentes.length - 1 && (
+                                            <Divider component="li" />
+                                        )}
+                                    </Box>
+                                );
+                            })}
                         </List>
                     )}
 

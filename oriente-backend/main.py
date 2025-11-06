@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routers import auth, projects, users, teams
+from app.routers import auth, projects, users, teams, notifications
 from app.routers import Columns as columns, Cards as cards
 
 # Criar tabelas no banco de dados
@@ -33,6 +33,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(users.router)
 app.include_router(teams.router)
+app.include_router(notifications.router)
 
 # Routers do Kanban
 app.include_router(columns.router, prefix="/api/projects", tags=["Columns"])
