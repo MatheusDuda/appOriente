@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     Dialog,
     DialogTitle,
@@ -5,43 +6,53 @@ import {
     DialogActions,
     Button,
     TextField,
-    MenuItem,
     Box,
     IconButton,
+    CircularProgress,
+    Alert,
 } from "@mui/material";
 import { CloseOutlined } from "@mui/icons-material";
-
-type Usuario = {
-    id: number;
-    nome: string;
-    email: string;
-    cargo: string;
-    role: "Admin" | "Gerente" | "Membro" | "Visualizador";
-    status: "Ativo" | "Inativo";
-};
+import userService from "../../services/userService";
+import type { User } from "../../types";
 
 type EditarUsuarioProps = {
     open: boolean;
     onClose: () => void;
-    usuario: Usuario;
+    user: User;
+    onUserUpdated: () => void;
 };
 
-const roles = ["Admin", "Gerente", "Membro", "Visualizador"];
-const statusOptions = ["Ativo", "Inativo"];
+export default function EditarUsuario({ open, onClose, user, onUserUpdated }: EditarUsuarioProps) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-export default function EditarUsuario({ open, onClose, usuario }: EditarUsuarioProps) {
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setError(null);
+
         const formData = new FormData(event.currentTarget);
-        const data = Object.fromEntries(formData.entries());
-        console.log("Editar usuário:", data);
-        onClose();
+        const data = {
+            name: formData.get("name") as string,
+            email: formData.get("email") as string,
+        };
+
+        try {
+            setLoading(true);
+            await userService.updateUser(user.id, data);
+            onUserUpdated();
+            onClose();
+        } catch (error: any) {
+            console.error("Erro ao atualizar usuário:", error);
+            setError(error.response?.data?.detail || "Erro ao atualizar usuário. Tente novamente.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <Dialog
             open={open}
-            onClose={onClose}
+            onClose={loading ? undefined : onClose}
             maxWidth="sm"
             fullWidth
             PaperProps={{
@@ -50,75 +61,54 @@ export default function EditarUsuario({ open, onClose, usuario }: EditarUsuarioP
         >
             <DialogTitle sx={{ fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 Editar Usuário
-                <IconButton size="small" onClick={onClose} aria-label="Fechar">
+                <IconButton size="small" onClick={onClose} aria-label="Fechar" disabled={loading}>
                     <CloseOutlined fontSize="small" />
                 </IconButton>
             </DialogTitle>
 
             <Box component="form" onSubmit={handleSubmit}>
                 <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+                    {error && (
+                        <Alert severity="error" onClose={() => setError(null)}>
+                            {error}
+                        </Alert>
+                    )}
+
                     <TextField
-                        name="nome"
+                        name="name"
                         label="Nome Completo"
-                        defaultValue={usuario.nome}
+                        defaultValue={user.name}
                         fullWidth
                         required
+                        disabled={loading}
                     />
 
                     <TextField
                         name="email"
                         label="Email"
                         type="email"
-                        defaultValue={usuario.email}
+                        defaultValue={user.email}
                         fullWidth
                         required
+                        disabled={loading}
                     />
 
-                    <TextField
-                        name="cargo"
-                        label="Cargo"
-                        defaultValue={usuario.cargo}
-                        fullWidth
-                        required
-                    />
-
-                    <TextField
-                        name="role"
-                        label="Função"
-                        select
-                        defaultValue={usuario.role}
-                        fullWidth
-                        required
-                    >
-                        {roles.map((role) => (
-                            <MenuItem key={role} value={role}>
-                                {role}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-
-                    <TextField
-                        name="status"
-                        label="Status"
-                        select
-                        defaultValue={usuario.status}
-                        fullWidth
-                        required
-                    >
-                        {statusOptions.map((status) => (
-                            <MenuItem key={status} value={status}>
-                                {status}
-                            </MenuItem>
-                        ))}
-                    </TextField>
+                    <Alert severity="info">
+                        Nota: Para alterar a função ou status do usuário, use as opções no menu de ações.
+                    </Alert>
                 </DialogContent>
 
                 <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                    <Button onClick={onClose} variant="outlined">
+                    <Button onClick={onClose} variant="outlined" disabled={loading}>
                         Cancelar
                     </Button>
-                    <Button type="submit" variant="contained">
-                        Salvar Alterações
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        disabled={loading}
+                        startIcon={loading ? <CircularProgress size={20} /> : null}
+                    >
+                        {loading ? "Salvando..." : "Salvar Alterações"}
                     </Button>
                 </DialogActions>
             </Box>
