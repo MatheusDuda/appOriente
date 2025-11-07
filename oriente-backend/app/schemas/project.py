@@ -13,6 +13,7 @@ class ProjectCreateRequest(BaseModel):
     """
     name: str = Field(..., min_length=2, max_length=100, description="Nome do projeto")
     description: str = Field(..., max_length=500, description="Descrição do projeto")
+    team_id: int = Field(..., description="ID da equipe associada ao projeto")
     member_names: Optional[List[str]] = Field(default=[], description="Lista de nomes dos membros")
 
     class Config:
@@ -20,6 +21,7 @@ class ProjectCreateRequest(BaseModel):
             "example": {
                 "name": "Projeto X",
                 "description": "Descrição do projeto X",
+                "team_id": 1,
                 "member_names": ["João Silva", "Maria Santos"]
             }
         }

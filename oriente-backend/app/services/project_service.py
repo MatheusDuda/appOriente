@@ -29,11 +29,12 @@ class ProjectService:
                 detail="Nome do projeto é obrigatório"
             )
 
-        # Criar projeto com owner
+        # Criar projeto com owner e team
         project = Project(
             name=request.name,
             description=request.description,
-            owner_id=owner.id
+            owner_id=owner.id,
+            team_id=request.team_id
         )
 
         # Adicionar owner como membro automaticamente
