@@ -8,28 +8,15 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import ConfirmDialog from "../Common/ConfirmDialog";
-
-type Membro = {
-    id: number;
-    nome: string;
-    avatar?: string;
-};
-
-type Equipe = {
-    id: number;
-    nome: string;
-    descricao: string;
-    lider: string;
-    membros: Membro[];
-    projetos: number;
-    status: "Ativo" | "Inativo";
-};
+import type { TeamListItem } from "../../types";
+import teamService from "../../services/teamService";
 
 type EquipeOverflowProps = {
-    equipe: Equipe;
+    team: TeamListItem;
+    onTeamDeleted: () => void;
 };
 
-export default function EquipeOverflow({ equipe }: EquipeOverflowProps) {
+export default function EquipeOverflow({ team, onTeamDeleted }: EquipeOverflowProps) {
     const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -57,12 +44,12 @@ export default function EquipeOverflow({ equipe }: EquipeOverflowProps) {
 
     const handleEditar = () => {
         handleClose();
-        navigate(`/equipes/${equipe.id}`);
+        navigate(`/equipes/${team.id}`);
     };
 
     const handleAdicionarMembro = () => {
         handleClose();
-        navigate(`/equipes/${equipe.id}?action=add-member`);
+        navigate(`/equipes/${team.id}?action=add-member`);
     };
 
     const handleExcluir = () => {
@@ -70,10 +57,16 @@ export default function EquipeOverflow({ equipe }: EquipeOverflowProps) {
         setConfirmDialog({
             open: true,
             title: "Excluir Equipe",
-            message: `Tem certeza que deseja excluir a equipe "${equipe.nome}"? Esta ação não pode ser desfeita.`,
-            action: () => {
-                console.log("Excluir equipe:", equipe.id);
-                setConfirmDialog({ ...confirmDialog, open: false });
+            message: `Tem certeza que deseja excluir a equipe "${team.name}"? Esta ação não pode ser desfeita.`,
+            action: async () => {
+                try {
+                    await teamService.deleteTeam(team.id);
+                    setConfirmDialog({ ...confirmDialog, open: false });
+                    onTeamDeleted();
+                } catch (error: any) {
+                    console.error("Erro ao excluir equipe:", error);
+                    alert(error.response?.data?.detail || "Erro ao excluir equipe. A equipe pode ter projetos associados.");
+                }
             },
         });
     };

@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, model_validator
+from typing import Optional, List, Any
 from datetime import datetime
 from enum import Enum
 
@@ -69,6 +69,29 @@ class TeamResponse(TeamBase):
     members: List[TeamMemberResponse] = []
     projects_count: int = 0
 
+    @model_validator(mode='before')
+    @classmethod
+    def compute_projects_count(cls, data: Any) -> Any:
+        if hasattr(data, 'projects'):
+            # É um objeto SQLAlchemy
+            if not isinstance(data, dict):
+                projects_count = len(data.projects) if data.projects else 0
+                # Converter para dict para manipulação
+                data_dict = {
+                    'id': data.id,
+                    'name': data.name,
+                    'description': data.description,
+                    'status': data.status,
+                    'leader_id': data.leader_id,
+                    'created_at': data.created_at,
+                    'updated_at': data.updated_at,
+                    'leader': data.leader,
+                    'members': data.members,
+                    'projects_count': projects_count
+                }
+                return data_dict
+        return data
+
     class Config:
         from_attributes = True
 
@@ -137,3 +160,14 @@ class RemoveMembersResponse(BaseModel):
     removed_members: List[TeamMemberResponse]
     not_members: List[str] = []  # Emails que não eram membros
     not_found: List[str] = []  # Emails não encontrados
+
+
+# === API RESPONSE ===
+
+class ApiResponse(BaseModel):
+    """
+    Schema genérico para respostas da API de teams
+    """
+    success: bool
+    message: str
+    data: Optional[Any] = None

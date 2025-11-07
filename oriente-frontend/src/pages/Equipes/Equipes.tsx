@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Box,
     Paper,
@@ -12,6 +12,9 @@ import {
     Button,
     TextField,
     InputAdornment,
+    CircularProgress,
+    Snackbar,
+    Alert,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
@@ -20,106 +23,69 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import EquipeOverflow from "../../components/Equipes/Overflow";
+import type { TeamListItem } from "../../types";
+import { TeamStatus } from "../../types";
+import teamService from "../../services/teamService";
 
-type Membro = {
-    id: number;
-    nome: string;
-    avatar?: string;
+// Helper functions for status mapping
+const getStatusLabel = (status: TeamStatus): string => {
+    return status === TeamStatus.ACTIVE ? "Ativo" : "Inativo";
 };
 
-type Equipe = {
-    id: number;
-    nome: string;
-    descricao: string;
-    lider: string;
-    membros: Membro[];
-    projetos: number;
-    status: "Ativo" | "Inativo";
-};
-
-const mockEquipes: Equipe[] = [
-    {
-        id: 1,
-        nome: "Equipe Atlas",
-        descricao: "Desenvolvimento de produtos core",
-        lider: "João Silva",
-        membros: [
-            { id: 1, nome: "João Silva" },
-            { id: 2, nome: "Maria Santos" },
-            { id: 3, nome: "Pedro Costa" },
-            { id: 4, nome: "Ana Oliveira" },
-        ],
-        projetos: 3,
-        status: "Ativo",
-    },
-    {
-        id: 2,
-        nome: "Equipe Boreal",
-        descricao: "Infraestrutura e DevOps",
-        lider: "Carlos Lima",
-        membros: [
-            { id: 5, nome: "Carlos Lima" },
-            { id: 6, nome: "Beatriz Rocha" },
-            { id: 7, nome: "Rafael Mendes" },
-        ],
-        projetos: 2,
-        status: "Ativo",
-    },
-    {
-        id: 3,
-        nome: "Equipe Celeste",
-        descricao: "Design e experiência do usuário",
-        lider: "Juliana Alves",
-        membros: [
-            { id: 8, nome: "Juliana Alves" },
-            { id: 9, nome: "Lucas Ferreira" },
-        ],
-        projetos: 1,
-        status: "Ativo",
-    },
-    {
-        id: 4,
-        nome: "Equipe Delta",
-        descricao: "Qualidade e automação de testes",
-        lider: "Ana Oliveira",
-        membros: [
-            { id: 4, nome: "Ana Oliveira" },
-            { id: 10, nome: "Roberto Dias" },
-            { id: 11, nome: "Fernanda Souza" },
-        ],
-        projetos: 2,
-        status: "Ativo",
-    },
-    {
-        id: 5,
-        nome: "Equipe Épsilon",
-        descricao: "Marketing e crescimento",
-        lider: "Mariana Costa",
-        membros: [
-            { id: 12, nome: "Mariana Costa" },
-        ],
-        projetos: 0,
-        status: "Inativo",
-    },
-];
-
-const getStatusColor = (status: Equipe["status"]) => {
-    return status === "Ativo" ? "success" : "default";
+const getStatusColor = (status: TeamStatus) => {
+    return status === TeamStatus.ACTIVE ? "success" : "default";
 };
 
 export default function Equipes() {
     const navigate = useNavigate();
+    const [teams, setTeams] = useState<TeamListItem[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: "",
+        severity: "success" as "success" | "error" | "info",
+    });
 
-    const filteredEquipes = mockEquipes.filter(
-        (equipe) =>
-            equipe.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            equipe.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            equipe.lider.toLowerCase().includes(searchTerm.toLowerCase())
+    useEffect(() => {
+        loadTeams();
+    }, []);
+
+    const loadTeams = async () => {
+        try {
+            setLoading(true);
+            const teamsData = await teamService.getTeams();
+            setTeams(teamsData);
+        } catch (error: any) {
+            console.error("Erro ao carregar equipes:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao carregar equipes",
+                severity: "error",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredTeams = teams.filter(
+        (team) =>
+            team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            team.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            team.leader.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleVerEquipe = (equipeId: number) => {
         navigate(`/equipes/${equipeId}`);
+    };
+
+    const handleTeamDeleted = () => {
+        setSnackbar({
+            open: true,
+            message: "Equipe excluída com sucesso!",
+            severity: "success",
+        });
+        loadTeams();
     };
 
     return (
@@ -158,74 +124,100 @@ export default function Equipes() {
                     sx={{ mb: 3 }}
                 />
 
-                <Grid container spacing={3}>
-                    {filteredEquipes.map((equipe) => (
-                        <Grid key={equipe.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                            <Card sx={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 2, position: "relative" }}>
-                                <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
-                                    <EquipeOverflow equipe={equipe} />
-                                </Box>
-
-                                <CardContent sx={{ flexGrow: 1, pt: 3, pr: 5 }}>
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
-                                        <Typography variant="h6" sx={{ fontWeight: 600, wordBreak: "break-word" }}>
-                                            {equipe.nome}
-                                        </Typography>
-                                        <Chip
-                                            label={equipe.status}
-                                            color={getStatusColor(equipe.status)}
-                                            size="small"
+                {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : filteredTeams.length === 0 ? (
+                    <Box sx={{ textAlign: "center", py: 8 }}>
+                        <Typography variant="h6" sx={{ color: "text.secondary" }}>
+                            {searchTerm ? "Nenhuma equipe encontrada" : "Nenhuma equipe cadastrada"}
+                        </Typography>
+                    </Box>
+                ) : (
+                    <Grid container spacing={3}>
+                        {filteredTeams.map((team) => (
+                            <Grid key={team.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                                <Card sx={{ height: "100%", display: "flex", flexDirection: "column", borderRadius: 2, position: "relative" }}>
+                                    <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
+                                        <EquipeOverflow
+                                            team={team}
+                                            onTeamDeleted={handleTeamDeleted}
                                         />
                                     </Box>
 
-                                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-                                        {equipe.descricao}
-                                    </Typography>
+                                    <CardContent sx={{ flexGrow: 1, pt: 3, pr: 5 }}>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 600, wordBreak: "break-word" }}>
+                                                {team.name}
+                                            </Typography>
+                                            <Chip
+                                                label={getStatusLabel(team.status)}
+                                                color={getStatusColor(team.status)}
+                                                size="small"
+                                            />
+                                        </Box>
 
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                            Líder
+                                        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+                                            {team.description}
                                         </Typography>
-                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {equipe.lider}
+
+                                        <Box sx={{ mb: 2 }}>
+                                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                                Líder
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                {team.leader.name}
+                                            </Typography>
+                                        </Box>
+
+                                        <Box sx={{ mb: 2 }}>
+                                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                                Membros ({team.members.length})
+                                            </Typography>
+                                            <AvatarGroup max={4} sx={{ justifyContent: "flex-start" }}>
+                                                {team.members.map((member) => (
+                                                    <Avatar
+                                                        key={member.id}
+                                                        sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: "0.875rem" }}
+                                                    >
+                                                        {member.name.charAt(0)}
+                                                    </Avatar>
+                                                ))}
+                                            </AvatarGroup>
+                                        </Box>
+
+                                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                            {team.projects_count} {team.projects_count === 1 ? "projeto" : "projetos"}
                                         </Typography>
-                                    </Box>
+                                    </CardContent>
 
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                            Membros ({equipe.membros.length})
-                                        </Typography>
-                                        <AvatarGroup max={4} sx={{ justifyContent: "flex-start" }}>
-                                            {equipe.membros.map((membro) => (
-                                                <Avatar
-                                                    key={membro.id}
-                                                    sx={{ width: 32, height: 32, bgcolor: "primary.main", fontSize: "0.875rem" }}
-                                                >
-                                                    {membro.nome.charAt(0)}
-                                                </Avatar>
-                                            ))}
-                                        </AvatarGroup>
-                                    </Box>
-
-                                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                        {equipe.projetos} {equipe.projetos === 1 ? "projeto" : "projetos"}
-                                    </Typography>
-                                </CardContent>
-
-                                <CardActions sx={{ p: 2, pt: 0 }}>
-                                    <Button
-                                        variant="outlined"
-                                        fullWidth
-                                        onClick={() => handleVerEquipe(equipe.id)}
-                                    >
-                                        Ver Detalhes
-                                    </Button>
-                                </CardActions>
-                            </Card>
-                        </Grid>
-                    ))}
-                </Grid>
+                                    <CardActions sx={{ p: 2, pt: 0 }}>
+                                        <Button
+                                            variant="outlined"
+                                            fullWidth
+                                            onClick={() => handleVerEquipe(team.id)}
+                                        >
+                                            Ver Detalhes
+                                        </Button>
+                                    </CardActions>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
             </Paper>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={3000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            >
+                <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogTitle,
@@ -17,101 +17,117 @@ import {
     Box,
     IconButton,
     Typography,
+    CircularProgress,
+    Alert,
 } from "@mui/material";
 import { CloseOutlined, SearchOutlined } from "@mui/icons-material";
-
-type Membro = {
-
-    id: number;
-
-    nome: string;
-
-    email: string;
-
-    cargo: string;
-
-    avatar?: string;
-
-};
+import type { User, TeamMember } from "../../types";
+import userService from "../../services/userService";
+import teamService from "../../services/teamService";
 
 type AdicionarMembroDialogProps = {
-
     open: boolean;
-
     onClose: () => void;
-
-    onAdd: (membros: Membro[]) => void;
-
+    onMembersAdded: () => void;
+    teamId: number;
+    currentMembers: TeamMember[];
 };
 
-const usuariosDisponiveis: Membro[] = [
-
-    { id: 5, nome: "Carlos Lima", email: "carlos.lima@oriente.com", cargo: "Designer UX" },
-
-    { id: 6, nome: "Beatriz Rocha", email: "beatriz.rocha@oriente.com", cargo: "Scrum Master" },
-
-    { id: 7, nome: "Rafael Mendes", email: "rafael.mendes@oriente.com", cargo: "Desenvolvedor Junior" },
-
-    { id: 8, nome: "Juliana Alves", email: "juliana.alves@oriente.com", cargo: "Analista de Dados" },
-
-    { id: 9, nome: "Lucas Ferreira", email: "lucas.ferreira@oriente.com", cargo: "DevOps Engineer" },
-
-    { id: 10, nome: "Roberto Dias", email: "roberto.dias@oriente.com", cargo: "QA Analyst" },
-
-    { id: 11, nome: "Fernanda Souza", email: "fernanda.souza@oriente.com", cargo: "Backend Developer" },
-
-    { id: 12, nome: "Mariana Costa", email: "mariana.costa@oriente.com", cargo: "Marketing Specialist" },
-
-];
-
-export default function AdicionarMembroDialog({ open, onClose, onAdd }: AdicionarMembroDialogProps) {
-
+export default function AdicionarMembroDialog({
+    open,
+    onClose,
+    onMembersAdded,
+    teamId,
+    currentMembers
+}: AdicionarMembroDialogProps) {
     const [searchTerm, setSearchTerm] = useState("");
-
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [adding, setAdding] = useState(false);
 
-    const handleToggle = (id: number) => {
+    useEffect(() => {
+        if (open) {
+            loadUsers();
+        }
+    }, [open]);
 
-        setSelectedIds((prev) =>
-
-            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-
-        );
-
+    const loadUsers = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await userService.getUsers(0, 100); // Reduzido para 100
+            setUsers(response.users);
+        } catch (error: any) {
+            console.error("Erro ao carregar usuários:", error);
+            console.error("Detalhes do erro:", error.response?.data);
+            const errorMessage = error.response?.data?.detail || error.message || "Erro ao carregar usuários disponíveis";
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleAdicionar = () => {
+    const handleToggle = (id: number) => {
+        setSelectedIds((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        );
+    };
 
-        const membrosSelecionados = usuariosDisponiveis.filter((u) => selectedIds.includes(u.id));
+    const handleAdicionar = async () => {
+        try {
+            setAdding(true);
+            setError(null);
+            const response = await teamService.addMembers(teamId, selectedIds);
 
-        onAdd(membrosSelecionados);
+            console.log("Add members response:", response);
 
-        setSelectedIds([]);
+            // Show feedback about the operation
+            if (response.already_members && response.already_members.length > 0 ||
+                response.not_found && response.not_found.length > 0) {
+                let message = "";
+                if (response.added_members && response.added_members.length > 0) {
+                    message += `${response.added_members.length} membro(s) adicionado(s). `;
+                }
+                if (response.already_members && response.already_members.length > 0) {
+                    message += `${response.already_members.length} já era(m) membro(s). `;
+                }
+                if (response.not_found && response.not_found.length > 0) {
+                    message += `${response.not_found.length} não encontrado(s).`;
+                }
+                alert(message);
+            }
 
-        setSearchTerm("");
-
+            setSelectedIds([]);
+            setSearchTerm("");
+            onMembersAdded();
+            onClose();
+        } catch (error: any) {
+            console.error("Erro ao adicionar membros:", error);
+            console.error("Response error:", error.response);
+            const errorMsg = error.response?.data?.detail || error.response?.data?.message || error.message || "Erro ao adicionar membros";
+            setError(errorMsg);
+        } finally {
+            setAdding(false);
+        }
     };
 
     const handleClose = () => {
-
         setSelectedIds([]);
-
         setSearchTerm("");
-
+        setError(null);
         onClose();
-
     };
 
-    const filteredUsuarios = usuariosDisponiveis.filter(
+    // Filter users that are NOT already members
+    const currentMemberIds = currentMembers.map(m => m.id);
+    const availableUsers = users.filter(user => !currentMemberIds.includes(user.id));
 
+    const filteredUsuarios = availableUsers.filter(
         (usuario) =>
-
-            usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-
-            usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-
-            usuario.cargo.toLowerCase().includes(searchTerm.toLowerCase())
-
+            usuario.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            usuario.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -147,119 +163,107 @@ export default function AdicionarMembroDialog({ open, onClose, onAdd }: Adiciona
             </DialogTitle>
 
             <DialogContent>
+                {error && (
+                    <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+                        {error}
+                    </Alert>
+                )}
 
                 <TextField
-
                     fullWidth
-
-                    placeholder="Buscar por nome, email ou cargo..."
-
+                    placeholder="Buscar por nome ou email..."
                     value={searchTerm}
-
                     onChange={(e) => setSearchTerm(e.target.value)}
-
+                    disabled={loading}
                     InputProps={{
-
                         startAdornment: (
-
                             <InputAdornment position="start">
-
                                 <SearchOutlined />
-
                             </InputAdornment>
-
                         ),
-
                     }}
-
                     sx={{ mb: 2 }}
-
                 />
 
                 {selectedIds.length > 0 && (
-
                     <Box sx={{ mb: 2, p: 1.5, bgcolor: "primary.light", borderRadius: 1 }}>
-
                         <Typography variant="body2" sx={{ color: "primary.dark", fontWeight: 600 }}>
-
                             {selectedIds.length} {selectedIds.length === 1 ? "membro selecionado" : "membros selecionados"}
-
                         </Typography>
-
                     </Box>
-
                 )}
 
-                <List sx={{ maxHeight: 400, overflow: "auto" }}>
-                    {filteredUsuarios.map((usuario) => (
-                        <ListItem
-                            key={usuario.id}
-                            disablePadding
-                            sx={{ mb: 0.5 }}
-                        >
-                            <ListItemButton
-                                onClick={() => handleToggle(usuario.id)}
-                                sx={{
-                                    borderRadius: 1,
-                                    gap: 1.5,
-                                    alignItems: "center",
-                                    "&:hover": {
-                                        bgcolor: "action.hover",
-                                    },
-                                }}
+                {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : filteredUsuarios.length === 0 ? (
+                    <Box sx={{ textAlign: "center", py: 4 }}>
+                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            {searchTerm ? "Nenhum usuário encontrado" : "Todos os usuários já são membros"}
+                        </Typography>
+                    </Box>
+                ) : (
+                    <List sx={{ maxHeight: 400, overflow: "auto" }}>
+                        {filteredUsuarios.map((usuario) => (
+                            <ListItem
+                                key={usuario.id}
+                                disablePadding
+                                sx={{ mb: 0.5 }}
                             >
-                                <Checkbox
-                                    edge="start"
-                                    checked={selectedIds.includes(usuario.id)}
-                                    tabIndex={-1}
-                                    disableRipple
-                                />
-                                <ListItemAvatar>
-                                    <Avatar sx={{ bgcolor: "primary.main" }}>
-                                        {usuario.nome.charAt(0)}
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                            {usuario.nome}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                            {usuario.email} ? {usuario.cargo}
-                                        </Typography>
-                                    }
-                                />
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
-                </List>
-
+                                <ListItemButton
+                                    onClick={() => handleToggle(usuario.id)}
+                                    sx={{
+                                        borderRadius: 1,
+                                        gap: 1.5,
+                                        alignItems: "center",
+                                        "&:hover": {
+                                            bgcolor: "action.hover",
+                                        },
+                                    }}
+                                >
+                                    <Checkbox
+                                        edge="start"
+                                        checked={selectedIds.includes(usuario.id)}
+                                        tabIndex={-1}
+                                        disableRipple
+                                    />
+                                    <ListItemAvatar>
+                                        <Avatar sx={{ bgcolor: "primary.main" }}>
+                                            {usuario.name.charAt(0)}
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText
+                                        primary={
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                {usuario.name}
+                                            </Typography>
+                                        }
+                                        secondary={
+                                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {usuario.email}
+                                            </Typography>
+                                        }
+                                    />
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
+                    </List>
+                )}
             </DialogContent>
 
             <DialogActions sx={{ px: 3, pb: 2.5 }}>
-
-                <Button onClick={handleClose} variant="outlined">
-
+                <Button onClick={handleClose} variant="outlined" disabled={adding}>
                     Cancelar
-
                 </Button>
-
                 <Button
-
                     onClick={handleAdicionar}
-
                     variant="contained"
-
-                    disabled={selectedIds.length === 0}
-
+                    disabled={selectedIds.length === 0 || adding}
+                    startIcon={adding ? <CircularProgress size={20} /> : null}
                 >
-
-                    Adicionar ({selectedIds.length})
-
+                    {adding ? "Adicionando..." : `Adicionar (${selectedIds.length})`}
                 </Button>
-
             </DialogActions>
 
         </Dialog>

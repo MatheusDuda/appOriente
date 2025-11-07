@@ -11,7 +11,8 @@ from app.schemas.team import (
     TeamListResponse,
     TeamDetailedResponse,
     TeamMemberRequest,
-    AddMembersResponse
+    AddMembersResponse,
+    ApiResponse
 )
 from app.services.team import TeamService
 
@@ -21,7 +22,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_team(
     request: TeamCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -36,7 +37,11 @@ def create_team(
     """
     try:
         team = TeamService.create_team(db, request, current_user.id)
-        return TeamResponse.model_validate(team)
+        return ApiResponse(
+            success=True,
+            message="Equipe criada com sucesso",
+            data=TeamResponse.model_validate(team).model_dump()
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -46,7 +51,7 @@ def create_team(
         )
 
 
-@router.get("", response_model=List[TeamListResponse])
+@router.get("", response_model=ApiResponse)
 def list_teams(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -59,7 +64,12 @@ def list_teams(
     """
     try:
         teams = TeamService.get_all_teams(db, current_user.id)
-        return [TeamListResponse.model_validate(team) for team in teams]
+        teams_data = [TeamResponse.model_validate(team).model_dump() for team in teams]
+        return ApiResponse(
+            success=True,
+            message="Equipes listadas com sucesso",
+            data=teams_data
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -69,7 +79,7 @@ def list_teams(
         )
 
 
-@router.get("/my-teams", response_model=List[TeamListResponse])
+@router.get("/my-teams", response_model=ApiResponse)
 def list_my_teams(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -86,7 +96,12 @@ def list_my_teams(
             team for team in all_teams
             if team.leader_id == current_user.id or current_user in team.members
         ]
-        return [TeamListResponse.model_validate(team) for team in my_teams]
+        teams_data = [TeamResponse.model_validate(team).model_dump() for team in my_teams]
+        return ApiResponse(
+            success=True,
+            message="Minhas equipes listadas com sucesso",
+            data=teams_data
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -96,7 +111,7 @@ def list_my_teams(
         )
 
 
-@router.get("/{team_id}", response_model=TeamDetailedResponse)
+@router.get("/{team_id}", response_model=ApiResponse)
 def get_team(
     team_id: int,
     current_user: User = Depends(get_current_user),
@@ -110,7 +125,11 @@ def get_team(
     """
     try:
         team = TeamService.get_team_by_id(db, team_id, current_user.id)
-        return TeamDetailedResponse.model_validate(team)
+        return ApiResponse(
+            success=True,
+            message="Equipe encontrada com sucesso",
+            data=TeamDetailedResponse.model_validate(team).model_dump()
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -120,7 +139,7 @@ def get_team(
         )
 
 
-@router.put("/{team_id}", response_model=TeamResponse)
+@router.put("/{team_id}", response_model=ApiResponse)
 def update_team(
     team_id: int,
     request: TeamUpdateRequest,
@@ -136,7 +155,11 @@ def update_team(
     """
     try:
         team = TeamService.update_team(db, team_id, request, current_user.id)
-        return TeamResponse.model_validate(team)
+        return ApiResponse(
+            success=True,
+            message="Equipe atualizada com sucesso",
+            data=TeamResponse.model_validate(team).model_dump()
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -171,7 +194,7 @@ def delete_team(
         )
 
 
-@router.post("/{team_id}/members", response_model=AddMembersResponse)
+@router.post("/{team_id}/members", response_model=ApiResponse)
 def add_team_members(
     team_id: int,
     request: TeamMemberRequest,
@@ -187,7 +210,7 @@ def add_team_members(
     """
     try:
         result = TeamService.add_members(db, team_id, request, current_user.id)
-        return result
+        return ApiResponse(success=True, message="Membros processados com sucesso", data=result)
     except HTTPException as e:
         raise e
     except Exception as e:
