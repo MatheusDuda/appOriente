@@ -313,7 +313,7 @@ export default function Projects() {
     };
 
     const handleClickTask = (taskId: string) => {
-        navigate(`/tarefas/${taskId}`);
+        navigate(`/projetos/${selectedProject.id}/tarefas/${taskId}`);
     };
 
     const mockMembers = [

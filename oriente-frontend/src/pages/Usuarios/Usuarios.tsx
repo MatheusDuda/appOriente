@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Box,
     Paper,
@@ -15,6 +15,9 @@ import {
     Button,
     TextField,
     InputAdornment,
+    CircularProgress,
+    Alert,
+    Snackbar,
 } from "@mui/material";
 import {
     SearchOutlined,
@@ -22,52 +25,65 @@ import {
 } from "@mui/icons-material";
 import UsuarioOverflow from "../../components/Usuarios/Overflow";
 import CadastrarUsuario from "../../components/Usuarios/CadastrarUsuario";
+import userService from "../../services/userService";
+import type { User, UserRole, UserStatus } from "../../types";
 
-type Usuario = {
-    id: number;
-    nome: string;
-    email: string;
-    cargo: string;
-    role: "Admin" | "Gerente" | "Membro" | "Visualizador";
-    status: "Ativo" | "Inativo";
-    avatar?: string;
+const getRoleLabel = (role: UserRole): string => {
+    return role === "ADMIN" ? "Administrador" : "Usuário";
 };
 
-const mockUsuarios: Usuario[] = [
-    { id: 1, nome: "João Silva", email: "joao.silva@oriente.com", cargo: "Tech Lead", role: "Admin", status: "Ativo" },
-    { id: 2, nome: "Maria Santos", email: "maria.santos@oriente.com", cargo: "Product Manager", role: "Gerente", status: "Ativo" },
-    { id: 3, nome: "Pedro Costa", email: "pedro.costa@oriente.com", cargo: "Desenvolvedor Senior", role: "Membro", status: "Ativo" },
-    { id: 4, nome: "Ana Oliveira", email: "ana.oliveira@oriente.com", cargo: "QA Engineer", role: "Membro", status: "Ativo" },
-    { id: 5, nome: "Carlos Lima", email: "carlos.lima@oriente.com", cargo: "Designer UX", role: "Membro", status: "Inativo" },
-    { id: 6, nome: "Beatriz Rocha", email: "beatriz.rocha@oriente.com", cargo: "Scrum Master", role: "Gerente", status: "Ativo" },
-    { id: 7, nome: "Rafael Mendes", email: "rafael.mendes@oriente.com", cargo: "Desenvolvedor Junior", role: "Visualizador", status: "Ativo" },
-    { id: 8, nome: "Juliana Alves", email: "juliana.alves@oriente.com", cargo: "Analista de Dados", role: "Membro", status: "Ativo" },
-];
-
-const getRoleColor = (role: Usuario["role"]) => {
-    switch (role) {
-        case "Admin":
-            return "error";
-        case "Gerente":
-            return "warning";
-        case "Membro":
-            return "primary";
-        case "Visualizador":
-            return "default";
-        default:
-            return "default";
-    }
+const getRoleColor = (role: UserRole) => {
+    return role === "ADMIN" ? "error" : "primary";
 };
 
-const getStatusColor = (status: Usuario["status"]) => {
-    return status === "Ativo" ? "success" : "default";
+const getStatusLabel = (status: UserStatus): string => {
+    return status === "ACTIVE" ? "Ativo" : "Inativo";
+};
+
+const getStatusColor = (status: UserStatus) => {
+    return status === "ACTIVE" ? "success" : "default";
 };
 
 export default function Usuarios() {
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [total, setTotal] = useState(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [cadastrarOpen, setCadastrarOpen] = useState(false);
+    const [snackbar, setSnackbar] = useState<{
+        open: boolean;
+        message: string;
+        severity: "success" | "error" | "info";
+    }>({
+        open: false,
+        message: "",
+        severity: "success",
+    });
+
+    useEffect(() => {
+        loadUsers();
+    }, [page, rowsPerPage]);
+
+    const loadUsers = async () => {
+        try {
+            setLoading(true);
+            const skip = page * rowsPerPage;
+            const response = await userService.getUsers(skip, rowsPerPage);
+            setUsers(response.users);
+            setTotal(response.total);
+        } catch (error: any) {
+            console.error("Erro ao carregar usuários:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao carregar usuários",
+                severity: "error",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleChangePage = (_: unknown, newPage: number) => {
         setPage(newPage);
@@ -78,14 +94,49 @@ export default function Usuarios() {
         setPage(0);
     };
 
-    const filteredUsuarios = mockUsuarios.filter(
-        (usuario) =>
-            usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            usuario.cargo.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleUserCreated = () => {
+        setCadastrarOpen(false);
+        setSnackbar({
+            open: true,
+            message: "Usuário cadastrado com sucesso!",
+            severity: "success",
+        });
+        loadUsers();
+    };
 
-    const paginatedData = filteredUsuarios.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+    const handleUserUpdated = () => {
+        setSnackbar({
+            open: true,
+            message: "Usuário atualizado com sucesso!",
+            severity: "success",
+        });
+        loadUsers();
+    };
+
+    const handleUserDeleted = () => {
+        setSnackbar({
+            open: true,
+            message: "Usuário desativado com sucesso!",
+            severity: "success",
+        });
+        loadUsers();
+    };
+
+    const handleUserActivated = () => {
+        setSnackbar({
+            open: true,
+            message: "Usuário reativado com sucesso!",
+            severity: "success",
+        });
+        loadUsers();
+    };
+
+    // Filtro local por busca
+    const filteredUsers = users.filter(
+        (user) =>
+            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -110,7 +161,7 @@ export default function Usuarios() {
             <Paper sx={{ p: 3, borderRadius: 3 }}>
                 <TextField
                     fullWidth
-                    placeholder="Buscar por nome, email ou cargo..."
+                    placeholder="Buscar por nome ou email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
@@ -123,74 +174,114 @@ export default function Usuarios() {
                     sx={{ mb: 3 }}
                 />
 
-                <TableContainer>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: "grey.50" }}>
-                                <TableCell sx={{ fontWeight: 600 }}>Usuário</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Cargo</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Função</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }} align="right">Ações</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {paginatedData.map((usuario) => (
-                                <TableRow
-                                    key={usuario.id}
-                                    hover
-                                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                                >
-                                    <TableCell>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                            <Avatar sx={{ width: 40, height: 40, bgcolor: "primary.main" }}>
-                                                {usuario.nome.charAt(0)}
-                                            </Avatar>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                {usuario.nome}
-                                            </Typography>
-                                        </Box>
-                                    </TableCell>
-                                    <TableCell>{usuario.email}</TableCell>
-                                    <TableCell>{usuario.cargo}</TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={usuario.role}
-                                            color={getRoleColor(usuario.role)}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={usuario.status}
-                                            color={getStatusColor(usuario.status)}
-                                            size="small"
-                                            variant="outlined"
-                                        />
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <UsuarioOverflow usuario={usuario} />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-                <TablePagination
-                    component="div"
-                    count={filteredUsuarios.length}
-                    page={page}
-                    onPageChange={handleChangePage}
-                    rowsPerPage={rowsPerPage}
-                    onRowsPerPageChange={handleChangeRowsPerPage}
-                    rowsPerPageOptions={[5, 10, 25]}
-                    labelRowsPerPage="Linhas por página:"
-                    labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
-                />
+                {loading ? (
+                    <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : filteredUsers.length === 0 ? (
+                    <Box sx={{ textAlign: "center", py: 8 }}>
+                        <Typography variant="h6" sx={{ color: "text.secondary" }}>
+                            {searchTerm ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado"}
+                        </Typography>
+                    </Box>
+                ) : (
+                    <>
+                        <TableContainer>
+                            <Table>
+                                <TableHead>
+                                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                                        <TableCell sx={{ fontWeight: 600 }}>Usuário</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Função</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Data de Cadastro</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }} align="right">Ações</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {filteredUsers.map((user) => (
+                                        <TableRow
+                                            key={user.id}
+                                            hover
+                                            sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                                        >
+                                            <TableCell>
+                                                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                                    <Avatar sx={{ width: 40, height: 40, bgcolor: "primary.main" }}>
+                                                        {user.name.charAt(0).toUpperCase()}
+                                                    </Avatar>
+                                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                        {user.name}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={getRoleLabel(user.role)}
+                                                    color={getRoleColor(user.role)}
+                                                    size="small"
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={getStatusLabel(user.status)}
+                                                    color={getStatusColor(user.status)}
+                                                    size="small"
+                                                    variant="outlined"
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <UsuarioOverflow
+                                                    user={user}
+                                                    onUserUpdated={handleUserUpdated}
+                                                    onUserDeleted={handleUserDeleted}
+                                                    onUserActivated={handleUserActivated}
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                        <TablePagination
+                            component="div"
+                            count={total}
+                            page={page}
+                            onPageChange={handleChangePage}
+                            rowsPerPage={rowsPerPage}
+                            onRowsPerPageChange={handleChangeRowsPerPage}
+                            rowsPerPageOptions={[5, 10, 25, 50]}
+                            labelRowsPerPage="Linhas por página:"
+                            labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+                        />
+                    </>
+                )}
             </Paper>
 
-            <CadastrarUsuario open={cadastrarOpen} onClose={() => setCadastrarOpen(false)} />
+            <CadastrarUsuario
+                open={cadastrarOpen}
+                onClose={() => setCadastrarOpen(false)}
+                onUserCreated={handleUserCreated}
+            />
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={3000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    sx={{ width: "100%", borderRadius: 2 }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

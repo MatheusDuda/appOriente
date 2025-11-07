@@ -5,29 +5,31 @@ import {
     EditOutlined,
     LockOutlined,
     PersonOffOutlined,
-    DeleteOutlineOutlined,
+    CheckCircleOutlined,
 } from "@mui/icons-material";
 import EditarUsuario from "./EditarUsuario";
 import ConfirmDialog from "../Common/ConfirmDialog";
 import { useNavigate } from "react-router-dom";
-
-type Usuario = {
-    id: number;
-    nome: string;
-    email: string;
-    cargo: string;
-    role: "Admin" | "Gerente" | "Membro" | "Visualizador";
-    status: "Ativo" | "Inativo";
-};
+import userService from "../../services/userService";
+import type { User } from "../../types";
 
 type UsuarioOverflowProps = {
-    usuario: Usuario;
+    user: User;
+    onUserUpdated: () => void;
+    onUserDeleted: () => void;
+    onUserActivated: () => void;
 };
 
-export default function UsuarioOverflow({ usuario }: UsuarioOverflowProps) {
+export default function UsuarioOverflow({
+    user,
+    onUserUpdated,
+    onUserDeleted,
+    onUserActivated,
+}: UsuarioOverflowProps) {
     const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [editarOpen, setEditarOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
         title: string;
@@ -41,6 +43,7 @@ export default function UsuarioOverflow({ usuario }: UsuarioOverflowProps) {
     });
 
     const open = Boolean(anchorEl);
+    const isActive = user.status === "ACTIVE";
 
     const handleClick = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget);
@@ -57,33 +60,48 @@ export default function UsuarioOverflow({ usuario }: UsuarioOverflowProps) {
 
     const handleGerenciarPermissoes = () => {
         handleClose();
-        navigate("/permissoes", { state: { usuario } });
+        navigate("/permissoes", { state: { user } });
     };
 
-    const handleDesativar = () => {
+    const handleToggleStatus = () => {
         handleClose();
-        setConfirmDialog({
-            open: true,
-            title: "Desativar Usuário",
-            message: `Tem certeza que deseja desativar o usuário ${usuario.nome}?`,
-            action: () => {
-                console.log("Desativar usuário:", usuario.id);
-                setConfirmDialog({ ...confirmDialog, open: false });
-            },
-        });
-    };
-
-    const handleExcluir = () => {
-        handleClose();
-        setConfirmDialog({
-            open: true,
-            title: "Excluir Usuário",
-            message: `Tem certeza que deseja excluir permanentemente o usuário ${usuario.nome}? Esta ação não pode ser desfeita.`,
-            action: () => {
-                console.log("Excluir usuário:", usuario.id);
-                setConfirmDialog({ ...confirmDialog, open: false });
-            },
-        });
+        if (isActive) {
+            setConfirmDialog({
+                open: true,
+                title: "Desativar Usuário",
+                message: `Tem certeza que deseja desativar o usuário ${user.name}?`,
+                action: async () => {
+                    try {
+                        setLoading(true);
+                        await userService.deleteUser(user.id);
+                        setConfirmDialog({ ...confirmDialog, open: false });
+                        onUserDeleted();
+                    } catch (error) {
+                        console.error("Erro ao desativar usuário:", error);
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+            });
+        } else {
+            setConfirmDialog({
+                open: true,
+                title: "Ativar Usuário",
+                message: `Tem certeza que deseja reativar o usuário ${user.name}?`,
+                action: async () => {
+                    try {
+                        setLoading(true);
+                        await userService.activateUser(user.id);
+                        setConfirmDialog({ ...confirmDialog, open: false });
+                        onUserActivated();
+                    } catch (error) {
+                        console.error("Erro ao ativar usuário:", error);
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+            });
+        }
     };
 
     return (
@@ -125,26 +143,23 @@ export default function UsuarioOverflow({ usuario }: UsuarioOverflowProps) {
                     </ListItemIcon>
                     <ListItemText>Gerenciar Permissões</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleDesativar}>
+                <MenuItem onClick={handleToggleStatus} disabled={loading}>
                     <ListItemIcon>
-                        <PersonOffOutlined fontSize="small" />
+                        {isActive ? (
+                            <PersonOffOutlined fontSize="small" />
+                        ) : (
+                            <CheckCircleOutlined fontSize="small" />
+                        )}
                     </ListItemIcon>
-                    <ListItemText>
-                        {usuario.status === "Ativo" ? "Desativar" : "Ativar"}
-                    </ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleExcluir} sx={{ color: "error.main" }}>
-                    <ListItemIcon sx={{ color: "error.main" }}>
-                        <DeleteOutlineOutlined fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Excluir</ListItemText>
+                    <ListItemText>{isActive ? "Desativar" : "Ativar"}</ListItemText>
                 </MenuItem>
             </Menu>
 
             <EditarUsuario
                 open={editarOpen}
                 onClose={() => setEditarOpen(false)}
-                usuario={usuario}
+                user={user}
+                onUserUpdated={onUserUpdated}
             />
 
             <ConfirmDialog
