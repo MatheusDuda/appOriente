@@ -28,8 +28,11 @@ const projectService = {
      * @returns Projeto criado
      */
     async createProject(data: ProjectCreateRequest): Promise<Project> {
-        const response = await api.post<ApiResponse<Project>>("/api/projects", data);
-        return response.data.data;
+        console.log("projectService.createProject - Enviando dados:", data);
+        const response = await api.post<Project>("/api/projects", data);
+        console.log("projectService.createProject - Projeto criado:", response.data);
+        // A API retorna diretamente o objeto, sem wrapper ApiResponse
+        return response.data;
     },
 
     /**
@@ -37,8 +40,12 @@ const projectService = {
      * @returns Lista resumida de projetos
      */
     async getProjects(): Promise<ProjectSummary[]> {
-        const response = await api.get<ApiResponse<ProjectSummary[]>>("/api/projects");
-        return response.data.data;
+        console.log("projectService.getProjects - Fazendo requisição...");
+        const response = await api.get<ProjectSummary[]>("/api/projects");
+        console.log("projectService.getProjects - Resposta completa:", response);
+        console.log("projectService.getProjects - response.data:", response.data);
+        // A API retorna diretamente o array, sem wrapper ApiResponse
+        return response.data;
     },
 
     /**
@@ -48,8 +55,8 @@ const projectService = {
      * @returns Dados completos do projeto
      */
     async getProjectById(projectId: number): Promise<Project> {
-        const response = await api.get<ApiResponse<Project>>(`/api/projects/${projectId}`);
-        return response.data.data;
+        const response = await api.get<Project>(`/api/projects/${projectId}`);
+        return response.data;
     },
 
     /**
@@ -59,11 +66,11 @@ const projectService = {
      * @returns Projeto atualizado
      */
     async updateProject(projectId: number, data: ProjectUpdateRequest): Promise<Project> {
-        const response = await api.put<ApiResponse<Project>>(
+        const response = await api.put<Project>(
             `/api/projects/${projectId}`,
             data
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
@@ -80,10 +87,10 @@ const projectService = {
      * @returns Board com todas as colunas e cards
      */
     async getProjectBoard(projectId: number): Promise<ProjectBoard> {
-        const response = await api.get<ApiResponse<ProjectBoard>>(
+        const response = await api.get<ProjectBoard>(
             `/api/projects/${projectId}/board`
         );
-        return response.data.data;
+        return response.data;
     },
 
     // ========================================
@@ -97,11 +104,11 @@ const projectService = {
      * @returns Coluna criada
      */
     async createColumn(projectId: number, data: ColumnCreateRequest): Promise<KanbanColumn> {
-        const response = await api.post<ApiResponse<KanbanColumn>>(
+        const response = await api.post<KanbanColumn>(
             `/api/projects/${projectId}/columns`,
             data
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
@@ -110,10 +117,10 @@ const projectService = {
      * @returns Lista de colunas
      */
     async getColumns(projectId: number): Promise<KanbanColumn[]> {
-        const response = await api.get<ApiResponse<KanbanColumn[]>>(
+        const response = await api.get<KanbanColumn[]>(
             `/api/projects/${projectId}/columns`
         );
-        return response.data.data;
+        return response.data;
     },
 
     // ========================================
@@ -127,11 +134,11 @@ const projectService = {
      * @returns Card criado
      */
     async createCard(projectId: number, data: CardCreateRequest): Promise<Card> {
-        const response = await api.post<ApiResponse<Card>>(
+        const response = await api.post<Card>(
             `/api/projects/${projectId}/cards`,
             data
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
@@ -141,11 +148,11 @@ const projectService = {
      * @returns Lista de cards
      */
     async getCards(projectId: number, filters?: Record<string, any>): Promise<Card[]> {
-        const response = await api.get<ApiResponse<Card[]>>(
+        const response = await api.get<Card[]>(
             `/api/projects/${projectId}/cards`,
             { params: filters }
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
@@ -155,10 +162,10 @@ const projectService = {
      * @returns Dados completos do card
      */
     async getCard(projectId: number, cardId: string): Promise<Card> {
-        const response = await api.get<ApiResponse<Card>>(
+        const response = await api.get<Card>(
             `/api/projects/${projectId}/cards/${cardId}`
         );
-        return response.data.data;
+        return response.data;
     },
 
     /**
@@ -169,11 +176,11 @@ const projectService = {
      * @returns Card atualizado
      */
     async moveCard(projectId: number, cardId: number, data: CardMoveRequest): Promise<Card> {
-        const response = await api.patch<ApiResponse<Card>>(
+        const response = await api.patch<Card>(
             `/api/projects/${projectId}/cards/${cardId}/move`,
             data
         );
-        return response.data.data;
+        return response.data;
     },
 };
 

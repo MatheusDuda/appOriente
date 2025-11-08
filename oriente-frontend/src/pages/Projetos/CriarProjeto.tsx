@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Box,
@@ -11,50 +11,142 @@ import {
     Select,
     MenuItem,
     Chip,
-    Avatar,
-    AvatarGroup,
+    CircularProgress,
+    Snackbar,
+    Alert,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { ArrowBackOutlined, SaveOutlined } from "@mui/icons-material";
-
-type Membro = {
-    id: number;
-    nome: string;
-};
-
-const mockMembros: Membro[] = [
-    { id: 1, nome: "João Silva" },
-    { id: 2, nome: "Maria Santos" },
-    { id: 3, nome: "Pedro Costa" },
-    { id: 4, nome: "Ana Oliveira" },
-    { id: 5, nome: "Carlos Lima" },
-];
+import projectService from "../../services/projectService";
+import teamService from "../../services/teamService";
+import type { TeamListItem } from "../../types";
 
 export default function CriarProjeto() {
     const navigate = useNavigate();
     const [nome, setNome] = useState("");
     const [descricao, setDescricao] = useState("");
-    const [lider, setLider] = useState<number | "">("");
-    const [membros, setMembros] = useState<number[]>([]);
-    const [dataInicio, setDataInicio] = useState("");
-    const [dataFim, setDataFim] = useState("");
+    const [teamId, setTeamId] = useState<number | "">("");
+    const [memberNames, setMemberNames] = useState<string[]>([]);
+    const [memberInput, setMemberInput] = useState("");
 
-    const handleSalvar = () => {
-        // Aqui você faria a chamada para API para salvar o projeto
-        console.log({
-            nome,
-            descricao,
-            lider,
-            membros,
-            dataInicio,
-            dataFim,
-        });
-        navigate("/projetos");
+    // Teams data
+    const [teams, setTeams] = useState<TeamListItem[]>([]);
+    const [loadingTeams, setLoadingTeams] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    // Error handling
+    const [snackbar, setSnackbar] = useState<{
+        open: boolean;
+        message: string;
+        severity: "success" | "error";
+    }>({
+        open: false,
+        message: "",
+        severity: "success",
+    });
+
+    useEffect(() => {
+        loadTeams();
+    }, []);
+
+    const loadTeams = async () => {
+        try {
+            setLoadingTeams(true);
+            const data = await teamService.getTeams();
+            console.log("Equipes carregadas:", data);
+            setTeams(data);
+        } catch (error) {
+            console.error("Erro ao carregar equipes:", error);
+            setSnackbar({
+                open: true,
+                message: "Erro ao carregar equipes",
+                severity: "error",
+            });
+        } finally {
+            setLoadingTeams(false);
+        }
+    };
+
+    const handleAddMember = () => {
+        const trimmedName = memberInput.trim();
+        if (trimmedName && !memberNames.includes(trimmedName)) {
+            setMemberNames([...memberNames, trimmedName]);
+            setMemberInput("");
+        }
+    };
+
+    const handleRemoveMember = (name: string) => {
+        setMemberNames(memberNames.filter((m) => m !== name));
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleAddMember();
+        }
+    };
+
+    const handleSalvar = async () => {
+        if (!nome || !descricao || teamId === "" || typeof teamId !== "number") {
+            setSnackbar({
+                open: true,
+                message: "Preencha todos os campos obrigatórios (nome, descrição e equipe)",
+                severity: "error",
+            });
+            return;
+        }
+
+        console.log("Criando projeto:", { nome, descricao, team_id: teamId, member_names: memberNames });
+
+        try {
+            setSaving(true);
+            await projectService.createProject({
+                name: nome,
+                description: descricao,
+                team_id: teamId,
+                member_names: memberNames,
+            });
+
+            setSnackbar({
+                open: true,
+                message: "Projeto criado com sucesso",
+                severity: "success",
+            });
+
+            // Redirect with a small delay to ensure snackbar is visible
+            setTimeout(() => {
+                console.log("Navegando de volta para /projetos com refresh timestamp");
+                navigate("/projetos", {
+                    state: { refresh: Date.now() },
+                    replace: false
+                });
+            }, 500);
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao criar projeto",
+                severity: "error",
+            });
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleCancelar = () => {
         navigate("/projetos");
     };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
+
+    if (loadingTeams) {
+        return (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -103,112 +195,97 @@ export default function CriarProjeto() {
                         />
                     </Grid>
 
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            fullWidth
-                            type="date"
-                            label="Data de Início"
-                            value={dataInicio}
-                            onChange={(e) => setDataInicio(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField
-                            fullWidth
-                            type="date"
-                            label="Data de Término (Estimada)"
-                            value={dataFim}
-                            onChange={(e) => setDataFim(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                        />
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
+                    <Grid size={{ xs: 12 }}>
                         <FormControl fullWidth required>
-                            <InputLabel>Líder do Projeto</InputLabel>
+                            <InputLabel>Equipe</InputLabel>
                             <Select
-                                value={lider}
-                                label="Líder do Projeto"
-                                onChange={(e) => setLider(e.target.value as number)}
+                                value={teamId}
+                                label="Equipe"
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    const numValue = typeof value === "number" ? value : Number(value);
+                                    console.log("Team selected:", { raw: value, converted: numValue });
+                                    setTeamId(numValue);
+                                }}
                             >
-                                {mockMembros.map((membro) => (
-                                    <MenuItem key={membro.id} value={membro.id}>
-                                        {membro.nome}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 6 }}>
-                        <FormControl fullWidth>
-                            <InputLabel>Membros da Equipe</InputLabel>
-                            <Select
-                                multiple
-                                value={membros}
-                                label="Membros da Equipe"
-                                onChange={(e) => setMembros(e.target.value as number[])}
-                                renderValue={(selected) => (
-                                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                                        {selected.map((value) => {
-                                            const membro = mockMembros.find((m) => m.id === value);
-                                            return membro ? (
-                                                <Chip key={value} label={membro.nome} size="small" />
-                                            ) : null;
-                                        })}
-                                    </Box>
+                                {teams.length === 0 ? (
+                                    <MenuItem disabled>Nenhuma equipe disponível</MenuItem>
+                                ) : (
+                                    teams.map((team) => (
+                                        <MenuItem key={team.id} value={team.id}>
+                                            {team.name} ({team.members?.length || 0} membro(s))
+                                        </MenuItem>
+                                    ))
                                 )}
-                            >
-                                {mockMembros.map((membro) => (
-                                    <MenuItem key={membro.id} value={membro.id}>
-                                        {membro.nome}
-                                    </MenuItem>
-                                ))}
                             </Select>
                         </FormControl>
                     </Grid>
 
-                    {membros.length > 0 && (
+                    <Grid size={{ xs: 12 }}>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                            Membros do Projeto (Opcional)
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary", mb: 2, display: "block" }}>
+                            Digite os nomes dos membros e pressione Enter para adicionar
+                        </Typography>
+                        <TextField
+                            fullWidth
+                            label="Nome do Membro"
+                            value={memberInput}
+                            onChange={(e) => setMemberInput(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder="Ex: João Silva"
+                            helperText="Pressione Enter para adicionar"
+                        />
+                    </Grid>
+
+                    {memberNames.length > 0 && (
                         <Grid size={{ xs: 12 }}>
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                    Membros Selecionados ({membros.length})
+                                    Membros Adicionados ({memberNames.length})
                                 </Typography>
-                                <AvatarGroup max={10}>
-                                    {membros.map((membroId) => {
-                                        const membro = mockMembros.find((m) => m.id === membroId);
-                                        return membro ? (
-                                            <Avatar
-                                                key={membro.id}
-                                                sx={{ bgcolor: "primary.main" }}
-                                                title={membro.nome}
-                                            >
-                                                {membro.nome.charAt(0)}
-                                            </Avatar>
-                                        ) : null;
-                                    })}
-                                </AvatarGroup>
+                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                                    {memberNames.map((name) => (
+                                        <Chip
+                                            key={name}
+                                            label={name}
+                                            onDelete={() => handleRemoveMember(name)}
+                                            color="primary"
+                                            variant="outlined"
+                                        />
+                                    ))}
+                                </Box>
                             </Box>
                         </Grid>
                     )}
                 </Grid>
 
                 <Box sx={{ display: "flex", gap: 2, mt: 4, justifyContent: "flex-end" }}>
-                    <Button onClick={handleCancelar} variant="outlined">
+                    <Button onClick={handleCancelar} variant="outlined" disabled={saving}>
                         Cancelar
                     </Button>
                     <Button
                         onClick={handleSalvar}
                         variant="contained"
-                        startIcon={<SaveOutlined />}
-                        disabled={!nome || !descricao || !lider}
+                        startIcon={saving ? <CircularProgress size={20} /> : <SaveOutlined />}
+                        disabled={!nome || !descricao || !teamId || saving}
                     >
-                        Criar Projeto
+                        {saving ? "Criando..." : "Criar Projeto"}
                     </Button>
                 </Box>
             </Paper>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            >
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

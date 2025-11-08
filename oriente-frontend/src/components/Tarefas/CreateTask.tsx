@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogTitle,
@@ -12,13 +12,13 @@ import {
     MenuItem,
     Chip,
     Box,
+    CircularProgress,
+    Typography,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
-
-type Member = {
-    id: number;
-    name: string;
-};
+import type { KanbanColumn, User } from "../../types";
+import { CardPriority } from "../../types";
+import userService from "../../services/userService";
 
 type CreateTaskProps = {
     open: boolean;
@@ -26,55 +26,66 @@ type CreateTaskProps = {
     onSave: (task: {
         title: string;
         description: string;
-        priority: "High" | "Medium" | "Low";
+        priority: CardPriority;
         assignees: number[];
         dueDate?: string;
-        tags: string[];
-        columnId: string;
+        columnId: number;
     }) => void;
-    columns: { id: string; title: string }[];
+    columns: KanbanColumn[];
+    projectId?: number;
 };
 
-const mockMembers: Member[] = [
-    { id: 1, name: "John Silva" },
-    { id: 2, name: "Mary Santos" },
-    { id: 3, name: "Pedro Costa" },
-    { id: 4, name: "Ana Oliveira" },
-    { id: 5, name: "Carlos Lima" },
+const priorities = [
+    { value: CardPriority.URGENT, label: "Urgent" },
+    { value: CardPriority.HIGH, label: "High" },
+    { value: CardPriority.MEDIUM, label: "Medium" },
+    { value: CardPriority.LOW, label: "Low" },
 ];
-
-const priorities: Array<"High" | "Medium" | "Low"> = ["High", "Medium", "Low"];
 
 export default function CreateTask({ open, onClose, onSave, columns }: CreateTaskProps) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
+    const [priority, setPriority] = useState<CardPriority>(CardPriority.MEDIUM);
     const [assignees, setAssignees] = useState<number[]>([]);
     const [dueDate, setDueDate] = useState("");
-    const [columnId, setColumnId] = useState(columns[0]?.id || "");
-    const [tagInput, setTagInput] = useState("");
-    const [tags, setTags] = useState<string[]>([]);
+    const [columnId, setColumnId] = useState<number>(columns[0]?.id || 0);
 
-    const handleAddTag = () => {
-        if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-            setTags([...tags, tagInput.trim()]);
-            setTagInput("");
+    // Users for assignees
+    const [users, setUsers] = useState<User[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            loadUsers();
+            // Set default column if available
+            if (columns.length > 0 && !columnId) {
+                setColumnId(columns[0].id);
+            }
+        }
+    }, [open, columns]);
+
+    const loadUsers = async () => {
+        try {
+            setLoadingUsers(true);
+            const response = await userService.getUsers(0, 100); // Get first 100 users
+            // Filter only active users
+            const activeUsers = response.users.filter((user) => user.status === "ACTIVE");
+            setUsers(activeUsers);
+        } catch (error) {
+            console.error("Failed to load users:", error);
+        } finally {
+            setLoadingUsers(false);
         }
     };
 
-    const handleRemoveTag = (tag: string) => {
-        setTags(tags.filter((t) => t !== tag));
-    };
-
     const handleSave = () => {
-        if (title.trim()) {
+        if (title.trim() && columnId) {
             onSave({
                 title: title.trim(),
                 description: description.trim(),
                 priority,
                 assignees,
                 dueDate: dueDate || undefined,
-                tags,
                 columnId,
             });
             handleClose();
@@ -84,12 +95,10 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
     const handleClose = () => {
         setTitle("");
         setDescription("");
-        setPriority("Medium");
+        setPriority(CardPriority.MEDIUM);
         setAssignees([]);
         setDueDate("");
-        setColumnId(columns[0]?.id || "");
-        setTags([]);
-        setTagInput("");
+        setColumnId(columns[0]?.id || 0);
         onClose();
     };
 
@@ -129,11 +138,11 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                                 <Select
                                     value={priority}
                                     label="Priority"
-                                    onChange={(e) => setPriority(e.target.value as "High" | "Medium" | "Low")}
+                                    onChange={(e) => setPriority(e.target.value as CardPriority)}
                                 >
                                     {priorities.map((p) => (
-                                        <MenuItem key={p} value={p}>
-                                            {p}
+                                        <MenuItem key={p.value} value={p.value}>
+                                            {p.label}
                                         </MenuItem>
                                     ))}
                                 </Select>
@@ -141,12 +150,12 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                         </Grid>
 
                         <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl fullWidth>
+                            <FormControl fullWidth required>
                                 <InputLabel>Column</InputLabel>
                                 <Select
                                     value={columnId}
                                     label="Column"
-                                    onChange={(e) => setColumnId(e.target.value)}
+                                    onChange={(e) => setColumnId(e.target.value as number)}
                                 >
                                     {columns.map((col) => (
                                         <MenuItem key={col.id} value={col.id}>
@@ -158,7 +167,7 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                         </Grid>
 
                         <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl fullWidth>
+                            <FormControl fullWidth disabled={loadingUsers}>
                                 <InputLabel>Assignees</InputLabel>
                                 <Select
                                     multiple
@@ -168,19 +177,30 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                                     renderValue={(selected) => (
                                         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                                             {selected.map((value) => {
-                                                const member = mockMembers.find((m) => m.id === value);
-                                                return member ? (
-                                                    <Chip key={value} label={member.name} size="small" />
+                                                const user = users.find((u) => u.id === value);
+                                                return user ? (
+                                                    <Chip key={value} label={user.name} size="small" />
                                                 ) : null;
                                             })}
                                         </Box>
                                     )}
                                 >
-                                    {mockMembers.map((member) => (
-                                        <MenuItem key={member.id} value={member.id}>
-                                            {member.name}
+                                    {loadingUsers ? (
+                                        <MenuItem disabled>
+                                            <CircularProgress size={20} />
                                         </MenuItem>
-                                    ))}
+                                    ) : (
+                                        users.map((user) => (
+                                            <MenuItem key={user.id} value={user.id}>
+                                                <Box>
+                                                    <Typography variant="body2">{user.name}</Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {user.email}
+                                                    </Typography>
+                                                </Box>
+                                            </MenuItem>
+                                        ))
+                                    )}
                                 </Select>
                             </FormControl>
                         </Grid>
@@ -195,35 +215,6 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                                 InputLabelProps={{ shrink: true }}
                             />
                         </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Tags"
-                                value={tagInput}
-                                onChange={(e) => setTagInput(e.target.value)}
-                                placeholder="Type a tag and press Enter"
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        handleAddTag();
-                                    }
-                                }}
-                                helperText="Press Enter to add a tag"
-                            />
-                            {tags.length > 0 && (
-                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                                    {tags.map((tag) => (
-                                        <Chip
-                                            key={tag}
-                                            label={tag}
-                                            onDelete={() => handleRemoveTag(tag)}
-                                            size="small"
-                                        />
-                                    ))}
-                                </Box>
-                            )}
-                        </Grid>
                     </Grid>
                 </Box>
             </DialogContent>
@@ -232,7 +223,7 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                 <Button
                     variant="contained"
                     onClick={handleSave}
-                    disabled={!title.trim()}
+                    disabled={!title.trim() || !columnId}
                 >
                     Create Task
                 </Button>
