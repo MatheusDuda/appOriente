@@ -12,22 +12,25 @@ import {
 type NewColumnDialogProps = {
     open: boolean;
     onClose: () => void;
-    onSave: (title: string) => void;
+    onSave: (title: string, color?: string) => void;
 };
 
 export default function NewColumnDialog({ open, onClose, onSave }: NewColumnDialogProps) {
     const [title, setTitle] = useState("");
+    const [color, setColor] = useState("#1976d2");
 
     const handleSave = () => {
         if (title.trim()) {
-            onSave(title.trim());
+            onSave(title.trim(), color);
             setTitle("");
+            setColor("#1976d2");
             onClose();
         }
     };
 
     const handleClose = () => {
         setTitle("");
+        setColor("#1976d2");
         onClose();
     };
 
@@ -35,7 +38,7 @@ export default function NewColumnDialog({ open, onClose, onSave }: NewColumnDial
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
             <DialogTitle>New Column</DialogTitle>
             <DialogContent>
-                <Box sx={{ pt: 2 }}>
+                <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
                     <TextField
                         autoFocus
                         fullWidth
@@ -49,6 +52,16 @@ export default function NewColumnDialog({ open, onClose, onSave }: NewColumnDial
                             }
                         }}
                     />
+                    <Box>
+                        <TextField
+                            fullWidth
+                            type="color"
+                            label="Column Color (Optional)"
+                            value={color}
+                            onChange={(e) => setColor(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                        />
+                    </Box>
                 </Box>
             </DialogContent>
             <DialogActions>

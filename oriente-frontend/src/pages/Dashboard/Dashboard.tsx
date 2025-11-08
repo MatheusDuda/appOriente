@@ -149,15 +149,7 @@ export default function Dashboard() {
                         Acompanhe os principais indicadores dos seus projetos e mantenha as equipes alinhadas com os objetivos do trimestre.
                     </Typography>
                 </Box>
-                <Stack
-                    direction={{ xs: "column", sm: "row" }}
-                    spacing={1.5}
-                    alignItems={{ xs: "stretch", sm: "center" }}
-                    sx={{ width: { xs: "100%", md: "auto" } }}
-                >
-                    <Button variant="contained" color="primary" endIcon={<ArrowForwardOutlined />}>Ver relatorios</Button>
-                    <Button variant="outlined" color="primary">Criar projeto</Button>
-                </Stack>
+                <Button variant="contained" color="primary" endIcon={<ArrowForwardOutlined />}>Ver relatorios</Button>
             </Paper>
 
             <Box
