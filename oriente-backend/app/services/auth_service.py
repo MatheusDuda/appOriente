@@ -62,6 +62,13 @@ class AuthService:
                 detail="Credenciais inválidas"
             )
 
+        # Verificar se usuário está ativo
+        if user.status != UserStatus.ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Conta desativada. Entre em contato com o administrador."
+            )
+
         # Gerar JWT token
         token = create_access_token(
             user_id=user.id,
