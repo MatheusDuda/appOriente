@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from app.models.user import UserStatus
@@ -190,5 +190,27 @@ class ApiResponse(BaseModel):
                 "success": True,
                 "message": "Operação realizada com sucesso",
                 "data": {}
+            }
+        }
+
+class UserRoleUpdateRequest(BaseModel):
+    """Request para atualizar role do usuario"""
+    role: str = Field(
+        ...,
+        description="Nova role do usuario",
+        pattern="^(ADMIN|USER)$"
+    )
+
+    @field_validator('role')
+    @classmethod
+    def validate_role(cls, v):
+        if v not in ['ADMIN', 'USER']:
+            raise ValueError('Role inexistente')
+        return v
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role": "ADMIN"
             }
         }

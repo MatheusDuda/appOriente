@@ -223,6 +223,57 @@ class UserService:
 
         return UserResponse.model_validate(user)
 
+    def update_user_role(self, user_id: int, new_role: str, current_user_id: int, current_user_role: str) -> UserResponse:
+        """Atualiza role do usuario (apenas ADMIN)"""
+
+        # Verificar permissões (apenas ADMIN)
+        if current_user_role != UserRole.ADMIN.value:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas adminsitradores podem alterar roles"
+            )
+
+        # Verificar se está alterando a própria role
+        if user_id == current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Não é possível alterar sua própria role"
+            )
+
+        # Busca usuário
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuário não encontrado"
+            )
+
+        # Validar nova role
+        try:
+            new_role_enum = UserRole(new_role)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role inválida. Use 'ADMIN' ou 'USER'"
+            )
+
+        # Verificar se a role ja não é a mesma
+        if user.role == new_role_enum:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Usuário ja possui a role {new_role}"
+            )
+
+        # Atualizar role
+        user.role = new_role_enum
+
+        # Salva mudanças
+        self.db.commit()
+        self.db.refresh(user)
+
+        return UserResponse.model_validate(user)
+
+
 
 def get_user_service(db: Session) -> UserService:
     """

@@ -10,7 +10,8 @@ from app.schemas.user import (
     UserResponse,
     UserListResponse,
     ApiResponse,
-    UserDto
+    UserDto,
+    UserRoleUpdateRequest
 )
 
 router = APIRouter(
@@ -217,5 +218,26 @@ async def activate_user(
     return ApiResponse(
         success=True,
         message="Usuário reativado com sucesso",
+        data=result.model_dump()
+    )
+
+@router.patch("/{user_id}/role", response_model=ApiResponse)
+async def update_user_role(
+        user_id: Annotated[int, Path(description="ID do usuário")],
+        role_data: UserRoleUpdateRequest,
+        db: Session = Depends(get_db),
+        current_user: UserDto = Depends(get_current_user)
+):
+    """Atualiza role do usuario (apenas ADMIN)"""
+    user_service = get_user_service(db)
+    result = user_service.update_user_role(
+        user_id=user_id,
+        new_role=role_data.role,
+        current_user_id=current_user.id,
+        current_user_role=current_user.role
+    )
+    return ApiResponse(
+        success=True,
+        message=f"Role do usuário alterada para {role_data.role} com sucesso",
         data=result.model_dump()
     )
