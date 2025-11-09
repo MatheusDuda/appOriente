@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from .database import get_db
 from .security import decode_access_token
-from app.models.user import User
+from app.models.user import User, UserStatus
 
 # Security scheme para JWT Bearer token
 security = HTTPBearer()
@@ -57,6 +57,7 @@ def get_current_user(
 
     Raises:
         HTTPException: 404 se usuário não encontrado
+        HTTPException: 401 se usuário inativo
     """
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
@@ -64,6 +65,15 @@ def get_current_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado"
         )
+
+    # Verificar se usuário está ativo
+    if user.status != UserStatus.ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sessão inválida - conta desativada",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
     return user
 
 
@@ -86,6 +96,11 @@ def get_current_user_optional(
 
         user_id = int(payload.get("sub"))
         user = db.query(User).filter(User.id == user_id).first()
+
+        # Se usuário estiver inativo, retornar None (não autenticado)
+        if user and user.status != UserStatus.ACTIVE:
+            return None
+
         return user
     except:
         return None
