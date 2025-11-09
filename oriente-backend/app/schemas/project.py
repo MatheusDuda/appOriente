@@ -84,3 +84,22 @@ class ProjectSummary(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ProjectMemberResponse(BaseModel):
+    """
+    Schema para retornar membros do projeto (usado para autocomplete de menções)
+    """
+    id: int
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "id": 1,
+                "name": "João Silva",
+                "email": "joao@example.com"
+            }
+        }

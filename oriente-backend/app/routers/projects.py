@@ -8,7 +8,8 @@ from app.schemas.project import (
     ProjectCreateRequest,
     ProjectUpdateRequest,
     ProjectResponse,
-    ProjectSummary
+    ProjectSummary,
+    ProjectMemberResponse
 )
 from app.services.project_service import ProjectService
 
@@ -92,6 +93,64 @@ def get_project(
 
         response = ProjectService.convert_to_project_response(project)
         return response
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/{project_id}/members", response_model=List[ProjectMemberResponse])
+def get_project_members(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Listar membros do projeto (para autocomplete de menções)
+
+    Retorna todos os usuários que são membros do projeto, incluindo o owner.
+    Usado pelo frontend para sugerir usuários ao mencionar (@usuario).
+    """
+    try:
+        project = ProjectService.find_by_id(project_id, db)
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Projeto não encontrado"
+            )
+
+        # Verificar se o usuário tem acesso ao projeto
+        if not ProjectService.user_can_access_project(db, project_id, current_user.id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acesso negado"
+            )
+
+        # Obter todos os membros do projeto
+        members = []
+
+        # Adicionar o owner
+        if project.owner:
+            members.append(ProjectMemberResponse(
+                id=project.owner.id,
+                name=project.owner.name,
+                email=project.owner.email
+            ))
+
+        # Adicionar os membros (evitando duplicatas)
+        for member in project.members:
+            if member.id != project.owner_id:  # Evitar duplicar o owner
+                members.append(ProjectMemberResponse(
+                    id=member.id,
+                    name=member.name,
+                    email=member.email
+                ))
+
+        return members
 
     except HTTPException as e:
         raise e
