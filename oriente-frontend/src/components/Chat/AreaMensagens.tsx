@@ -111,6 +111,7 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                     display: "flex",
                     flexDirection: "column",
                     gap: 1.5,
+                    backgroundImage: `linear-gradient(to bottom, rgba(245, 245, 247, 0.3), rgba(245, 245, 247, 0.05))`,
                 }}
             >
                 {conversa.mensagens.map((mensagem) => {
@@ -138,6 +139,7 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                                     </Typography>
                                 )}
                                 <Paper
+                                    elevation={0}
                                     sx={{
                                         p: 1.5,
                                         bgcolor: isUsuario ? "primary.main" : "grey.100",
@@ -145,6 +147,12 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                                         borderRadius: 2,
                                         borderTopRightRadius: isUsuario ? 0 : 2,
                                         borderTopLeftRadius: isUsuario ? 2 : 0,
+                                        boxShadow: isUsuario ? "0 2px 8px rgba(139, 107, 71, 0.2)" : "0 2px 8px rgba(0, 0, 0, 0.08)",
+                                        transition: "all 0.2s ease",
+                                        "&:hover": {
+                                            transform: "translateY(-1px)",
+                                            boxShadow: isUsuario ? "0 4px 12px rgba(139, 107, 71, 0.3)" : "0 4px 12px rgba(0, 0, 0, 0.12)",
+                                        },
                                     }}
                                 >
                                     <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
@@ -187,14 +195,23 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
 
             {/* Input de mensagem */}
             <Paper
+                elevation={4}
                 sx={{
                     p: 2,
                     borderRadius: 0,
                     borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+                    bgcolor: "background.paper",
                 }}
             >
                 <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
-                    <IconButton size="small" aria-label="Anexar arquivo">
+                    <IconButton
+                        size="small"
+                        aria-label="Anexar arquivo"
+                        sx={{
+                            color: "text.secondary",
+                            "&:hover": { color: "primary.main" }
+                        }}
+                    >
                         <AttachFileOutlined />
                     </IconButton>
 
@@ -211,6 +228,13 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                         sx={{
                             "& .MuiOutlinedInput-root": {
                                 borderRadius: 3,
+                                bgcolor: "grey.50",
+                                "&:hover": {
+                                    bgcolor: "grey.100",
+                                },
+                                "&.Mui-focused": {
+                                    bgcolor: "background.paper",
+                                },
                             },
                         }}
                     />
@@ -220,6 +244,14 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                         onClick={handleEnviar}
                         disabled={!mensagemTexto.trim()}
                         aria-label="Enviar mensagem"
+                        sx={{
+                            bgcolor: mensagemTexto.trim() ? "primary.main" : "transparent",
+                            color: mensagemTexto.trim() ? "white" : "action.disabled",
+                            "&:hover": {
+                                bgcolor: mensagemTexto.trim() ? "primary.dark" : "transparent",
+                            },
+                            transition: "all 0.2s ease",
+                        }}
                     >
                         <SendOutlined />
                     </IconButton>

@@ -23,8 +23,8 @@ type CadastrarUsuarioProps = {
 };
 
 const roles: { value: UserRole; label: string }[] = [
-    { value: "USER", label: "Usuário" },
-    { value: "ADMIN", label: "Administrador" },
+    { value: UserRole.USER, label: "Usuário" },
+    { value: UserRole.ADMIN, label: "Administrador" },
 ];
 
 export default function CadastrarUsuario({ open, onClose, onUserCreated }: CadastrarUsuarioProps) {

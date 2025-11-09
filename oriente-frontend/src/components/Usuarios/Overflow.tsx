@@ -60,7 +60,7 @@ export default function UsuarioOverflow({
 
     const handleGerenciarPermissoes = () => {
         handleClose();
-        navigate("/permissoes", { state: { user } });
+        navigate("/permissoes", { state: { usuario: user } });
     };
 
     const handleToggleStatus = () => {

@@ -4,7 +4,7 @@ export interface Card {
     title: string;
     description: string;
     status: string;
-    priority: "High" | "Medium" | "Low";
+    priority: "urgent" | "high" | "medium" | "low";
     project_id: number;
     column_id: string;
     created_at: string;

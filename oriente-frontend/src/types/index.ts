@@ -292,6 +292,7 @@ export interface Card {
     id: number;
     title: string;
     description: string;
+    status: string;
     priority: CardPriority;
     position: number;
     column_id: number;

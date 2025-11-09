@@ -1,40 +1,25 @@
-import { Fragment, useState, useEffect } from "react";
-import { Avatar, Box, Button, Chip, Divider, LinearProgress, List, ListItem, ListItemAvatar, ListItemText, Paper, Stack, Typography } from "@mui/material";
-import { ArrowForwardOutlined, AssignmentOutlined, GroupOutlined, InsertChartOutlined, NotificationsNoneOutlined } from "@mui/icons-material";
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useState, useEffect } from "react";
+import { Avatar, Box, Paper, Stack, Typography, CircularProgress } from "@mui/material";
+import { AssignmentOutlined, GroupOutlined, InsertChartOutlined, NotificationsNoneOutlined } from "@mui/icons-material";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { authService, type UserData } from "../../services/authService";
 import api from "../../services/api";
 
-const upcoming = [
-    { title: "Reuniao com equipe Atlas", subtitle: "Hoje, 14:00", chip: "Reuniao" },
-    { title: "Entrega sprint Projeto Aurora", subtitle: "Amanha, 10:00", chip: "Entrega" },
-    { title: "Revisao indicadores trimestrais", subtitle: "Quarta, 09:30", chip: "Analise" },
-];
+type TaskData = {
+    id: number;
+    title: string;
+    status: string;
+    priority: string;
+    due_date?: string;
+    created_at: string;
+    column_id: number;
+};
 
-const progress = [
-    { name: "Projeto Aurora", percent: 72, status: "Em andamento" },
-    { name: "Projeto Boreal", percent: 54, status: "Revisando" },
-    { name: "Projeto Celeste", percent: 38, status: "Planejamento" },
-];
-
-const weeklyTasksData = [
-    { dia: "Seg", concluidas: 12, pendentes: 8 },
-    { dia: "Ter", concluidas: 15, pendentes: 5 },
-    { dia: "Qua", concluidas: 10, pendentes: 10 },
-    { dia: "Qui", concluidas: 18, pendentes: 4 },
-    { dia: "Sex", concluidas: 14, pendentes: 6 },
-    { dia: "Sab", concluidas: 8, pendentes: 2 },
-    { dia: "Dom", concluidas: 5, pendentes: 1 },
-];
-
-const monthlyProgressData = [
-    { mes: "Jan", progresso: 45 },
-    { mes: "Fev", progresso: 52 },
-    { mes: "Mar", progresso: 61 },
-    { mes: "Abr", progresso: 58 },
-    { mes: "Mai", progresso: 70 },
-    { mes: "Jun", progresso: 75 },
-];
+type ChartData = {
+    name: string;
+    value: number;
+    color?: string;
+};
 
 export default function Dashboard() {
     const [userData, setUserData] = useState<UserData | null>(null);
@@ -44,6 +29,11 @@ export default function Dashboard() {
         equipes: 0,
         alertas: 0,
     });
+    const [tasksByStatus, setTasksByStatus] = useState<ChartData[]>([]);
+    const [tasksByPriority, setTasksByPriority] = useState<ChartData[]>([]);
+    const [tasksByDeadline, setTasksByDeadline] = useState<ChartData[]>([]);
+    const [tasksByProject, setTasksByProject] = useState<ChartData[]>([]);
+    const [loadingCharts, setLoadingCharts] = useState(true);
 
     // Buscar dados do usuário logado
     useEffect(() => {
@@ -58,33 +48,140 @@ export default function Dashboard() {
         fetchUserData();
     }, []);
 
-    // Buscar estatísticas
+    // Buscar estatísticas e dados para gráficos
     useEffect(() => {
         const fetchStats = async () => {
             try {
+                setLoadingCharts(true);
+
                 // Buscar projetos do usuário
                 const projectsResponse = await api.get("/api/projects");
-                const projetos = projectsResponse.data?.data?.length || 0;
+                const projects = Array.isArray(projectsResponse.data)
+                    ? projectsResponse.data
+                    : projectsResponse.data?.data || [];
+                const projetos = projects.length;
 
                 // Buscar equipes do usuário
                 const teamsResponse = await api.get("/api/teams/my-teams");
-                const equipes = teamsResponse.data?.data?.length || 0;
+                const teams = Array.isArray(teamsResponse.data)
+                    ? teamsResponse.data
+                    : teamsResponse.data?.data || [];
+                const equipes = teams.length;
 
-                // Buscar tarefas atribuídas ao usuário
-                const tasksResponse = await api.get("/api/cards/my-assigned");
-                const tarefas = tasksResponse.data?.data?.length || 0;
+                // Buscar todas as tarefas do usuário em todos os projetos
+                const allTasks: TaskData[] = [];
+                const projectTaskCount: { [key: string]: number } = {};
 
-                // Atualizar alertas (notificações não lidas)
-                const notificationsResponse = await api.get("/api/notifications/count");
-                const alertas = notificationsResponse.data?.data?.unread_count || 0;
+                for (const project of projects) {
+                    try {
+                        const tasksResponse = await api.get(`/api/projects/${project.id}/cards`);
+                        const tasks = tasksResponse.data?.cards || tasksResponse.data || [];
 
-                setStats({ projetos, tarefas, equipes, alertas });
+                        if (Array.isArray(tasks)) {
+                            allTasks.push(...tasks);
+                            projectTaskCount[project.name] = tasks.length;
+                        }
+                    } catch (error) {
+                        console.error(`Erro ao buscar tarefas do projeto ${project.id}:`, error);
+                    }
+                }
+
+                // Processar dados para gráficos
+                processTasks(allTasks, projectTaskCount);
+
+                // Buscar estatísticas de notificações
+                const notificationsResponse = await api.get("/api/notifications/stats");
+                const alertas = notificationsResponse.data?.unread || 0;
+
+                setStats({ projetos, tarefas: allTasks.length, equipes, alertas });
             } catch (error) {
                 console.error("Erro ao buscar estatísticas:", error);
+            } finally {
+                setLoadingCharts(false);
             }
         };
         fetchStats();
     }, []);
+
+    // Processar tarefas e gerar dados para os gráficos
+    const processTasks = (tasks: TaskData[], projectTaskCount: { [key: string]: number }) => {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        // Contadores
+        let ativas = 0;
+        let concluidas = 0;
+        let arquivadas = 0;
+        let vencidas = 0;
+        let hojeVence = 0;
+        let proximosSeteDias = 0;
+        let futuras = 0;
+
+        const priorityCount = { low: 0, medium: 0, high: 0, urgent: 0 };
+
+        tasks.forEach((task) => {
+            // Categorizar por status
+            if (task.status === 'ACTIVE') ativas++;
+            else if (task.status === 'COMPLETED') concluidas++;
+            else if (task.status === 'ARCHIVED') arquivadas++;
+
+            // Categorizar por prioridade
+            if (task.priority) {
+                const priority = task.priority.toLowerCase() as keyof typeof priorityCount;
+                if (priorityCount[priority] !== undefined) {
+                    priorityCount[priority]++;
+                }
+            }
+
+            // Categorizar por prazo (apenas tarefas ativas)
+            if (task.status === 'ACTIVE' && task.due_date) {
+                const dueDate = new Date(task.due_date);
+                dueDate.setHours(0, 0, 0, 0);
+                const diffTime = dueDate.getTime() - hoje.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) {
+                    vencidas++;
+                } else if (diffDays === 0) {
+                    hojeVence++;
+                } else if (diffDays <= 7) {
+                    proximosSeteDias++;
+                } else {
+                    futuras++;
+                }
+            }
+        });
+
+        // Dados para gráfico de status
+        setTasksByStatus([
+            { name: 'Ativas', value: ativas, color: '#8B6B47' },
+            { name: 'Concluídas', value: concluidas, color: '#4CAF50' },
+            { name: 'Arquivadas', value: arquivadas, color: '#9E9E9E' },
+        ]);
+
+        // Dados para gráfico de prioridade
+        setTasksByPriority([
+            { name: 'Baixa', value: priorityCount.low, color: '#81C784' },
+            { name: 'Média', value: priorityCount.medium, color: '#FFB74D' },
+            { name: 'Alta', value: priorityCount.high, color: '#FF8A65' },
+            { name: 'Urgente', value: priorityCount.urgent, color: '#E57373' },
+        ]);
+
+        // Dados para gráfico de prazos
+        setTasksByDeadline([
+            { name: 'Vencidas', value: vencidas, color: '#E53935' },
+            { name: 'Hoje', value: hojeVence, color: '#FB8C00' },
+            { name: '7 dias', value: proximosSeteDias, color: '#FDD835' },
+            { name: 'Futuras', value: futuras, color: '#43A047' },
+        ]);
+
+        // Dados para gráfico de tarefas por projeto
+        const projectData = Object.entries(projectTaskCount)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5); // Top 5 projetos
+        setTasksByProject(projectData);
+    };
 
     // Obter saudação baseada no horário
     const getSaudacao = (): string => {
@@ -103,7 +200,7 @@ export default function Dashboard() {
     // Cards de estatísticas com dados reais
     const statsCards = [
         {
-            label: "Projetos ativos",
+            label: "Projetos",
             value: stats.projetos.toString(),
             auxiliary: stats.projetos > 0 ? "Meus projetos" : "Nenhum projeto ainda",
             icon: <InsertChartOutlined fontSize="small" />
@@ -149,7 +246,6 @@ export default function Dashboard() {
                         Acompanhe os principais indicadores dos seus projetos e mantenha as equipes alinhadas com os objetivos do trimestre.
                     </Typography>
                 </Box>
-                <Button variant="contained" color="primary" endIcon={<ArrowForwardOutlined />}>Ver relatorios</Button>
             </Paper>
 
             <Box
@@ -185,133 +281,127 @@ export default function Dashboard() {
                 ))}
             </Box>
 
-            <Box
-                sx={{
-                    display: "grid",
-                    gap: 3,
-                    gridTemplateColumns: {
-                        xs: "1fr",
-                        md: "minmax(0, 2fr) minmax(0, 1fr)",
-                    },
-                }}
-            >
-                <Paper sx={{ p: 3, borderRadius: 3, minHeight: 280, display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Progresso dos projetos
-                    </Typography>
-                    <Stack spacing={2}>
-                        {progress.map((project) => (
-                            <Box key={project.name}>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                        {project.name}
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                        {project.status}
-                                    </Typography>
-                                </Stack>
-                                <LinearProgress variant="determinate" value={project.percent} sx={{ height: 8, borderRadius: 999 }} />
-                            </Box>
-                        ))}
-                    </Stack>
-                </Paper>
+            {loadingCharts ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+                    <CircularProgress />
+                </Box>
+            ) : (
+                <>
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gap: 3,
+                            gridTemplateColumns: {
+                                xs: "1fr",
+                                md: "repeat(2, minmax(0, 1fr))",
+                            },
+                        }}
+                    >
+                        {/* Gráfico de Status das Tarefas */}
+                        <Paper sx={{ p: 3, borderRadius: 3 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                                Status das Tarefas
+                            </Typography>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <PieChart>
+                                    <Pie
+                                        data={tasksByStatus}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={(entry: any) => `${entry.name}: ${((entry.percent || 0) * 100).toFixed(0)}%`}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {tasksByStatus.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </Paper>
 
-                <Paper sx={{ p: 3, borderRadius: 3, minHeight: 280, display: "flex", flexDirection: "column" }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Proximos compromissos
-                    </Typography>
-                    <List disablePadding sx={{ flexGrow: 1 }}>
-                        {upcoming.map((event, index) => (
-                            <Fragment key={event.title}>
-                                <ListItem disablePadding sx={{ py: 1 }}>
-                                    <ListItemAvatar>
-                                        <Avatar sx={{ bgcolor: "secondary.main", color: "primary.dark", width: 36, height: 36, fontSize: 13 }}>
-                                            {event.chip.slice(0, 2).toUpperCase()}
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                        primary={
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                                {event.title}
-                                            </Typography>
-                                        }
-                                        secondary={
-                                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {event.subtitle}
-                                            </Typography>
-                                        }
+                        {/* Gráfico de Prioridades */}
+                        <Paper sx={{ p: 3, borderRadius: 3 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                                Tarefas por Prioridade
+                            </Typography>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <BarChart data={tasksByPriority}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                    <XAxis dataKey="name" stroke="#666" style={{ fontSize: 12 }} />
+                                    <YAxis stroke="#666" style={{ fontSize: 12 }} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: 8, border: "1px solid #e0e0e0" }}
+                                        labelStyle={{ fontWeight: 600 }}
                                     />
-                                    <Chip label={event.chip} size="small" color="primary" variant="outlined" />
-                                </ListItem>
-                                {index < upcoming.length - 1 && <Divider component="li" sx={{ ml: 7 }} />}
-                            </Fragment>
-                        ))}
-                    </List>
-                </Paper>
-            </Box>
+                                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                                        {tasksByPriority.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </Paper>
+                    </Box>
 
-            <Box
-                sx={{
-                    display: "grid",
-                    gap: 3,
-                    gridTemplateColumns: {
-                        xs: "1fr",
-                        md: "repeat(2, minmax(0, 1fr))",
-                    },
-                }}
-            >
-                <Paper sx={{ p: 3, borderRadius: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Tarefas da semana
-                    </Typography>
-                    <ResponsiveContainer width="100%" height={280}>
-                        <BarChart data={weeklyTasksData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                            <XAxis dataKey="dia" stroke="#666" style={{ fontSize: 12 }} />
-                            <YAxis stroke="#666" style={{ fontSize: 12 }} />
-                            <Tooltip
-                                contentStyle={{ borderRadius: 8, border: "1px solid #e0e0e0" }}
-                                labelStyle={{ fontWeight: 600 }}
-                            />
-                            <Legend wrapperStyle={{ fontSize: 13 }} />
-                            <Bar dataKey="concluidas" fill="#8B6B47" name="Concluídas" radius={[8, 8, 0, 0]} />
-                            <Bar dataKey="pendentes" fill="#CBA28E" name="Pendentes" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </Paper>
+                    <Box
+                        sx={{
+                            display: "grid",
+                            gap: 3,
+                            gridTemplateColumns: {
+                                xs: "1fr",
+                                md: "repeat(2, minmax(0, 1fr))",
+                            },
+                        }}
+                    >
+                        {/* Gráfico de Prazos */}
+                        <Paper sx={{ p: 3, borderRadius: 3 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                                Prazos das Tarefas Ativas
+                            </Typography>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <BarChart data={tasksByDeadline}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                    <XAxis dataKey="name" stroke="#666" style={{ fontSize: 12 }} />
+                                    <YAxis stroke="#666" style={{ fontSize: 12 }} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: 8, border: "1px solid #e0e0e0" }}
+                                        labelStyle={{ fontWeight: 600 }}
+                                    />
+                                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                                        {tasksByDeadline.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </Paper>
 
-                <Paper sx={{ p: 3, borderRadius: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                        Evolução mensal
-                    </Typography>
-                    <ResponsiveContainer width="100%" height={280}>
-                        <AreaChart data={monthlyProgressData}>
-                            <defs>
-                                <linearGradient id="colorProgress" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#8B6B47" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#8B6B47" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                            <XAxis dataKey="mes" stroke="#666" style={{ fontSize: 12 }} />
-                            <YAxis stroke="#666" style={{ fontSize: 12 }} />
-                            <Tooltip
-                                contentStyle={{ borderRadius: 8, border: "1px solid #e0e0e0" }}
-                                labelStyle={{ fontWeight: 600 }}
-                            />
-                            <Area
-                                type="monotone"
-                                dataKey="progresso"
-                                stroke="#8B6B47"
-                                strokeWidth={2}
-                                fillOpacity={1}
-                                fill="url(#colorProgress)"
-                                name="Progresso (%)"
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </Paper>
-            </Box>
+                        {/* Gráfico de Tarefas por Projeto */}
+                        <Paper sx={{ p: 3, borderRadius: 3 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                                Top 5 Projetos
+                            </Typography>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <BarChart data={tasksByProject} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                    <XAxis type="number" stroke="#666" style={{ fontSize: 12 }} />
+                                    <YAxis type="category" dataKey="name" stroke="#666" style={{ fontSize: 12 }} width={100} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: 8, border: "1px solid #e0e0e0" }}
+                                        labelStyle={{ fontWeight: 600 }}
+                                    />
+                                    <Bar dataKey="value" fill="#8B6B47" radius={[0, 8, 8, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </Paper>
+                    </Box>
+                </>
+            )}
         </Box>
     );
 }

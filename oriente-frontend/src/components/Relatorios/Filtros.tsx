@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
     Box,
     Paper,
@@ -9,6 +10,8 @@ import {
     IconButton,
 } from "@mui/material";
 import { CloseOutlined, SearchOutlined } from "@mui/icons-material";
+import projectService from "../../services/projectService";
+import type { ProjectSummary } from "../../types";
 
 type FiltrosProps = {
     onClose: () => void;
@@ -26,13 +29,6 @@ const tiposRelatorio = [
     "Testes",
 ];
 
-const projetos = [
-    "Todos",
-    "Projeto Aurora",
-    "Projeto Boreal",
-    "Projeto Celeste",
-];
-
 const statusOptions = [
     "Todos",
     "Concluído",
@@ -41,6 +37,20 @@ const statusOptions = [
 ];
 
 export default function Filtros({ onClose }: FiltrosProps) {
+    const [projetos, setProjetos] = useState<ProjectSummary[]>([]);
+
+    // Buscar projetos do usuário
+    useEffect(() => {
+        const fetchProjects = async () => {
+            try {
+                const projectsData = await projectService.getProjects();
+                setProjetos(projectsData);
+            } catch (error) {
+                console.error("Erro ao buscar projetos:", error);
+            }
+        };
+        fetchProjects();
+    }, []);
     return (
         <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
@@ -86,9 +96,10 @@ export default function Filtros({ onClose }: FiltrosProps) {
                     size="small"
                     fullWidth
                 >
+                    <MenuItem value="Todos">Todos</MenuItem>
                     {projetos.map((projeto) => (
-                        <MenuItem key={projeto} value={projeto}>
-                            {projeto}
+                        <MenuItem key={projeto.id} value={projeto.id}>
+                            {projeto.name}
                         </MenuItem>
                     ))}
                 </TextField>
