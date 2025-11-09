@@ -14,15 +14,7 @@ import {
 } from "@mui/material";
 import { SaveOutlined, ArrowBackOutlined } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-
-type Usuario = {
-    id: number;
-    nome: string;
-    email: string;
-    cargo: string;
-    role: "Admin" | "Gerente" | "Membro" | "Visualizador";
-    status: "Ativo" | "Inativo";
-};
+import type { User } from "../../types";
 
 type Permissao = {
     modulo: string;
@@ -93,11 +85,15 @@ const permissoesIniciais: Permissao[] = [
 export default function Permissoes() {
     const location = useLocation();
     const navigate = useNavigate();
-    const usuario = location.state?.usuario as Usuario | undefined;
+    const usuario = location.state?.usuario as User | undefined;
 
     const handleSalvar = () => {
         console.log("Salvar permissões para usuário:", usuario?.id);
         navigate("/usuarios");
+    };
+
+    const getRoleLabel = (role: string): string => {
+        return role === "ADMIN" ? "Administrador" : "Usuário";
     };
 
     if (!usuario) {
@@ -140,17 +136,17 @@ export default function Permissoes() {
             <Paper sx={{ p: 3, borderRadius: 3 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
                     <Avatar sx={{ width: 56, height: 56, bgcolor: "primary.main", fontSize: "1.5rem" }}>
-                        {usuario.nome.charAt(0)}
+                        {usuario.name.charAt(0).toUpperCase()}
                     </Avatar>
                     <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {usuario.nome}
+                            {usuario.name}
                         </Typography>
                         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                            {usuario.email} • {usuario.cargo}
+                            {usuario.email}
                         </Typography>
                     </Box>
-                    <Chip label={usuario.role} color="primary" />
+                    <Chip label={getRoleLabel(usuario.role)} color="primary" />
                 </Box>
 
                 <Divider sx={{ mb: 3 }} />

@@ -47,11 +47,13 @@ import type { Card, Comment, CardHistory, CardHistoryAction } from "../../types"
 
 const getPrioridadeColor = (prioridade: Card["priority"]) => {
     switch (prioridade) {
-        case "High":
+        case "urgent":
             return "error";
-        case "Medium":
+        case "high":
+            return "error";
+        case "medium":
             return "warning";
-        case "Low":
+        case "low":
             return "success";
         default:
             return "default";
@@ -60,11 +62,13 @@ const getPrioridadeColor = (prioridade: Card["priority"]) => {
 
 const getPrioridadeLabel = (prioridade: Card["priority"]) => {
     switch (prioridade) {
-        case "High":
+        case "urgent":
+            return "Urgente";
+        case "high":
             return "Alta";
-        case "Medium":
+        case "medium":
             return "Média";
-        case "Low":
+        case "low":
             return "Baixa";
         default:
             return prioridade;

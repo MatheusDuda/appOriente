@@ -19,11 +19,28 @@ export default function Layout() {
     }, [sidebarOpen]);
 
     return (
-        <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: "background.default" }}>
             <Sidebar open={sidebarOpen} onToggle={toggleSidebar} />
-            <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-                <Topbar />
-                <Box component="main" sx={{ flexGrow: 1, overflowY: "auto", p: { xs: 3, md: 4 } }}>
+            <Box sx={{
+                flexGrow: 1,
+                display: "flex",
+                flexDirection: "column",
+                marginLeft: { xs: 0, md: sidebarOpen ? '260px' : '80px' },
+                transition: 'margin 0.3s ease',
+                height: "100vh",
+                overflow: "hidden"
+            }}>
+                <Topbar sidebarOpen={sidebarOpen} />
+                <Box
+                    component="main"
+                    sx={{
+                        flexGrow: 1,
+                        overflow: "auto",
+                        p: { xs: 2, md: 3 },
+                        mt: '64px',
+                        height: "calc(100vh - 64px)"
+                    }}
+                >
                     <Outlet />
                 </Box>
             </Box>

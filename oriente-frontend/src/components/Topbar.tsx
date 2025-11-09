@@ -36,22 +36,22 @@ const getNotificationStyle = (tipo: NotificationType) => {
         case "TASK":
             return {
                 icone: <TaskAltOutlined fontSize="small" />,
-                corFundo: "#e3f2fd",
+                corFundo: "action.hover",
             };
         case "TEAM":
             return {
                 icone: <PersonAddOutlined fontSize="small" />,
-                corFundo: "#f3e5f5",
+                corFundo: "action.selected",
             };
         case "SYSTEM":
             return {
                 icone: <NotificationsOutlined fontSize="small" />,
-                corFundo: "#fce4ec",
+                corFundo: "action.hover",
             };
         default:
             return {
                 icone: <NotificationsOutlined fontSize="small" />,
-                corFundo: "#e0e0e0",
+                corFundo: "action.disabledBackground",
             };
     }
 };
@@ -70,7 +70,25 @@ const formatarTimestamp = (dataISO: string): string => {
     return "Há mais de 1 dia";
 };
 
-export default function Topbar() {
+// Função para formatar data por extenso
+const formatarDataPorExtenso = (): string => {
+    const agora = new Date();
+    const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+    const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+    const diaSemana = diasSemana[agora.getDay()];
+    const dia = agora.getDate();
+    const mes = meses[agora.getMonth()];
+    const ano = agora.getFullYear();
+
+    return `${diaSemana}, ${dia} de ${mes} de ${ano}`;
+};
+
+type TopbarProps = {
+    sidebarOpen?: boolean;
+};
+
+export default function Topbar({ sidebarOpen = true }: TopbarProps) {
     const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
@@ -145,7 +163,12 @@ export default function Topbar() {
         <Box
             component="header"
             sx={{
-                bgcolor: "common.white",
+                position: "fixed",
+                top: 0,
+                left: { xs: 0, md: sidebarOpen ? '260px' : '80px' },
+                right: 0,
+                zIndex: 1100,
+                bgcolor: "background.paper",
                 borderBottom: (theme) => "1px solid " + theme.palette.divider,
                 px: { xs: 2, md: 4 },
                 py: 1.5,
@@ -154,14 +177,15 @@ export default function Topbar() {
                 justifyContent: "space-between",
                 gap: 2,
                 height: 64,
+                transition: 'left 0.3s ease',
             }}
         >
             <Box>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Painel
+                    {userData?.name || "Carregando..."}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Bem-vindo de volta
+                    {formatarDataPorExtenso()}
                 </Typography>
             </Box>
 

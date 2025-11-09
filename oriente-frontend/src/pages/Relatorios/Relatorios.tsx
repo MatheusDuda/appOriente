@@ -16,7 +16,6 @@ import {
     Stack,
 } from "@mui/material";
 import {
-    VisibilityOutlined,
     FileDownloadOutlined,
     FilterListOutlined,
 } from "@mui/icons-material";
@@ -32,16 +31,7 @@ type Relatorio = {
     autor: string;
 };
 
-const mockData: Relatorio[] = [
-    { id: 1, nome: "Relatório de Sprint #12", tipo: "Sprint", projeto: "Projeto Aurora", dataCriacao: "2025-10-01", status: "Concluído", autor: "João Silva" },
-    { id: 2, nome: "Análise de Performance Q3", tipo: "Performance", projeto: "Projeto Boreal", dataCriacao: "2025-09-28", status: "Concluído", autor: "Maria Santos" },
-    { id: 3, nome: "Indicadores Trimestrais", tipo: "Indicadores", projeto: "Projeto Celeste", dataCriacao: "2025-09-25", status: "Em andamento", autor: "Pedro Costa" },
-    { id: 4, nome: "Relatório de Bugs - Setembro", tipo: "Bugs", projeto: "Projeto Aurora", dataCriacao: "2025-09-20", status: "Concluído", autor: "Ana Oliveira" },
-    { id: 5, nome: "Revisão de Backlog", tipo: "Backlog", projeto: "Projeto Boreal", dataCriacao: "2025-09-18", status: "Pendente", autor: "Carlos Lima" },
-    { id: 6, nome: "Relatório de Deploy - Sprint 11", tipo: "Deploy", projeto: "Projeto Aurora", dataCriacao: "2025-09-15", status: "Concluído", autor: "João Silva" },
-    { id: 7, nome: "Métricas de Código", tipo: "Qualidade", projeto: "Projeto Celeste", dataCriacao: "2025-09-12", status: "Em andamento", autor: "Maria Santos" },
-    { id: 8, nome: "Relatório de Testes Automatizados", tipo: "Testes", projeto: "Projeto Boreal", dataCriacao: "2025-09-10", status: "Concluído", autor: "Pedro Costa" },
-];
+const mockData: Relatorio[] = [];
 
 const getStatusColor = (status: Relatorio["status"]) => {
     switch (status) {
@@ -139,9 +129,6 @@ export default function Relatorios() {
                                     </TableCell>
                                     <TableCell>{relatorio.autor}</TableCell>
                                     <TableCell align="right">
-                                        <IconButton size="small" color="primary" aria-label="Visualizar relatório">
-                                            <VisibilityOutlined fontSize="small" />
-                                        </IconButton>
                                         <IconButton size="small" color="primary" aria-label="Baixar relatório">
                                             <FileDownloadOutlined fontSize="small" />
                                         </IconButton>

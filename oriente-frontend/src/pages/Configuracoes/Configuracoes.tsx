@@ -23,7 +23,6 @@ import { useTheme } from "../../contexts/ThemeContext";
 
 type Configuracoes = {
     notificacoes: {
-        email: boolean;
         push: boolean;
         tarefas: boolean;
         comentarios: boolean;
@@ -31,10 +30,8 @@ type Configuracoes = {
     };
     aparencia: {
         tema: "light" | "dark" | "auto";
-        idioma: "pt-BR" | "en-US" | "es-ES";
     };
     privacidade: {
-        perfilPublico: boolean;
         mostrarEmail: boolean;
         mostrarTelefone: boolean;
     };
@@ -42,7 +39,6 @@ type Configuracoes = {
 
 const configPadrao: Configuracoes = {
     notificacoes: {
-        email: true,
         push: true,
         tarefas: true,
         comentarios: true,
@@ -50,10 +46,8 @@ const configPadrao: Configuracoes = {
     },
     aparencia: {
         tema: "light",
-        idioma: "pt-BR",
     },
     privacidade: {
-        perfilPublico: true,
         mostrarEmail: false,
         mostrarTelefone: false,
     },
@@ -158,29 +152,6 @@ export default function Configuracoes() {
                 </Typography>
 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={config.notificacoes.email}
-                                onChange={(e) =>
-                                    handleToggle("notificacoes", "email", e.target.checked)
-                                }
-                            />
-                        }
-                        label={
-                            <Box>
-                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                    Notificações por e-mail
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                    Receba resumos diários por e-mail
-                                </Typography>
-                            </Box>
-                        }
-                    />
-
-                    <Divider />
-
                     <FormControlLabel
                         control={
                             <Switch
@@ -297,21 +268,6 @@ export default function Configuracoes() {
                             <MenuItem value="auto">Automático (seguir sistema)</MenuItem>
                         </Select>
                     </FormControl>
-
-                    <FormControl fullWidth>
-                        <InputLabel>Idioma</InputLabel>
-                        <Select
-                            value={config.aparencia.idioma}
-                            label="Idioma"
-                            onChange={(e) =>
-                                handleSelectChange("aparencia", "idioma", e.target.value)
-                            }
-                        >
-                            <MenuItem value="pt-BR">Português (Brasil)</MenuItem>
-                            <MenuItem value="en-US">English (United States)</MenuItem>
-                            <MenuItem value="es-ES">Español (España)</MenuItem>
-                        </Select>
-                    </FormControl>
                 </Box>
             </Paper>
 
@@ -332,34 +288,10 @@ export default function Configuracoes() {
                     <FormControlLabel
                         control={
                             <Switch
-                                checked={config.privacidade.perfilPublico}
-                                onChange={(e) =>
-                                    handleToggle("privacidade", "perfilPublico", e.target.checked)
-                                }
-                            />
-                        }
-                        label={
-                            <Box>
-                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                    Perfil público
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                    Permitir que outros usuários vejam seu perfil
-                                </Typography>
-                            </Box>
-                        }
-                    />
-
-                    <Divider />
-
-                    <FormControlLabel
-                        control={
-                            <Switch
                                 checked={config.privacidade.mostrarEmail}
                                 onChange={(e) =>
                                     handleToggle("privacidade", "mostrarEmail", e.target.checked)
                                 }
-                                disabled={!config.privacidade.perfilPublico}
                             />
                         }
                         label={
@@ -383,7 +315,6 @@ export default function Configuracoes() {
                                 onChange={(e) =>
                                     handleToggle("privacidade", "mostrarTelefone", e.target.checked)
                                 }
-                                disabled={!config.privacidade.perfilPublico}
                             />
                         }
                         label={
@@ -406,55 +337,21 @@ export default function Configuracoes() {
                     Zona de Perigo
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
-                    Ações irreversíveis que afetam sua conta
+                    Ações sensíveis que afetam sua conta
                 </Typography>
 
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Box>
-                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                Alterar senha
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                Modifique sua senha de acesso ao sistema
-                            </Typography>
-                        </Box>
-                        <Button variant="outlined" color="primary">
-                            Alterar
-                        </Button>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            Alterar senha
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                            Modifique sua senha de acesso ao sistema
+                        </Typography>
                     </Box>
-
-                    <Divider />
-
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Box>
-                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                Desativar conta
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                Suspenda temporariamente sua conta
-                            </Typography>
-                        </Box>
-                        <Button variant="outlined" color="warning">
-                            Desativar
-                        </Button>
-                    </Box>
-
-                    <Divider />
-
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Box>
-                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                Excluir conta
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                Excluir permanentemente sua conta e todos os dados
-                            </Typography>
-                        </Box>
-                        <Button variant="outlined" color="error">
-                            Excluir
-                        </Button>
-                    </Box>
+                    <Button variant="outlined" color="primary">
+                        Alterar
+                    </Button>
                 </Box>
             </Paper>
         </Box>

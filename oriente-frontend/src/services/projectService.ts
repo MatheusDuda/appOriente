@@ -10,7 +10,6 @@ import type {
     Card,
     CardCreateRequest,
     CardMoveRequest,
-    ApiResponse,
 } from "../types";
 
 /**

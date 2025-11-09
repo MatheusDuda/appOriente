@@ -68,15 +68,15 @@ const getPriorityColor = (priority: CardPriority) => {
 const getPriorityLabel = (priority: CardPriority) => {
     switch (priority) {
         case CardPriority.URGENT:
-            return "Urgent";
+            return "Urgente";
         case CardPriority.HIGH:
-            return "High";
+            return "Alta";
         case CardPriority.MEDIUM:
-            return "Medium";
+            return "Média";
         case CardPriority.LOW:
-            return "Low";
+            return "Baixa";
         default:
-            return "Medium";
+            return "Média";
     }
 };
 
@@ -171,7 +171,7 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
                             fontSize: "0.7rem",
                         }}
                     >
-                        Due: {new Date(task.due_date).toLocaleDateString("en-US")}
+                        Vencimento: {new Date(task.due_date).toLocaleDateString("pt-BR")}
                     </Typography>
                 )}
             </CardContent>
@@ -248,11 +248,44 @@ export default function Projects() {
         }
     }, []);
 
-    // Load projects on mount
+    // Load projects on mount and restore selected project from localStorage
     useEffect(() => {
         console.log("useEffect (mount) - Carregando projetos iniciais");
-        loadProjects();
+        loadProjects(false); // Don't auto-select first
+
+        // Restore selected project from localStorage
+        const savedProjectId = localStorage.getItem("selectedProjectId");
+        if (savedProjectId) {
+            // Will be set after projects load
+            console.log("Projeto salvo encontrado:", savedProjectId);
+        }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Restore selected project after projects are loaded
+    useEffect(() => {
+        if (projects.length > 0 && !selectedProject) {
+            const savedProjectId = localStorage.getItem("selectedProjectId");
+            if (savedProjectId) {
+                const project = projects.find(p => p.id === parseInt(savedProjectId));
+                if (project) {
+                    console.log("Restaurando projeto selecionado:", project);
+                    setSelectedProject(project);
+                    return;
+                }
+            }
+            // If no saved project or not found, select first
+            console.log("Selecionando primeiro projeto:", projects[0]);
+            setSelectedProject(projects[0]);
+        }
+    }, [projects, selectedProject]);
+
+    // Save selected project to localStorage
+    useEffect(() => {
+        if (selectedProject) {
+            console.log("Salvando projeto selecionado:", selectedProject.id);
+            localStorage.setItem("selectedProjectId", selectedProject.id.toString());
+        }
+    }, [selectedProject]);
 
     // Reload projects when returning from create page
     useEffect(() => {
@@ -537,7 +570,7 @@ export default function Projects() {
                                 {selectedProject?.name || "Selecione um projeto"}
                             </Typography>
                             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Task board
+                                Quadro de Tarefas
                             </Typography>
                         </Box>
                         <IconButton
@@ -556,7 +589,7 @@ export default function Projects() {
                         onClick={() => setNewColumnDialogOpen(true)}
                         disabled={!selectedProject}
                     >
-                        New Column
+                        Nova Coluna
                     </Button>
                     <Button
                         variant="contained"
@@ -564,7 +597,7 @@ export default function Projects() {
                         onClick={() => setCreateTaskDialogOpen(true)}
                         disabled={!selectedProject}
                     >
-                        New Task
+                        Nova Tarefa
                     </Button>
                 </Box>
             </Box>
@@ -591,7 +624,7 @@ export default function Projects() {
                 >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "primary.main" }}>
                         <AddOutlined fontSize="small" />
-                        Create New Project
+                        Criar Novo Projeto
                     </Box>
                 </MenuItem>
             </Menu>
