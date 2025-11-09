@@ -109,6 +109,26 @@ class ProjectService:
         if request.description is not None:
             project.description = request.description
 
+        # Atualizar responsável/líder do projeto se fornecido
+        if request.new_owner_name is not None:
+            # Buscar novo owner
+            new_owner = db.query(User).filter(User.name == request.new_owner_name).first()
+            if not new_owner:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Usuário '{request.new_owner_name}' não encontrado"
+                )
+
+            # Validar que o novo owner é membro do projeto
+            if new_owner not in project.members:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="O novo responsável deve ser um membro do projeto"
+                )
+
+            # Transferir ownership
+            project.owner_id = new_owner.id
+
         # Atualizar membros se fornecidos
         if request.member_names is not None:
             new_members = ProjectService._find_users_by_names(request.member_names, db)

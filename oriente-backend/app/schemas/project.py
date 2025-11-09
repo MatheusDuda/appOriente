@@ -35,17 +35,19 @@ class ProjectUpdateRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=100, description="Nome do projeto")
     description: Optional[str] = Field(None, max_length=500, description="Descrição do projeto")
     member_names: Optional[List[str]] = Field(None, description="Lista de nomes dos membros")
+    new_owner_name: Optional[str] = Field(None, description="Nome do novo responsável/líder do projeto")
 
     def has_updates(self) -> bool:
         """Verifica se há alguma informação a ser atualizada"""
-        return self.name is not None or self.description is not None or self.member_names is not None
+        return self.name is not None or self.description is not None or self.member_names is not None or self.new_owner_name is not None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "Projeto X Atualizado",
                 "description": "Nova descrição",
-                "member_names": ["João Silva"]
+                "member_names": ["João Silva"],
+                "new_owner_name": "Maria Santos"
             }
         }
 
