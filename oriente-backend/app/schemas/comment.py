@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -33,6 +33,28 @@ class CommentAuthor(BaseModel):
         from_attributes = True
 
 
+class MentionedUser(BaseModel):
+    """Informações básicas do usuário mencionado"""
+    id: int
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
+class CommentMentionResponse(BaseModel):
+    """Schema de resposta para menções em comentários"""
+    id: int
+    comment_id: int
+    mentioned_user_id: int
+    created_at: datetime
+    mentioned_user: MentionedUser
+
+    class Config:
+        from_attributes = True
+
+
 class CommentResponse(CommentBase):
     """Schema de resposta com todos os campos do comentário"""
     id: int
@@ -43,6 +65,9 @@ class CommentResponse(CommentBase):
 
     # Informações do autor (nested)
     user: Optional[CommentAuthor] = None
+
+    # Lista de menções no comentário
+    mentions: List[CommentMentionResponse] = []
 
     # Permissões calculadas (adicionadas pelo service)
     can_edit: bool = False
