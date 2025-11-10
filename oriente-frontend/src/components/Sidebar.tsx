@@ -41,15 +41,8 @@ const secondaryItems: NavItem[] = [
     { label: "Chat", path: "/chat", icon: <ForumOutlined fontSize="small" /> },
     { label: "Notificacoes", path: "/notificacoes", icon: <NotificationsNoneOutlined fontSize="small" /> },
     { label: "Configuracoes", path: "/configuracoes", icon: <SettingsOutlined fontSize="small" /> },
+    { label: "Perfil", path: "/perfil", icon: <PersonOutline fontSize="small" />}
 ];
-
-// --- MUDANÇA 2: "Perfil" agora é um item separado ---
-const footerItem: NavItem = {
-    label: "Perfil",
-    path: "/perfil",
-    icon: <PersonOutline fontSize="small" />
-};
-
 
 function isActivePath(currentPath: string, targetPath: string) {
     if (targetPath === "/") return currentPath === targetPath;
@@ -196,41 +189,6 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
                 <List component="nav" disablePadding>
                     {primaryItems.map((item) => renderItem(item))}
 
-                    {/* Botão + para adicionar projetos */}
-                    <Tooltip title={!open ? "Adicionar projeto ao menu" : ""} placement="right">
-                        <ListItemButton
-                            onClick={() => setAddProjectDialogOpen(true)}
-                            sx={{
-                                borderRadius: 1,
-                                mb: 0.5,
-                                justifyContent: open ? "initial" : "center",
-                                px: open ? 2 : 1.5,
-                                pl: open ? 4 : 1.5,
-                                borderLeft: open ? "2px solid" : "none",
-                                borderColor: "primary.main",
-                                ml: open ? 1 : 0,
-                            }}
-                        >
-                            <ListItemIcon sx={{
-                                minWidth: open ? 36 : "auto",
-                                color: "primary.main",
-                                "& svg": { fontSize: 18 }
-                            }}>
-                                <AddOutlined />
-                            </ListItemIcon>
-                            {open && (
-                                <ListItemText
-                                    primary="Adicionar projeto"
-                                    primaryTypographyProps={{
-                                        fontWeight: 500,
-                                        fontSize: "0.875rem",
-                                        color: "primary.main",
-                                    }}
-                                />
-                            )}
-                        </ListItemButton>
-                    </Tooltip>
-
                     {/* Projetos fixados */}
                     {pinnedProjects.map((project) => (
                         <Tooltip key={project.id} title={!open ? project.name : ""} placement="right">
@@ -267,6 +225,41 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
                             </ListItemButton>
                         </Tooltip>
                     ))}
+
+                    {/* Botão + para adicionar projetos */}
+                    <Tooltip title={!open ? "Adicionar projeto ao menu" : ""} placement="right">
+                        <ListItemButton
+                            onClick={() => setAddProjectDialogOpen(true)}
+                            sx={{
+                                borderRadius: 1,
+                                mb: 0.5,
+                                justifyContent: open ? "initial" : "center",
+                                px: open ? 2 : 1.5,
+                                pl: open ? 4 : 1.5,
+                                borderLeft: open ? "2px solid" : "none",
+                                borderColor: "primary.main",
+                                ml: open ? 1 : 0,
+                            }}
+                        >
+                            <ListItemIcon sx={{
+                                minWidth: open ? 36 : "auto",
+                                color: "primary.main",
+                                "& svg": { fontSize: 18 }
+                            }}>
+                                <AddOutlined />
+                            </ListItemIcon>
+                            {open && (
+                                <ListItemText
+                                    primary="Adicionar projeto"
+                                    primaryTypographyProps={{
+                                        fontWeight: 500,
+                                        fontSize: "0.875rem",
+                                        color: "primary.main",
+                                    }}
+                                />
+                            )}
+                        </ListItemButton>
+                    </Tooltip>
                 </List>
             </Box>
 
@@ -284,7 +277,6 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
                 )}
                 <List component="nav" disablePadding>
                     {secondaryItems.map((item) => renderItem(item))}
-                    {renderItem(footerItem)}
                 </List>
             </Box>
 
