@@ -19,7 +19,12 @@ class Settings(BaseSettings):
     SERVER_PORT: int = 8080
 
     # CORS
-    CORS_ORIGINS: list = ["*"]
+    CORS_ORIGINS: list = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000"
+    ]
 
     # App
     APP_NAME: str = "Oriente Backend"
