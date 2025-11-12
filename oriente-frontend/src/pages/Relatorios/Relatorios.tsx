@@ -18,8 +18,10 @@ import {
 import {
     FileDownloadOutlined,
     FilterListOutlined,
+    AssessmentOutlined,
 } from "@mui/icons-material";
 import Filtros from "../../components/Relatorios/Filtros";
+import api from "../../services/api";
 
 type Relatorio = {
     id: number;
@@ -50,6 +52,7 @@ export default function Relatorios() {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const [filtrosOpen, setFiltrosOpen] = useState(false);
+    const [downloading, setDownloading] = useState(false);
 
     const handleChangePage = (_: unknown, newPage: number) => {
         setPage(newPage);
@@ -58,6 +61,40 @@ export default function Relatorios() {
     const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
         setRowsPerPage(parseInt(event.target.value, 10));
         setPage(0);
+    };
+
+    const handleDownloadMyReport = async () => {
+        try {
+            setDownloading(true);
+
+            // Fazer chamada para o endpoint de download
+            const response = await api.get('/reports/user/me/efficiency/download', {
+                responseType: 'blob', // Importante para download de arquivos
+                params: {
+                    period_preset: 'last_month' // Último mês como padrão
+                }
+            });
+
+            // Criar URL temporária para o blob
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+
+            // Criar link temporário e fazer download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `relatorio_eficiencia_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+
+            // Limpar
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Erro ao baixar relatório:', error);
+            alert('Erro ao baixar relatório. Por favor, tente novamente.');
+        } finally {
+            setDownloading(false);
+        }
     };
 
     const paginatedData = mockData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -81,7 +118,15 @@ export default function Relatorios() {
                     >
                         Filtros
                     </Button>
-                    <Button variant="contained" startIcon={<FileDownloadOutlined />}>
+                    <Button
+                        variant="contained"
+                        startIcon={<AssessmentOutlined />}
+                        onClick={handleDownloadMyReport}
+                        disabled={downloading}
+                    >
+                        {downloading ? 'Gerando...' : 'Meu Relatório (PDF)'}
+                    </Button>
+                    <Button variant="outlined" startIcon={<FileDownloadOutlined />}>
                         Exportar
                     </Button>
                 </Stack>
