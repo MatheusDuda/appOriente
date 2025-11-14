@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.0.1"
     DEBUG: bool = True
 
+    # Upload/Attachments
+    UPLOAD_DIR: str = "uploads"
+    MAX_UPLOAD_SIZE: int = 10485760  # 10MB em bytes
+    ALLOWED_EXTENSIONS: str = "pdf,jpg,jpeg,png,gif,doc,docx,xls,xlsx,txt,zip"
+    PROJECT_QUOTA_MB: int = 100  # Quota total de armazenamento por projeto em MB
+
     class Config:
         env_file = ".env"
         case_sensitive = True

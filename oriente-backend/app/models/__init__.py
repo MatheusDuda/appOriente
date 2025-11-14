@@ -8,6 +8,7 @@ from app.models.comment_mention import CommentMention
 from app.models.comment_audit import CommentAudit
 from app.models.card_history import CardHistory, CardHistoryAction
 from app.models.notification import Notification
+from app.models.attachment import Attachment
 
 __all__ = [
     "User",
@@ -21,5 +22,6 @@ __all__ = [
     "CommentAudit",
     "CardHistory",
     "CardHistoryAction",
-    "Notification"
+    "Notification",
+    "Attachment"
 ]
