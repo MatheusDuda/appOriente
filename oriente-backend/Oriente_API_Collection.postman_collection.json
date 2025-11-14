@@ -1,0 +1,1859 @@
+{
+  "info": {
+    "name": "Oriente API Collection",
+    "description": "Coleção completa de endpoints da API Oriente Backend - Sistema de gerenciamento de projetos com Kanban",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Administrador\",\n  \"email\": \"admin@oriente.com\",\n  \"password\": \"Oriente123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registrar novo usuário no sistema"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@oriente.com\",\n  \"password\": \"Oriente123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Fazer login e obter token JWT"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Obter dados do usuário autenticado"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Logout do sistema (stateless - token deve ser removido no cliente)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Meu Projeto\",\n  \"description\": \"Descrição do projeto\",\n  \"team_id\": 1,\n  \"member_names\": [\"Maria Santos\", \"Pedro Costa\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Criar novo projeto"
+          }
+        },
+        {
+          "name": "List User Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Listar projetos do usuário (onde é owner ou membro)"
+          }
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Buscar projeto por ID"
+          }
+        },
+        {
+          "name": "Get Project Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/members",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "members"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar membros do projeto (para autocomplete de menções)"
+          }
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Projeto Atualizado\",\n  \"description\": \"Nova descrição\",\n  \"new_owner_name\": \"Maria Santos\",\n  \"member_names\": [\"Pedro Costa\", \"Ana Lima\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar projeto (apenas owner)"
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar projeto (apenas owner)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teams",
+      "item": [
+        {
+          "name": "Create Team",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Equipe de Desenvolvimento\",\n  \"description\": \"Equipe responsável pelo desenvolvimento\",\n  \"leader_id\": 1,\n  \"member_ids\": [2, 3, 4]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams"]
+            },
+            "description": "Criar nova equipe (apenas ADMIN)"
+          }
+        },
+        {
+          "name": "List Teams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams"]
+            },
+            "description": "Listar todas as equipes ativas"
+          }
+        },
+        {
+          "name": "List My Teams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/my-teams",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", "my-teams"]
+            },
+            "description": "Listar equipes do usuário atual"
+          }
+        },
+        {
+          "name": "Get Team by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/:team_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", ":team_id"],
+              "variable": [
+                {
+                  "key": "team_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Buscar equipe por ID"
+          }
+        },
+        {
+          "name": "Update Team",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Equipe Atualizada\",\n  \"description\": \"Nova descrição\",\n  \"leader_id\": 2,\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/:team_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", ":team_id"],
+              "variable": [
+                {
+                  "key": "team_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar equipe (líder ou ADMIN)"
+          }
+        },
+        {
+          "name": "Delete Team",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/:team_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", ":team_id"],
+              "variable": [
+                {
+                  "key": "team_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar equipe (apenas ADMIN)"
+          }
+        },
+        {
+          "name": "Add Team Members",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_ids\": [5, 6, 7]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/teams/:team_id/members",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", ":team_id", "members"],
+              "variable": [
+                {
+                  "key": "team_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Adicionar membros à equipe (líder ou ADMIN)"
+          }
+        },
+        {
+          "name": "Remove Team Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/:team_id/members/:user_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", ":team_id", "members", ":user_id"],
+              "variable": [
+                {
+                  "key": "team_id",
+                  "value": "1"
+                },
+                {
+                  "key": "user_id",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Remover membro da equipe (líder ou ADMIN)"
+          }
+        },
+        {
+          "name": "Get Team Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/teams/:team_id/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "teams", ":team_id", "stats"],
+              "variable": [
+                {
+                  "key": "team_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Obter estatísticas da equipe"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users?skip=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Listar usuários com paginação"
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/:user_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":user_id"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Buscar usuário por ID"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Administrador Atualizado\",\n  \"email\": \"admin.novo@oriente.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/:user_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":user_id"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar dados do usuário (próprio perfil ou ADMIN)"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Oriente123\",\n  \"new_password\": \"NovoOriente456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/:user_id/password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":user_id", "password"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Alterar senha do usuário (apenas própria senha)"
+          }
+        },
+        {
+          "name": "Deactivate User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/:user_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":user_id"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Desativar usuário (soft delete)"
+          }
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/:user_id/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":user_id", "activate"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Reativar usuário (apenas ADMIN)"
+          }
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/:user_id/role",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":user_id", "role"],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar role do usuário (apenas ADMIN)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Columns",
+      "item": [
+        {
+          "name": "Create Column",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"To Do\",\n  \"description\": \"Tarefas a fazer\",\n  \"color\": \"#6366f1\",\n  \"position\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Criar nova coluna no projeto"
+          }
+        },
+        {
+          "name": "List Project Columns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar colunas do projeto"
+          }
+        },
+        {
+          "name": "Get Column by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns/:column_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns", ":column_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "column_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Obter coluna específica"
+          }
+        },
+        {
+          "name": "Get Column with Cards",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns/:column_id/with-cards",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns", ":column_id", "with-cards"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "column_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Obter coluna com todas as tarefas"
+          }
+        },
+        {
+          "name": "Update Column",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Em Progresso\",\n  \"description\": \"Tarefas em andamento\",\n  \"color\": \"#f59e0b\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns/:column_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns", ":column_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "column_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar coluna"
+          }
+        },
+        {
+          "name": "Delete Column",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns/:column_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns", ":column_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "column_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar coluna (não pode ter tarefas)"
+          }
+        },
+        {
+          "name": "Move Column",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_position\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns/:column_id/move",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns", ":column_id", "move"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "column_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Mover coluna para nova posição"
+          }
+        },
+        {
+          "name": "Get Columns Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/columns-summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "columns-summary"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Resumo das colunas com contagem de tarefas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cards",
+      "item": [
+        {
+          "name": "Create Card",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"column_id\": 1,\n  \"title\": \"Implementar autenticação\",\n  \"description\": \"Implementar sistema de autenticação JWT\",\n  \"priority\": \"high\",\n  \"due_date\": \"2025-12-31T23:59:59\",\n  \"assignee_ids\": [1, 2],\n  \"tag_ids\": [1]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Criar nova tarefa (card) no projeto"
+          }
+        },
+        {
+          "name": "List Project Cards",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards?status=active&priority=high",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active, archived, deleted"
+                },
+                {
+                  "key": "priority",
+                  "value": "high",
+                  "description": "low, medium, high, urgent"
+                },
+                {
+                  "key": "column_id",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "assignee_id",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "tag_id",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "due_soon",
+                  "value": "true",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar tarefas do projeto com filtros"
+          }
+        },
+        {
+          "name": "Get Card by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Obter detalhes de uma tarefa"
+          }
+        },
+        {
+          "name": "Update Card",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Implementar autenticação JWT\",\n  \"description\": \"Sistema completo de autenticação com JWT\",\n  \"priority\": \"urgent\",\n  \"due_date\": \"2025-12-15T23:59:59\",\n  \"assignee_ids\": [1, 2, 3],\n  \"tag_ids\": [1, 2]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar tarefa"
+          }
+        },
+        {
+          "name": "Delete Card",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar tarefa"
+          }
+        },
+        {
+          "name": "Move Card",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"column_id\": 2,\n  \"new_position\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/move",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "move"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Mover tarefa para outra coluna/posição (drag & drop)"
+          }
+        },
+        {
+          "name": "Update Card Status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"archived\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "status"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar status da tarefa (active, archived, deleted)"
+          }
+        },
+        {
+          "name": "Create Tag",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Backend\",\n  \"color\": \"#3b82f6\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/tags",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "tags"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Criar nova tag no projeto"
+          }
+        },
+        {
+          "name": "List Project Tags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/tags",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "tags"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar todas as tags do projeto"
+          }
+        },
+        {
+          "name": "Get My Assigned Cards",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/my-assignments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", "my-assignments"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar tarefas atribuídas ao usuário atual"
+          }
+        },
+        {
+          "name": "Get Cards Due Soon",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/due-soon",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", "due-soon"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar tarefas com vencimento próximo (7 dias)"
+          }
+        },
+        {
+          "name": "Get Board View",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/board",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "board"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Visão completa do board Kanban (colunas + cards)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create Comment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Este é um comentário de teste. Suporta **Markdown**!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/comments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "comments"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Criar comentário em um card"
+          }
+        },
+        {
+          "name": "List Card Comments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/comments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "comments"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar comentários de um card"
+          }
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Comentário atualizado com novo conteúdo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/comments/:comment_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "comments", ":comment_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                },
+                {
+                  "key": "comment_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar comentário (autor em até 2 min ou ADMIN)"
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/comments/:comment_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "comments", ":comment_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                },
+                {
+                  "key": "comment_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar comentário (autor em até 2 min ou ADMIN)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attachments",
+      "item": [
+        {
+          "name": "Upload Attachment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/attachments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "attachments"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Fazer upload de anexo para um card (max 10MB)"
+          }
+        },
+        {
+          "name": "List Card Attachments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/attachments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "attachments"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar anexos de um card"
+          }
+        },
+        {
+          "name": "Download Attachment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/attachments/:attachment_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "attachments", ":attachment_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                },
+                {
+                  "key": "attachment_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Fazer download de um anexo"
+          }
+        },
+        {
+          "name": "Delete Attachment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/attachments/:attachment_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "attachments", ":attachment_id"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                },
+                {
+                  "key": "attachment_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar anexo"
+          }
+        },
+        {
+          "name": "Get Project Storage Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/storage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "storage"],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Informações de armazenamento do projeto (usado/quota)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Card History",
+      "item": [
+        {
+          "name": "Get Card History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:project_id/cards/:card_id/history?page=1&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ":project_id", "cards", ":card_id", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número da página"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Itens por página (max 100)"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                },
+                {
+                  "key": "card_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Buscar histórico completo de alterações de um card"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Create Notification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient_user_id\": 2,\n  \"type\": \"TASK\",\n  \"title\": \"Nova tarefa atribuída\",\n  \"message\": \"Você foi atribuído à tarefa 'Implementar autenticação'\",\n  \"link\": \"/projects/1/cards/1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications"]
+            },
+            "description": "Criar notificação (usuário para si mesmo ou ADMIN)"
+          }
+        },
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications?unread_only=false&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications"],
+              "query": [
+                {
+                  "key": "unread_only",
+                  "value": "false",
+                  "description": "Filtrar apenas não lidas"
+                },
+                {
+                  "key": "notification_type",
+                  "value": "TASK",
+                  "description": "TASK, TEAM, SYSTEM",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Limitar resultados"
+                }
+              ]
+            },
+            "description": "Listar notificações do usuário atual"
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/count",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "count"]
+            },
+            "description": "Contagem de notificações não lidas (para badge)"
+          }
+        },
+        {
+          "name": "Get Notification Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "stats"]
+            },
+            "description": "Estatísticas de notificações do usuário"
+          }
+        },
+        {
+          "name": "Get Notification by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/:notification_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", ":notification_id"],
+              "variable": [
+                {
+                  "key": "notification_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Buscar notificação específica"
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/:notification_id/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", ":notification_id", "read"],
+              "variable": [
+                {
+                  "key": "notification_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcar notificação como lida"
+          }
+        },
+        {
+          "name": "Mark Multiple as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notification_ids\": [1, 2, 3, 4]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "read"]
+            },
+            "description": "Marcar múltiplas notificações como lidas"
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "read-all"]
+            },
+            "description": "Marcar todas as notificações como lidas"
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/:notification_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", ":notification_id"],
+              "variable": [
+                {
+                  "key": "notification_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar notificação"
+          }
+        },
+        {
+          "name": "Delete All Read Notifications",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/read/all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications", "read", "all"]
+            },
+            "description": "Deletar todas as notificações lidas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "User Efficiency Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/user/:user_id/efficiency?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "user", ":user_id", "efficiency"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01T00:00:00",
+                  "description": "Data inicial (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-12-31T23:59:59",
+                  "description": "Data final (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days",
+                  "description": "last_7_days, last_30_days, last_90_days, current_month, last_month"
+                },
+                {
+                  "key": "project_id",
+                  "value": "1",
+                  "description": "Filtrar por projeto",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Relatório de eficiência de um usuário"
+          }
+        },
+        {
+          "name": "My Efficiency Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/user/me/efficiency?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "user", "me", "efficiency"],
+              "query": [
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days"
+                }
+              ]
+            },
+            "description": "Relatório de eficiência do usuário atual"
+          }
+        },
+        {
+          "name": "Project Summary Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/project/:project_id/summary?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "project", ":project_id", "summary"],
+              "query": [
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Relatório resumido do projeto"
+          }
+        },
+        {
+          "name": "Team Efficiency Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/project/:project_id/team-efficiency?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "project", ":project_id", "team-efficiency"],
+              "query": [
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Relatório de eficiência da equipe do projeto"
+          }
+        },
+        {
+          "name": "Download User Efficiency PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/user/:user_id/efficiency/download?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "user", ":user_id", "efficiency", "download"],
+              "query": [
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Download PDF do relatório de eficiência do usuário"
+          }
+        },
+        {
+          "name": "Download My Efficiency PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/user/me/efficiency/download?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "user", "me", "efficiency", "download"],
+              "query": [
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days"
+                }
+              ]
+            },
+            "description": "Download PDF do meu relatório de eficiência"
+          }
+        },
+        {
+          "name": "Download Project Report PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/project/:project_id/summary/download?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "project", ":project_id", "summary", "download"],
+              "query": [
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Download PDF do relatório do projeto"
+          }
+        },
+        {
+          "name": "Download Team Efficiency PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reports/project/:project_id/team-efficiency/download?period_preset=last_30_days",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reports", "project", ":project_id", "team-efficiency", "download"],
+              "query": [
+                {
+                  "key": "period_preset",
+                  "value": "last_30_days"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "project_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Download PDF do relatório de eficiência da equipe"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health & Root",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Endpoint raiz da API"
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verificar status da aplicação"
+          }
+        }
+      ]
+    }
+  ]
+}
