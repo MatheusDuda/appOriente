@@ -100,8 +100,7 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
     };
 
     const handleProjectClick = (projectId: number) => {
-        navigate("/projetos");
-        localStorage.setItem("selectedProjectId", projectId.toString());
+        navigate(`/projetos/${projectId}`);
     };
 
     // Função de renderização (sem mudanças)

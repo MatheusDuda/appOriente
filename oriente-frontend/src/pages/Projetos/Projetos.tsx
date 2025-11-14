@@ -22,7 +22,7 @@ import {
     FolderOutlined,
     ArrowDropDown,
 } from "@mui/icons-material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
     DndContext,
     closestCorners,
@@ -182,6 +182,7 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
 export default function Projects() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { projectId } = useParams<{ projectId?: string }>();
     const [projects, setProjects] = useState<ProjectSummary[]>([]);
     const [selectedProject, setSelectedProject] = useState<ProjectSummary | null>(null);
     const [columns, setColumns] = useState<KanbanColumn[]>([]);
@@ -261,23 +262,45 @@ export default function Projects() {
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Restore selected project after projects are loaded
+    // Sync selected project with URL
     useEffect(() => {
-        if (projects.length > 0 && !selectedProject) {
+        if (projects.length === 0) return;
+
+        // Priority 1: If URL has projectId, use it
+        if (projectId) {
+            const urlProjectId = parseInt(projectId);
+            // Only update if different from current selection
+            if (!selectedProject || selectedProject.id !== urlProjectId) {
+                const project = projects.find(p => p.id === urlProjectId);
+                if (project) {
+                    console.log("Carregando projeto da URL:", project);
+                    setSelectedProject(project);
+                } else {
+                    console.warn(`Projeto ${urlProjectId} não encontrado`);
+                }
+            }
+            return;
+        }
+
+        // Priority 2: If no URL projectId and no selected project, try localStorage or first
+        if (!selectedProject) {
             const savedProjectId = localStorage.getItem("selectedProjectId");
             if (savedProjectId) {
                 const project = projects.find(p => p.id === parseInt(savedProjectId));
                 if (project) {
-                    console.log("Restaurando projeto selecionado:", project);
+                    console.log("Restaurando projeto do localStorage:", project);
                     setSelectedProject(project);
+                    navigate(`/projetos/${project.id}`, { replace: true });
                     return;
                 }
             }
-            // If no saved project or not found, select first
+
+            // Select first project as fallback
             console.log("Selecionando primeiro projeto:", projects[0]);
             setSelectedProject(projects[0]);
+            navigate(`/projetos/${projects[0].id}`, { replace: true });
         }
-    }, [projects, selectedProject]);
+    }, [projectId, projects]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Save selected project to localStorage
     useEffect(() => {
@@ -329,6 +352,8 @@ export default function Projects() {
     const handleSelectProject = (project: ProjectSummary) => {
         setSelectedProject(project);
         handleCloseMenu();
+        // Navigate to the project URL
+        navigate(`/projetos/${project.id}`);
     };
 
     const handleAddColumn = async (title: string, color?: string) => {

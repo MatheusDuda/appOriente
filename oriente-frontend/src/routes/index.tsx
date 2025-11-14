@@ -62,6 +62,7 @@ export default function AppRoutes() {
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/projetos" element={<Projetos />} />
                         <Route path="/projetos/novo" element={<CriarProjeto />} />
+                        <Route path="/projetos/:projectId" element={<Projetos />} />
                         <Route path="/projetos/:projectId/tarefas/:cardId" element={<Tarefa />} />
                         <Route path="/notificacoes" element={<Notificacoes />} />
                         <Route path="/perfil" element={<Perfil />} />
