@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routers import auth, projects, users, teams, notifications, reports
+from app.routers import auth, projects, users, teams, notifications, reports, attachments
 from app.routers import Columns as columns, Cards as cards, comments, card_history
 
 # Criar tabelas no banco de dados
@@ -40,6 +40,7 @@ app.include_router(columns.router, prefix="/api/projects", tags=["Columns"])
 app.include_router(cards.router, prefix="/api/projects", tags=["Cards"])
 app.include_router(comments.router, prefix="/api/projects", tags=["Comments"])
 app.include_router(card_history.router, prefix="/api/projects", tags=["Card History"])
+app.include_router(attachments.router, prefix="/api/projects", tags=["Attachments"])
 
 # Router de Relatórios
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
