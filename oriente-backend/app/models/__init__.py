@@ -9,6 +9,8 @@ from app.models.comment_audit import CommentAudit
 from app.models.card_history import CardHistory, CardHistoryAction
 from app.models.notification import Notification
 from app.models.attachment import Attachment
+from app.models.chat import Chat, ChatType
+from app.models.chat_message import ChatMessage
 
 __all__ = [
     "User",
@@ -23,5 +25,8 @@ __all__ = [
     "CardHistory",
     "CardHistoryAction",
     "Notification",
-    "Attachment"
+    "Attachment",
+    "Chat",
+    "ChatType",
+    "ChatMessage"
 ]

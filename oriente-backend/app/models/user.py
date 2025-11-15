@@ -77,5 +77,15 @@ class User(Base):
     # Comentários criados (One-to-Many)
     comments = relationship("Comment", back_populates="user")
 
+    # Chats onde é participante (Many-to-Many)
+    chats = relationship(
+        "Chat",
+        secondary="chat_participants",
+        back_populates="participants"
+    )
+
+    # Mensagens de chat enviadas (One-to-Many)
+    chat_messages = relationship("ChatMessage", back_populates="sender")
+
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', name='{self.name}')>"
