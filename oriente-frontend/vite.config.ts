@@ -7,4 +7,7 @@ export default defineConfig({
     resolve: {
         alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     },
+    // Note: Vite dev server already supports SPA routing by default
+    // For production builds, configure your web server (nginx/apache)
+    // to redirect all routes to index.html
 });

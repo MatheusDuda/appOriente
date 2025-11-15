@@ -194,7 +194,13 @@ export default function Projects() {
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [loadingBoard, setLoadingBoard] = useState(false);
 
-    console.log("Projects component rendered", { loadingProjects, projects: projects.length });
+    console.log("[Projetos] ===== COMPONENT RENDERED =====");
+    console.log("[Projetos] URL pathname:", location.pathname);
+    console.log("[Projetos] URL projectId:", projectId);
+    console.log("[Projetos] selectedProject:", selectedProject?.id, selectedProject?.name);
+    console.log("[Projetos] loadingProjects:", loadingProjects);
+    console.log("[Projetos] projects count:", projects.length);
+    console.log("[Projetos] ================================");
 
     // Error handling
     const [snackbar, setSnackbar] = useState<{
@@ -249,58 +255,74 @@ export default function Projects() {
         }
     }, []);
 
-    // Load projects on mount and restore selected project from localStorage
+    // Load projects on mount
     useEffect(() => {
-        console.log("useEffect (mount) - Carregando projetos iniciais");
+        console.log("[Mount] Carregando projetos iniciais");
         loadProjects(false); // Don't auto-select first
-
-        // Restore selected project from localStorage
-        const savedProjectId = localStorage.getItem("selectedProjectId");
-        if (savedProjectId) {
-            // Will be set after projects load
-            console.log("Projeto salvo encontrado:", savedProjectId);
-        }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Sync selected project with URL
+    // Sync selected project with URL - runs after projects are loaded
     useEffect(() => {
-        if (projects.length === 0) return;
+        // Wait for projects to load
+        if (loadingProjects || projects.length === 0) {
+            console.log("[URL Sync] Aguardando carregamento de projetos... (loading:", loadingProjects, "count:", projects.length, ")");
+            return;
+        }
+
+        console.log("[URL Sync] Iniciando sincronização - URL projectId:", projectId, "selectedProject:", selectedProject?.id, "projects count:", projects.length);
 
         // Priority 1: If URL has projectId, use it
         if (projectId) {
-            const urlProjectId = parseInt(projectId);
-            // Only update if different from current selection
-            if (!selectedProject || selectedProject.id !== urlProjectId) {
-                const project = projects.find(p => p.id === urlProjectId);
-                if (project) {
-                    console.log("Carregando projeto da URL:", project);
-                    setSelectedProject(project);
-                } else {
-                    console.warn(`Projeto ${urlProjectId} não encontrado`);
-                }
+            const urlProjectId = parseInt(projectId, 10);
+
+            // Skip if already correctly selected
+            if (selectedProject?.id === urlProjectId) {
+                console.log("[URL Sync] ✓ Projeto já está selecionado corretamente:", selectedProject.name);
+                return;
+            }
+
+            // Try to find project by URL ID
+            const project = projects.find(p => p.id === urlProjectId);
+
+            if (project) {
+                console.log("[URL Sync] ✓ Carregando projeto da URL:", project.name, "(id:", project.id, ")");
+                setSelectedProject(project);
+            } else {
+                console.warn(`[URL Sync] ✗ Projeto ${urlProjectId} não encontrado. Redirecionando para primeiro projeto disponível.`);
+                setSelectedProject(projects[0]);
+                navigate(`/projetos/${projects[0].id}`, { replace: true });
             }
             return;
         }
 
-        // Priority 2: If no URL projectId and no selected project, try localStorage or first
-        if (!selectedProject) {
-            const savedProjectId = localStorage.getItem("selectedProjectId");
-            if (savedProjectId) {
-                const project = projects.find(p => p.id === parseInt(savedProjectId));
-                if (project) {
-                    console.log("Restaurando projeto do localStorage:", project);
-                    setSelectedProject(project);
-                    navigate(`/projetos/${project.id}`, { replace: true });
-                    return;
-                }
-            }
+        // Priority 2: No projectId in URL - select from localStorage or first project
+        console.log("[URL Sync] Nenhum projectId na URL");
 
-            // Select first project as fallback
-            console.log("Selecionando primeiro projeto:", projects[0]);
-            setSelectedProject(projects[0]);
-            navigate(`/projetos/${projects[0].id}`, { replace: true });
+        if (selectedProject) {
+            // We have a selected project but URL doesn't have ID - sync URL to match
+            console.log("[URL Sync] ✓ Projeto selecionado existe, sincronizando URL:", selectedProject.name);
+            navigate(`/projetos/${selectedProject.id}`, { replace: true });
+            return;
         }
-    }, [projectId, projects]); // eslint-disable-line react-hooks/exhaustive-deps
+
+        // No selected project - try localStorage first
+        const savedProjectId = localStorage.getItem("selectedProjectId");
+        if (savedProjectId) {
+            const project = projects.find(p => p.id === parseInt(savedProjectId, 10));
+            if (project) {
+                console.log("[URL Sync] ✓ Restaurando projeto do localStorage:", project.name);
+                setSelectedProject(project);
+                navigate(`/projetos/${project.id}`, { replace: true });
+                return;
+            }
+        }
+
+        // Fallback: Select first project
+        console.log("[URL Sync] ✓ Selecionando primeiro projeto:", projects[0].name);
+        setSelectedProject(projects[0]);
+        navigate(`/projetos/${projects[0].id}`, { replace: true });
+
+    }, [projectId, projects, selectedProject, loadingProjects, navigate]);
 
     // Save selected project to localStorage
     useEffect(() => {
