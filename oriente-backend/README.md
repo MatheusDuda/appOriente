@@ -1,139 +1,143 @@
-# Oriente Backend - FastAPI
+# 🎯 Oriente Backend
 
-Backend do sistema de gerenciamento de projetos Oriente, convertido de Spring Boot (Java) para FastAPI (Python).
+Backend completo para sistema de gerenciamento de projetos com Kanban, chat em tempo real e analytics.
 
-## 📋 Requisitos
+![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green.svg)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-336791.svg)
+![WebSocket](https://img.shields.io/badge/WebSocket-Enabled-orange.svg)
 
+## ✨ Features
+
+- 🔐 **Autenticação JWT** com roles (Admin/User)
+- 👥 **Gestão de Times e Projetos** com membros e permissões
+- 📋 **Sistema Kanban** completo (colunas, cards, drag-and-drop, tags, prioridades)
+- 💬 **Chat em Tempo Real** via WebSocket (individual e em grupo)
+- 🔔 **Notificações** automáticas com sistema de menções (@username)
+- 📎 **Upload de Anexos** com validação e quota
+- 📊 **Relatórios e Analytics** com exportação em PDF
+- 📝 **Audit Trail** completo de mudanças em cards
+- 🔍 **Histórico de Comentários** com soft delete
+
+## 🛠️ Tech Stack
+
+- **Framework:** FastAPI 0.104.1
+- **Database:** PostgreSQL 12+ com SQLAlchemy ORM
+- **Autenticação:** JWT (HS256) + BCrypt
+- **Real-time:** WebSocket para chat
+- **Validação:** Pydantic schemas
+- **PDF:** ReportLab 4.0.7
+- **CORS:** Configurado para frontend
+
+## ⚡ Quick Start
+
+### Requisitos
 - Python 3.9+
 - PostgreSQL 12+
-- pip
 
-## 🚀 Instalação
+### Instalação
 
-1. **Clone o repositório e entre no diretório:**
 ```bash
+# 1. Clone e entre no diretório
 cd oriente-backend
-```
 
-2. **Crie um ambiente virtual:**
-```bash
+# 2. Crie e ative ambiente virtual
 python -m venv venv
-```
+source venv/bin/activate  # Linux/Mac
+# ou venv\Scripts\activate  # Windows
 
-3. **Ative o ambiente virtual:**
-   - Windows:
-     ```bash
-     venv\Scripts\activate
-     ```
-   - Linux/Mac:
-     ```bash
-     source venv/bin/activate
-     ```
-
-4. **Instale as dependências:**
-```bash
+# 3. Instale dependências
 pip install -r requirements.txt
-```
 
-5. **Configure as variáveis de ambiente:**
-```bash
+# 4. Configure variáveis de ambiente
 cp .env.example .env
-```
-Edite o arquivo `.env` com suas configurações do banco de dados PostgreSQL.
+# Edite .env com suas credenciais do PostgreSQL
 
-6. **Execute a aplicação:**
-```bash
+# 5. Execute a aplicação
 python main.py
 ```
 
-Ou usando uvicorn diretamente:
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8080
-```
+Servidor rodando em: **http://localhost:8080**
 
-## 📚 Documentação da API
+## 📚 Documentação
 
-Após iniciar o servidor, acesse:
+Após iniciar o servidor:
 
-- **Swagger UI:** http://localhost:8080/swagger-ui.html
-- **ReDoc:** http://localhost:8080/api-docs
+- **Swagger UI (interativo):** http://localhost:8080/docs
+- **ReDoc (documentação):** http://localhost:8080/redoc
+- **Postman Collection:** `Oriente_API_Collection.postman_collection.json` (raiz do projeto)
 
-## 🔑 Endpoints Principais
+### Principais Endpoints
 
-### Autenticação
+| Categoria | Endpoints | Descrição |
+|-----------|-----------|-----------|
+| Auth | `/api/auth/*` | Register, Login, Me, Logout |
+| Users | `/api/users/*` | CRUD usuários, ativar/desativar |
+| Teams | `/api/teams/*` | Gestão de times e membros |
+| Projects | `/api/projects/*` | CRUD projetos, membros, ownership |
+| Kanban | `/api/projects/{id}/columns/*` | Colunas do board |
+| Cards | `/api/projects/{id}/cards/*` | Cards, tags, movimentação |
+| Comments | `/api/projects/{id}/cards/{id}/comments/*` | Comentários com menções |
+| Chat | `/api/chats/*` | Chat HTTP (CRUD mensagens) |
+| WebSocket | `/ws/chat/{chat_id}` | Chat em tempo real |
+| Notifications | `/api/notifications/*` | Central de notificações |
+| Attachments | `/api/projects/{id}/attachments/*` | Upload de arquivos |
+| Reports | `/api/reports/*` | Analytics e exportação PDF |
 
-- `POST /api/auth/register` - Registrar novo usuário
-- `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Obter dados do usuário autenticado (requer JWT)
-- `POST /api/auth/logout` - Logout
+**Total:** 85+ endpoints implementados
 
-### Projetos
-
-- `POST /api/projects` - Criar novo projeto (requer JWT)
-- `GET /api/projects` - Listar projetos do usuário (requer JWT)
-- `GET /api/projects/{id}` - Obter projeto por ID (requer JWT)
-- `PUT /api/projects/{id}` - Atualizar projeto (requer JWT)
-- `DELETE /api/projects/{id}` - Deletar projeto (requer JWT)
-
-## 🏗️ Estrutura do Projeto
+## 🏗️ Arquitetura
 
 ```
 oriente-backend/
 ├── app/
-│   ├── core/           # Configurações, database, security
-│   ├── models/         # Modelos SQLAlchemy (entidades)
-│   ├── schemas/        # Schemas Pydantic (DTOs)
-│   ├── routers/        # Routers FastAPI (controllers)
-│   ├── services/       # Lógica de negócio
+│   ├── core/           # Config, database, security, dependencies
+│   ├── models/         # 14 SQLAlchemy models (User, Project, Card, Chat...)
+│   ├── schemas/        # Pydantic DTOs para validação
+│   ├── routers/        # 14 routers FastAPI (controllers)
+│   ├── services/       # Lógica de negócio (~5000 linhas)
 │   └── utils/          # Utilitários
-├── main.py             # Aplicação principal
-├── requirements.txt    # Dependências
-├── .env.example        # Exemplo de variáveis de ambiente
-└── README.md           # Este arquivo
+├── main.py             # Entry point da aplicação
+├── requirements.txt    # Dependências Python
+└── .env.example        # Template de configuração
 ```
 
-## 🔄 Mapeamento Spring Boot → FastAPI
+### Modelos Principais
 
-| Spring Boot | FastAPI |
-|-------------|---------|
-| `@RestController` | `APIRouter` |
-| `@Service` | Classes de serviço estáticas |
-| `@Entity` | SQLAlchemy models |
-| DTOs | Pydantic schemas |
-| JPA Repository | SQLAlchemy queries |
-| Spring Security | FastAPI Security + JWT |
-| `@Autowired` | Dependency Injection (`Depends()`) |
-| `application.properties` | `.env` + `pydantic-settings` |
+**User** • **Team** • **Project** • **KanbanColumn** • **Card** • **Tag** • **Comment** • **CommentMention** • **CardHistory** • **Notification** • **Attachment** • **Chat** • **ChatMessage** • **CommentAudit**
 
 ## 🔐 Autenticação
 
-A API usa JWT (JSON Web Tokens) para autenticação. Para acessar endpoints protegidos:
+A API usa **JWT (JSON Web Tokens)** para autenticação:
 
-1. Faça login em `/api/auth/login`
-2. Receba o token JWT
-3. Inclua o token no header: `Authorization: Bearer {token}`
+1. Faça login: `POST /api/auth/login`
+2. Receba o token JWT (válido por 24h)
+3. Inclua em requisições protegidas:
+   ```
+   Authorization: Bearer {seu_token_jwt}
+   ```
+
+**Roles:** `ADMIN` (acesso total) e `USER` (acesso padrão)
 
 ## 🗄️ Banco de Dados
 
-O projeto usa PostgreSQL. As tabelas são criadas automaticamente ao iniciar a aplicação.
+PostgreSQL com criação automática de tabelas via SQLAlchemy.
 
-**Tabelas:**
-- `users` - Usuários do sistema
-- `projects` - Projetos
-- `project_members` - Relacionamento Many-to-Many entre projetos e usuários
-
-## 📝 Variáveis de Ambiente
-
-Veja `.env.example` para todas as variáveis disponíveis.
+**Principais relacionamentos:**
+- Users ↔ Projects (many-to-many via members)
+- Projects ↔ Cards (one-to-many via columns)
+- Cards ↔ Users (many-to-many assignees)
+- Cards ↔ Tags (many-to-many)
+- Comments → Users (mentions via CommentMention)
 
 ## 🧪 Desenvolvimento
 
-Para desenvolvimento, o servidor reinicia automaticamente ao detectar mudanças:
+Execute com hot-reload:
 
 ```bash
-uvicorn main:app --reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8080
 ```
 
 ## 📄 Licença
 
-Este projeto é parte do sistema Oriente.
+Projeto desenvolvido como Trabalho de Conclusão de Curso (TCC).
