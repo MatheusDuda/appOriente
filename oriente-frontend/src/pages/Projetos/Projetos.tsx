@@ -22,7 +22,7 @@ import {
     FolderOutlined,
     ArrowDropDown,
 } from "@mui/icons-material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
     DndContext,
     closestCorners,
@@ -182,6 +182,7 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
 export default function Projects() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { projectId } = useParams<{ projectId?: string }>();
     const [projects, setProjects] = useState<ProjectSummary[]>([]);
     const [selectedProject, setSelectedProject] = useState<ProjectSummary | null>(null);
     const [columns, setColumns] = useState<KanbanColumn[]>([]);
@@ -193,7 +194,13 @@ export default function Projects() {
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [loadingBoard, setLoadingBoard] = useState(false);
 
-    console.log("Projects component rendered", { loadingProjects, projects: projects.length });
+    console.log("[Projetos] ===== COMPONENT RENDERED =====");
+    console.log("[Projetos] URL pathname:", location.pathname);
+    console.log("[Projetos] URL projectId:", projectId);
+    console.log("[Projetos] selectedProject:", selectedProject?.id, selectedProject?.name);
+    console.log("[Projetos] loadingProjects:", loadingProjects);
+    console.log("[Projetos] projects count:", projects.length);
+    console.log("[Projetos] ================================");
 
     // Error handling
     const [snackbar, setSnackbar] = useState<{
@@ -248,36 +255,74 @@ export default function Projects() {
         }
     }, []);
 
-    // Load projects on mount and restore selected project from localStorage
+    // Load projects on mount
     useEffect(() => {
-        console.log("useEffect (mount) - Carregando projetos iniciais");
+        console.log("[Mount] Carregando projetos iniciais");
         loadProjects(false); // Don't auto-select first
-
-        // Restore selected project from localStorage
-        const savedProjectId = localStorage.getItem("selectedProjectId");
-        if (savedProjectId) {
-            // Will be set after projects load
-            console.log("Projeto salvo encontrado:", savedProjectId);
-        }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Restore selected project after projects are loaded
+    // Sync selected project with URL - runs after projects are loaded
     useEffect(() => {
-        if (projects.length > 0 && !selectedProject) {
-            const savedProjectId = localStorage.getItem("selectedProjectId");
-            if (savedProjectId) {
-                const project = projects.find(p => p.id === parseInt(savedProjectId));
-                if (project) {
-                    console.log("Restaurando projeto selecionado:", project);
-                    setSelectedProject(project);
-                    return;
-                }
-            }
-            // If no saved project or not found, select first
-            console.log("Selecionando primeiro projeto:", projects[0]);
-            setSelectedProject(projects[0]);
+        // Wait for projects to load
+        if (loadingProjects || projects.length === 0) {
+            console.log("[URL Sync] Aguardando carregamento de projetos... (loading:", loadingProjects, "count:", projects.length, ")");
+            return;
         }
-    }, [projects, selectedProject]);
+
+        console.log("[URL Sync] Iniciando sincronização - URL projectId:", projectId, "selectedProject:", selectedProject?.id, "projects count:", projects.length);
+
+        // Priority 1: If URL has projectId, use it
+        if (projectId) {
+            const urlProjectId = parseInt(projectId, 10);
+
+            // Skip if already correctly selected
+            if (selectedProject?.id === urlProjectId) {
+                console.log("[URL Sync] ✓ Projeto já está selecionado corretamente:", selectedProject.name);
+                return;
+            }
+
+            // Try to find project by URL ID
+            const project = projects.find(p => p.id === urlProjectId);
+
+            if (project) {
+                console.log("[URL Sync] ✓ Carregando projeto da URL:", project.name, "(id:", project.id, ")");
+                setSelectedProject(project);
+            } else {
+                console.warn(`[URL Sync] ✗ Projeto ${urlProjectId} não encontrado. Redirecionando para primeiro projeto disponível.`);
+                setSelectedProject(projects[0]);
+                navigate(`/projetos/${projects[0].id}`, { replace: true });
+            }
+            return;
+        }
+
+        // Priority 2: No projectId in URL - select from localStorage or first project
+        console.log("[URL Sync] Nenhum projectId na URL");
+
+        if (selectedProject) {
+            // We have a selected project but URL doesn't have ID - sync URL to match
+            console.log("[URL Sync] ✓ Projeto selecionado existe, sincronizando URL:", selectedProject.name);
+            navigate(`/projetos/${selectedProject.id}`, { replace: true });
+            return;
+        }
+
+        // No selected project - try localStorage first
+        const savedProjectId = localStorage.getItem("selectedProjectId");
+        if (savedProjectId) {
+            const project = projects.find(p => p.id === parseInt(savedProjectId, 10));
+            if (project) {
+                console.log("[URL Sync] ✓ Restaurando projeto do localStorage:", project.name);
+                setSelectedProject(project);
+                navigate(`/projetos/${project.id}`, { replace: true });
+                return;
+            }
+        }
+
+        // Fallback: Select first project
+        console.log("[URL Sync] ✓ Selecionando primeiro projeto:", projects[0].name);
+        setSelectedProject(projects[0]);
+        navigate(`/projetos/${projects[0].id}`, { replace: true });
+
+    }, [projectId, projects, selectedProject, loadingProjects, navigate]);
 
     // Save selected project to localStorage
     useEffect(() => {
@@ -329,6 +374,8 @@ export default function Projects() {
     const handleSelectProject = (project: ProjectSummary) => {
         setSelectedProject(project);
         handleCloseMenu();
+        // Navigate to the project URL
+        navigate(`/projetos/${project.id}`);
     };
 
     const handleAddColumn = async (title: string, color?: string) => {

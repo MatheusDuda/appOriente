@@ -22,20 +22,45 @@ import { useAuth } from "../contexts/AuthContext";
 
 // Redireciona para / se não estiver autenticado
 function RequireAuth() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isInitialized } = useAuth();
     const location = useLocation();
+
+    console.log("[RequireAuth] Verificando acesso a:", location.pathname, "- isAuthenticated:", isAuthenticated, "isInitialized:", isInitialized);
+
+    // Wait for auth to initialize before redirecting
+    if (!isInitialized) {
+        console.log("[RequireAuth] Aguardando inicialização da autenticação...");
+        return null; // or a loading spinner
+    }
+
     if (!isAuthenticated) {
+        console.log("[RequireAuth] ✗ Não autenticado - Redirecionando para /");
         return <Navigate to="/" replace state={{ from: location.pathname }} />;
     }
+
+    console.log("[RequireAuth] ✓ Autenticado - Permitindo acesso");
     return <Outlet />;
 }
 
 // Se já estiver autenticado, manda pra /dashboard (evita voltar pro login)
 function RedirectIfAuth() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isInitialized } = useAuth();
+    const location = useLocation();
+
+    console.log("[RedirectIfAuth] Verificando rota pública:", location.pathname, "- isAuthenticated:", isAuthenticated, "isInitialized:", isInitialized);
+
+    // Wait for auth to initialize before redirecting
+    if (!isInitialized) {
+        console.log("[RedirectIfAuth] Aguardando inicialização da autenticação...");
+        return null; // or a loading spinner
+    }
+
     if (isAuthenticated) {
+        console.log("[RedirectIfAuth] ✓ Já autenticado - Redirecionando para /dashboard");
         return <Navigate to="/dashboard" replace />;
     }
+
+    console.log("[RedirectIfAuth] ✓ Não autenticado - Permitindo acesso à rota pública");
     return <Outlet />;
 }
 
@@ -62,6 +87,7 @@ export default function AppRoutes() {
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/projetos" element={<Projetos />} />
                         <Route path="/projetos/novo" element={<CriarProjeto />} />
+                        <Route path="/projetos/:projectId" element={<Projetos />} />
                         <Route path="/projetos/:projectId/tarefas/:cardId" element={<Tarefa />} />
                         <Route path="/notificacoes" element={<Notificacoes />} />
                         <Route path="/perfil" element={<Perfil />} />

@@ -212,7 +212,7 @@ export default function Tarefa() {
     };
 
     const handleVoltar = () => {
-        navigate(`/projetos`);
+        navigate(`/projetos/${projectId}`);
     };
 
     const handleEnviarComentario = async () => {

@@ -29,8 +29,15 @@ api.interceptors.response.use(
     (error) => {
         // Se receber 401 (Unauthorized), limpa o token e redireciona para login
         if (error.response?.status === 401) {
+            console.log("[API Interceptor] 401 Unauthorized - Limpando token e redirecionando");
             localStorage.removeItem("auth_token");
-            window.location.href = "/login";
+
+            // Redireciona para raiz (/) em vez de /login para evitar loops
+            // O RedirectIfAuth vai detectar que não está autenticado e mostrar o login
+            // Usamos replace para não adicionar ao histórico
+            if (window.location.pathname !== "/") {
+                window.location.replace("/");
+            }
         }
         return Promise.reject(error);
     }
