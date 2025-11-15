@@ -388,7 +388,13 @@ export default function Projects() {
                 position: columns.length,
             });
 
-            setColumns([...columns, newColumn]);
+            // Ensure the new column has the cards array initialized
+            // API returns column without cards field, but component expects it
+            setColumns([...columns, { ...newColumn, cards: [] }]);
+
+            // Close dialog after successful creation
+            setNewColumnDialogOpen(false);
+
             setSnackbar({
                 open: true,
                 message: "Coluna criada com sucesso",
@@ -400,6 +406,7 @@ export default function Projects() {
                 message: "Erro ao criar coluna",
                 severity: "error",
             });
+            // Keep dialog open on error so user can try again
         }
     };
 
