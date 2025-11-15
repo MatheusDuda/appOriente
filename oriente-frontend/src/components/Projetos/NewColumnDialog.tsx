@@ -24,7 +24,7 @@ export default function NewColumnDialog({ open, onClose, onSave }: NewColumnDial
             onSave(title.trim(), color);
             setTitle("");
             setColor("#1976d2");
-            onClose();
+            // Let the parent component decide when to close based on success/failure
         }
     };
 
