@@ -1819,6 +1819,299 @@
       ]
     },
     {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Create Individual Chat",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"individual\",\n  \"participant_ids\": [2]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats"]
+            },
+            "description": "Criar chat individual (1:1) com outro usuário. Se já existir, retorna o chat existente."
+          }
+        },
+        {
+          "name": "Create Group Chat",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"group\",\n  \"name\": \"Equipe de Desenvolvimento\",\n  \"participant_ids\": [2, 3, 4]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats"]
+            },
+            "description": "Criar chat em grupo. Mínimo 3 participantes (incluindo o criador). Nome é obrigatório."
+          }
+        },
+        {
+          "name": "List My Chats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats"]
+            },
+            "description": "Listar todos os chats do usuário autenticado, ordenados por última atividade. Inclui preview da última mensagem e contador de não lidas."
+          }
+        },
+        {
+          "name": "Get Chat by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Buscar detalhes de um chat específico (apenas participantes)"
+          }
+        },
+        {
+          "name": "List Chat Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id/messages?limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id", "messages"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Número de mensagens por página (max 100)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Número de mensagens a pular"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Listar mensagens de um chat (paginadas, mais recentes primeiro)"
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Olá! Esta é uma mensagem de teste.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id", "messages"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Enviar mensagem em um chat (via REST API). Para tempo real, use WebSocket."
+          }
+        },
+        {
+          "name": "Edit Message",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Mensagem editada com novo conteúdo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id/messages/:message_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id", "messages", ":message_id"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                },
+                {
+                  "key": "message_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Editar mensagem (apenas autor, dentro de 10 minutos)"
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id/messages/:message_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id", "messages", ":message_id"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                },
+                {
+                  "key": "message_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Deletar mensagem (apenas autor, dentro de 10 minutos)"
+          }
+        },
+        {
+          "name": "Mark Chat as Read",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id", "read"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Marcar chat como lido (zera contador de mensagens não lidas)"
+          }
+        },
+        {
+          "name": "Update Group Name",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Novo Nome do Grupo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualizar nome do grupo (apenas grupos, não chats individuais)"
+          }
+        },
+        {
+          "name": "Add Participant to Group",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id/participants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id", "participants"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Adicionar participante a um grupo (apenas grupos)"
+          }
+        },
+        {
+          "name": "Remove Participant from Group",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/chats/:chat_id/participants/:user_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chats", ":chat_id", "participants", ":user_id"],
+              "variable": [
+                {
+                  "key": "chat_id",
+                  "value": "1"
+                },
+                {
+                  "key": "user_id",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Remover participante de um grupo. Se ficar com menos de 2 participantes, o grupo é deletado automaticamente."
+          }
+        }
+      ]
+    },
+    {
       "name": "Health & Root",
       "item": [
         {
