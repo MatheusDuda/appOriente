@@ -201,6 +201,16 @@ export interface ColumnCreateRequest {
     position?: number;
 }
 
+export interface ColumnUpdateRequest {
+    title?: string;
+    description?: string;
+    color?: string;
+}
+
+export interface ColumnMoveRequest {
+    new_position: number;
+}
+
 // ========================================
 // COMMENT TYPES
 // ========================================

@@ -45,6 +45,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import NewColumnDialog from "../../components/Projetos/NewColumnDialog";
+import EditColumnDialog from "../../components/Projetos/EditColumnDialog";
+import DeleteColumnDialog from "../../components/Projetos/DeleteColumnDialog";
+import ColumnOptionsMenu from "../../components/Projetos/ColumnOptionsMenu";
 import CreateTask from "../../components/Tarefas/CreateTask";
 import type {
     Card as CardType,
@@ -236,6 +239,22 @@ export default function Projects() {
     const [newColumnDialogOpen, setNewColumnDialogOpen] = useState(false);
     const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false);
     const [activeCard, setActiveCard] = useState<CardType | null>(null);
+
+    // Edit column dialog states
+    const [editColumnDialogOpen, setEditColumnDialogOpen] = useState(false);
+    const [editingColumn, setEditingColumn] = useState<{
+        id: number;
+        title: string;
+        color: string;
+    } | null>(null);
+
+    // Delete column dialog states
+    const [deleteColumnDialogOpen, setDeleteColumnDialogOpen] = useState(false);
+    const [deletingColumn, setDeletingColumn] = useState<{
+        id: number;
+        title: string;
+        hasCards: boolean;
+    } | null>(null);
 
     // Loading states
     const [loadingProjects, setLoadingProjects] = useState(true);
@@ -457,6 +476,163 @@ export default function Projects() {
         }
     };
 
+    const handleOpenEditColumn = (column: KanbanColumn) => {
+        setEditingColumn({
+            id: column.id,
+            title: column.title,
+            color: column.color,
+        });
+        setEditColumnDialogOpen(true);
+    };
+
+    const handleEditColumn = async (columnId: number, title: string, color?: string) => {
+        if (!selectedProject) return;
+
+        try {
+            const updatedColumn = await projectService.updateColumn(
+                selectedProject.id,
+                columnId,
+                { title, color }
+            );
+
+            // Update the column in the state
+            setColumns((prevColumns) =>
+                prevColumns.map((col) =>
+                    col.id === columnId
+                        ? { ...col, title: updatedColumn.title, color: updatedColumn.color }
+                        : col
+                )
+            );
+
+            // Close dialog after successful update
+            setEditColumnDialogOpen(false);
+            setEditingColumn(null);
+
+            setSnackbar({
+                open: true,
+                message: "Coluna atualizada com sucesso",
+                severity: "success",
+            });
+        } catch (error) {
+            setSnackbar({
+                open: true,
+                message: "Erro ao atualizar coluna",
+                severity: "error",
+            });
+            // Keep dialog open on error so user can try again
+        }
+    };
+
+    const handleOpenDeleteColumn = (column: KanbanColumn) => {
+        setDeletingColumn({
+            id: column.id,
+            title: column.title,
+            hasCards: column.cards.length > 0,
+        });
+        setDeleteColumnDialogOpen(true);
+    };
+
+    const handleDeleteColumn = async (columnId: number) => {
+        if (!selectedProject) return;
+
+        try {
+            await projectService.deleteColumn(selectedProject.id, columnId);
+
+            // Remove the column from the state
+            setColumns((prevColumns) => prevColumns.filter((col) => col.id !== columnId));
+
+            // Close dialog after successful deletion
+            setDeleteColumnDialogOpen(false);
+            setDeletingColumn(null);
+
+            setSnackbar({
+                open: true,
+                message: "Coluna excluída com sucesso",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = error?.response?.data?.detail || "Erro ao excluir coluna";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+            // Close dialog even on error since user can't retry if column has cards
+            setDeleteColumnDialogOpen(false);
+            setDeletingColumn(null);
+        }
+    };
+
+    const handleMoveColumnLeft = async (columnId: number) => {
+        if (!selectedProject) return;
+
+        const currentIndex = columns.findIndex((col) => col.id === columnId);
+        if (currentIndex <= 0) return; // Already at the leftmost position
+
+        const newPosition = currentIndex - 1;
+
+        try {
+            await projectService.moveColumn(selectedProject.id, columnId, newPosition);
+
+            // Update local state optimistically
+            const newColumns = [...columns];
+            const [movedColumn] = newColumns.splice(currentIndex, 1);
+            newColumns.splice(newPosition, 0, movedColumn);
+            setColumns(newColumns);
+
+            setSnackbar({
+                open: true,
+                message: "Coluna movida com sucesso",
+                severity: "success",
+            });
+        } catch (error) {
+            // Revert on error - reload board
+            if (selectedProject) {
+                loadProjectBoard(selectedProject.id);
+            }
+            setSnackbar({
+                open: true,
+                message: "Erro ao mover coluna",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleMoveColumnRight = async (columnId: number) => {
+        if (!selectedProject) return;
+
+        const currentIndex = columns.findIndex((col) => col.id === columnId);
+        if (currentIndex === -1 || currentIndex >= columns.length - 1) return; // Already at the rightmost position
+
+        const newPosition = currentIndex + 1;
+
+        try {
+            await projectService.moveColumn(selectedProject.id, columnId, newPosition);
+
+            // Update local state optimistically
+            const newColumns = [...columns];
+            const [movedColumn] = newColumns.splice(currentIndex, 1);
+            newColumns.splice(newPosition, 0, movedColumn);
+            setColumns(newColumns);
+
+            setSnackbar({
+                open: true,
+                message: "Coluna movida com sucesso",
+                severity: "success",
+            });
+        } catch (error) {
+            // Revert on error - reload board
+            if (selectedProject) {
+                loadProjectBoard(selectedProject.id);
+            }
+            setSnackbar({
+                open: true,
+                message: "Erro ao mover coluna",
+                severity: "error",
+            });
+        }
+    };
+
     const handleAddTask = async (newTask: {
         title: string;
         description: string;
@@ -580,16 +756,16 @@ export default function Projects() {
 
         // Check if dropping on a column (format: "column-X") or on a card
         let overContainer: number | null = null;
-        let overId: number | null = null;
+        let overCardId: number | null = null;
 
         if (typeof over.id === 'string' && over.id.startsWith('column-')) {
             // Dropping on empty column
             overContainer = Number(over.id.replace('column-', ''));
-            overId = null; // No card to drop on
+            overCardId = null; // No card to drop on
         } else {
             // Dropping on a card
-            overId = Number(over.id);
-            overContainer = findContainer(overId);
+            overCardId = Number(over.id);
+            overContainer = findContainer(overCardId);
         }
 
         const activeContainer = findContainer(activeId);
@@ -607,7 +783,7 @@ export default function Projects() {
         if (!activeCard) return;
 
         // Calculate new position
-        const overIndex = overId !== null ? targetColumn.cards.findIndex((card) => card.id === overId) : -1;
+        const overIndex = overCardId !== null ? targetColumn.cards.findIndex((card) => card.id === overCardId) : -1;
         const newPosition = overIndex >= 0 ? overIndex : targetColumn.cards.length;
 
         try {
@@ -618,10 +794,10 @@ export default function Projects() {
             });
 
             // If moving within the same column, reorder
-            if (activeContainer === overContainer && overId !== null) {
+            if (activeContainer === overContainer && overCardId !== null) {
                 const items = targetColumn.cards;
                 const oldIndex = items.findIndex((card) => card.id === activeId);
-                const newIndex = items.findIndex((card) => card.id === overId);
+                const newIndex = items.findIndex((card) => card.id === overCardId);
 
                 if (oldIndex !== newIndex && newIndex !== -1) {
                     const newItems = arrayMove(items, oldIndex, newIndex);
@@ -788,7 +964,7 @@ export default function Projects() {
                             height: "100%",
                         }}
                     >
-                        {columns.map((column) => (
+                        {columns.map((column, index) => (
                             <Paper
                                 key={column.id}
                                 sx={{
@@ -820,9 +996,14 @@ export default function Projects() {
                                             sx={{ height: 20, fontSize: "0.75rem" }}
                                         />
                                     </Box>
-                                    <IconButton size="small">
-                                        <MoreVertOutlined fontSize="small" />
-                                    </IconButton>
+                                    <ColumnOptionsMenu
+                                        onEdit={() => handleOpenEditColumn(column)}
+                                        onDelete={() => handleOpenDeleteColumn(column)}
+                                        onMoveLeft={() => handleMoveColumnLeft(column.id)}
+                                        onMoveRight={() => handleMoveColumnRight(column.id)}
+                                        canMoveLeft={index > 0}
+                                        canMoveRight={index < columns.length - 1}
+                                    />
                                 </Box>
 
                                 <SortableContext
@@ -923,6 +1104,30 @@ export default function Projects() {
                 onSave={handleAddTask}
                 columns={columns}
                 projectId={selectedProject?.id}
+            />
+
+            <EditColumnDialog
+                open={editColumnDialogOpen}
+                onClose={() => {
+                    setEditColumnDialogOpen(false);
+                    setEditingColumn(null);
+                }}
+                onSave={handleEditColumn}
+                columnId={editingColumn?.id ?? null}
+                initialTitle={editingColumn?.title ?? ""}
+                initialColor={editingColumn?.color ?? "#1976d2"}
+            />
+
+            <DeleteColumnDialog
+                open={deleteColumnDialogOpen}
+                onClose={() => {
+                    setDeleteColumnDialogOpen(false);
+                    setDeletingColumn(null);
+                }}
+                onConfirm={handleDeleteColumn}
+                columnId={deletingColumn?.id ?? null}
+                columnTitle={deletingColumn?.title ?? ""}
+                hasCards={deletingColumn?.hasCards ?? false}
             />
 
             <Snackbar
