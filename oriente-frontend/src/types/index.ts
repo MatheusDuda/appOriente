@@ -316,7 +316,7 @@ export interface CardCreateRequest {
 
 export interface CardMoveRequest {
     column_id: number;
-    position: number;
+    new_position: number;
 }
 
 export interface ProjectBoard {

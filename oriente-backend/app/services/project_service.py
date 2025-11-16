@@ -250,10 +250,19 @@ class ProjectService:
     def user_can_edit_project(db: Session, project_id: int, user_id: int) -> bool:
         """
         Verifica se o usuário tem permissão para editar o projeto
-        (apenas owner pode editar)
+        (owner ou membro do projeto)
         """
         project = db.query(Project).filter(Project.id == project_id).first()
         if not project:
             return False
 
-        return project.owner_id == user_id
+        # Verificar se é owner
+        if project.owner_id == user_id:
+            return True
+
+        # Verificar se é membro
+        user = db.query(User).filter(User.id == user_id).first()
+        if user and user in project.members:
+            return True
+
+        return False

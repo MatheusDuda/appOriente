@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     Box,
     Paper,
@@ -30,8 +30,11 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    DragOverlay,
+    useDroppable,
     type DragEndEvent,
     type DragOverEvent,
+    type DragStartEvent,
 } from "@dnd-kit/core";
 import {
     arrayMove,
@@ -179,6 +182,49 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
     );
 }
 
+function DroppableColumn({ children, id }: { children: React.ReactNode; id: number }) {
+    const { setNodeRef, isOver } = useDroppable({
+        id: `column-${id}`,
+    });
+
+    const hasChildren = React.Children.count(children) > 0;
+
+    return (
+        <Box
+            ref={setNodeRef}
+            sx={{
+                p: 2,
+                flexGrow: 1,
+                overflowY: "auto",
+                minHeight: 200,
+                backgroundColor: isOver ? 'action.hover' : 'transparent',
+                borderRadius: 1,
+                transition: 'background-color 0.2s',
+            }}
+        >
+            {hasChildren ? children : (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        minHeight: 150,
+                        color: 'text.disabled',
+                        fontSize: '0.875rem',
+                        border: '2px dashed',
+                        borderColor: isOver ? 'primary.main' : 'divider',
+                        borderRadius: 1,
+                        transition: 'border-color 0.2s',
+                    }}
+                >
+                    {isOver ? 'Solte aqui' : 'Arraste um card para cá'}
+                </Box>
+            )}
+        </Box>
+    );
+}
+
 export default function Projects() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -189,6 +235,7 @@ export default function Projects() {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [newColumnDialogOpen, setNewColumnDialogOpen] = useState(false);
     const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false);
+    const [activeCard, setActiveCard] = useState<CardType | null>(null);
 
     // Loading states
     const [loadingProjects, setLoadingProjects] = useState(true);
@@ -467,17 +514,35 @@ export default function Projects() {
         return null;
     };
 
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        const activeId = Number(active.id);
+
+        // Find the card being dragged
+        for (const column of columns) {
+            const card = column.cards.find(c => c.id === activeId);
+            if (card) {
+                setActiveCard(card);
+                break;
+            }
+        }
+    };
+
     const handleDragOver = (event: DragOverEvent) => {
         const { active, over } = event;
         if (!over) return;
 
         const activeId = Number(active.id);
-        const overId = Number(over.id);
 
-        if (activeId === overId) return;
+        // Check if dropping on a column (format: "column-X")
+        let overContainer: number | null = null;
+        if (typeof over.id === 'string' && over.id.startsWith('column-')) {
+            overContainer = Number(over.id.replace('column-', ''));
+        } else {
+            overContainer = findContainer(Number(over.id));
+        }
 
         const activeContainer = findContainer(activeId);
-        const overContainer = findContainer(overId);
 
         if (!activeContainer || !overContainer) return;
         if (activeContainer === overContainer) return;
@@ -512,10 +577,22 @@ export default function Projects() {
         if (!over || !selectedProject) return;
 
         const activeId = Number(active.id);
-        const overId = Number(over.id);
+
+        // Check if dropping on a column (format: "column-X") or on a card
+        let overContainer: number | null = null;
+        let overId: number | null = null;
+
+        if (typeof over.id === 'string' && over.id.startsWith('column-')) {
+            // Dropping on empty column
+            overContainer = Number(over.id.replace('column-', ''));
+            overId = null; // No card to drop on
+        } else {
+            // Dropping on a card
+            overId = Number(over.id);
+            overContainer = findContainer(overId);
+        }
 
         const activeContainer = findContainer(activeId);
-        const overContainer = findContainer(overId);
 
         if (!activeContainer || !overContainer) return;
 
@@ -530,23 +607,23 @@ export default function Projects() {
         if (!activeCard) return;
 
         // Calculate new position
-        const overIndex = targetColumn.cards.findIndex((card) => card.id === overId);
+        const overIndex = overId !== null ? targetColumn.cards.findIndex((card) => card.id === overId) : -1;
         const newPosition = overIndex >= 0 ? overIndex : targetColumn.cards.length;
 
         try {
             // Call API to move card
             await projectService.moveCard(selectedProject.id, activeId, {
                 column_id: overContainer,
-                position: newPosition,
+                new_position: newPosition,
             });
 
             // If moving within the same column, reorder
-            if (activeContainer === overContainer) {
+            if (activeContainer === overContainer && overId !== null) {
                 const items = targetColumn.cards;
                 const oldIndex = items.findIndex((card) => card.id === activeId);
                 const newIndex = items.findIndex((card) => card.id === overId);
 
-                if (oldIndex !== newIndex) {
+                if (oldIndex !== newIndex && newIndex !== -1) {
                     const newItems = arrayMove(items, oldIndex, newIndex);
                     setColumns((prevColumns) =>
                         prevColumns.map((col) =>
@@ -573,7 +650,13 @@ export default function Projects() {
                 message: "Erro ao mover tarefa",
                 severity: "error",
             });
+        } finally {
+            setActiveCard(null);
         }
+    };
+
+    const handleDragCancel = () => {
+        setActiveCard(null);
     };
 
     const handleCloseSnackbar = () => {
@@ -691,8 +774,10 @@ export default function Projects() {
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCorners}
+                    onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     onDragOver={handleDragOver}
+                    onDragCancel={handleDragCancel}
                 >
                     <Box
                         sx={{
@@ -744,14 +829,7 @@ export default function Projects() {
                                     items={column.cards.map((card) => card.id)}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    <Box
-                                        sx={{
-                                            p: 2,
-                                            flexGrow: 1,
-                                            overflowY: "auto",
-                                            minHeight: 200,
-                                        }}
-                                    >
+                                    <DroppableColumn id={column.id}>
                                         {column.cards.map((card) => (
                                             <TaskCard
                                                 key={card.id}
@@ -759,11 +837,77 @@ export default function Projects() {
                                                 onClickTask={handleClickTask}
                                             />
                                         ))}
-                                    </Box>
+                                    </DroppableColumn>
                                 </SortableContext>
                             </Paper>
                         ))}
                     </Box>
+
+                    <DragOverlay>
+                        {activeCard ? (
+                            <Card
+                                sx={{
+                                    width: 320,
+                                    borderRadius: 1.5,
+                                    cursor: "grabbing",
+                                    boxShadow: 6,
+                                    opacity: 0.9,
+                                }}
+                            >
+                                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
+                                            {activeCard.title}
+                                        </Typography>
+                                        <IconButton size="small" sx={{ ml: 1, mt: -0.5 }}>
+                                            <MoreVertOutlined fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+
+                                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 1.5, fontSize: "0.8125rem" }}>
+                                        {activeCard.description}
+                                    </Typography>
+
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <Chip
+                                            label={getPriorityLabel(activeCard.priority)}
+                                            color={getPriorityColor(activeCard.priority)}
+                                            size="small"
+                                            sx={{ height: 22, fontSize: "0.7rem" }}
+                                        />
+
+                                        {activeCard.assignees && activeCard.assignees.length > 0 && (
+                                            <AvatarGroup max={3} sx={{ "& .MuiAvatar-root": { width: 24, height: 24, fontSize: "0.75rem" } }}>
+                                                {activeCard.assignees.map((assignee) => (
+                                                    <Avatar
+                                                        key={assignee.id}
+                                                        sx={{ bgcolor: "primary.main" }}
+                                                        title={assignee.name}
+                                                    >
+                                                        {assignee.name.charAt(0)}
+                                                    </Avatar>
+                                                ))}
+                                            </AvatarGroup>
+                                        )}
+                                    </Box>
+
+                                    {activeCard.due_date && (
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                display: "block",
+                                                color: "text.secondary",
+                                                mt: 1,
+                                                fontSize: "0.7rem",
+                                            }}
+                                        >
+                                            Vencimento: {new Date(activeCard.due_date).toLocaleDateString("pt-BR")}
+                                        </Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ) : null}
+                    </DragOverlay>
                 </DndContext>
             )}
 

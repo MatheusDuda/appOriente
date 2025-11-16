@@ -294,7 +294,7 @@ def get_board_view(
                     "priority": card.priority,
                     "position": card.position,
                     "due_date": card.due_date,
-                    "assignees": [{"id": u.id, "full_name": u.full_name} for u in card.assignees],
+                    "assignees": [{"id": u.id, "name": u.name} for u in card.assignees],
                     "tags": [{"id": t.id, "name": t.name, "color": t.color} for t in card.tags]
                 }
                 for card in column.cards

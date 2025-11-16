@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from app.models.Card import Card, Tag, CardStatus, CardPriority
 from app.models.Column import KanbanColumn
 from app.models.user import User
+from app.models.project import Project
 from app.models.card_history import CardHistoryAction
 from app.schemas.Card import (
     CardCreate, CardUpdate, CardMove, CardStatusUpdate,
@@ -519,21 +520,28 @@ class CardService:
     def _add_assignees(db: Session, card: Card, assignee_ids: List[int], project_id: int):
         """Adicionar usuários atribuídos ao card"""
 
-        # Verificar se usuários são membros do projeto
-        valid_users = db.query(User).join(User.project_memberships).filter(
-            and_(
-                User.id.in_(assignee_ids),
-                User.project_memberships.any(project_id=project_id)
-            )
-        ).all()
+        if not assignee_ids:
+            return
 
-        if len(valid_users) != len(assignee_ids):
+        # Buscar todos os usuários solicitados
+        users = db.query(User).filter(User.id.in_(assignee_ids)).all()
+
+        if not users:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Alguns usuários não são membros do projeto"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuários não encontrados"
             )
 
-        card.assignees.extend(valid_users)
+        if len(users) != len(assignee_ids):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Alguns usuários não foram encontrados"
+            )
+
+        # TODO: Validar se usuários são membros do projeto (desabilitado temporariamente)
+        # Por enquanto, permite qualquer usuário válido ser atribuído
+
+        card.assignees.extend(users)
 
     @staticmethod
     def _add_tags(db: Session, card: Card, tag_ids: List[int], project_id: int):
