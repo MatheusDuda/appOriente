@@ -3,10 +3,7 @@ import axios from "axios";
 // Cria instância do Axios com configurações base
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
-    timeout: 10000,
-    headers: {
-        "Content-Type": "application/json",
-    },
+    timeout: 60000, // 60 segundos para permitir download de PDFs grandes
 });
 
 // Interceptor para adicionar token JWT automaticamente nas requisições
@@ -16,6 +13,12 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Adicionar Content-Type apenas para requisições JSON (não blob/file downloads)
+        if (!config.responseType || config.responseType === 'json') {
+            config.headers['Content-Type'] = 'application/json';
+        }
+
         return config;
     },
     (error) => {

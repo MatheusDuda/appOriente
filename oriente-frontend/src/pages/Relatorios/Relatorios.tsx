@@ -68,7 +68,7 @@ export default function Relatorios() {
             setDownloading(true);
 
             // Fazer chamada para o endpoint de download
-            const response = await api.get('/reports/user/me/efficiency/download', {
+            const response = await api.get('/api/reports/user/me/efficiency/download', {
                 responseType: 'blob', // Importante para download de arquivos
                 params: {
                     period_preset: 'last_month' // Último mês como padrão
@@ -89,9 +89,50 @@ export default function Relatorios() {
             // Limpar
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro ao baixar relatório:', error);
-            alert('Erro ao baixar relatório. Por favor, tente novamente.');
+
+            // Tratamento específico por tipo de erro
+            let errorMessage = 'Erro ao baixar relatório. Por favor, tente novamente.';
+
+            if (error.response) {
+                // Se a resposta for um blob de erro, tentar ler como texto
+                if (error.response.data instanceof Blob) {
+                    try {
+                        const errorText = await error.response.data.text();
+                        const errorData = JSON.parse(errorText);
+                        console.error('Erro detalhado do backend:', errorData);
+                        errorMessage = `Erro no servidor: ${errorData.detail || errorText}`;
+                    } catch (e) {
+                        console.error('Não foi possível parsear erro do blob:', e);
+                    }
+                }
+
+                // Erro de resposta do servidor
+                switch (error.response.status) {
+                    case 401:
+                        errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
+                        break;
+                    case 403:
+                        errorMessage = 'Você não tem permissão para gerar este relatório.';
+                        break;
+                    case 404:
+                        errorMessage = 'Relatório não encontrado. Verifique se você possui tarefas no período selecionado.';
+                        break;
+                    case 500:
+                        if (!(error.response.data instanceof Blob)) {
+                            errorMessage = `Erro no servidor: ${error.response.data?.detail || 'Tente novamente mais tarde'}`;
+                        }
+                        break;
+                    default:
+                        errorMessage = `Erro ${error.response.status}: ${error.response.data?.detail || 'Erro desconhecido'}`;
+                }
+            } else if (error.request) {
+                // Erro de rede/conexão
+                errorMessage = 'Erro de conexão. Verifique se o servidor está rodando e tente novamente.';
+            }
+
+            alert(errorMessage);
         } finally {
             setDownloading(false);
         }

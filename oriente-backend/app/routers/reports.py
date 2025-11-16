@@ -1,7 +1,8 @@
 """
 Router para endpoints de relatórios e métricas
 """
-from fastapi import APIRouter, Depends, Query, Path
+import logging
+from fastapi import APIRouter, Depends, Query, Path, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -20,6 +21,55 @@ from app.services.report_service import ReportService
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+# IMPORTANTE: Rotas mais específicas (/user/me/...) devem vir ANTES das rotas genéricas (/user/{user_id}/...)
+# para evitar que FastAPI tente converter "me" em inteiro
+
+@router.get(
+    "/user/me/efficiency",
+    response_model=UserEfficiencyReportResponse,
+    summary="Relatório de eficiência do usuário atual",
+    description="""
+    Gera relatório de eficiência do usuário autenticado (você mesmo).
+
+    Este é um atalho conveniente para `/user/{user_id}/efficiency` usando o ID do usuário atual.
+    """,
+    tags=["Reports"]
+)
+def get_my_efficiency_report(
+    start_date: Optional[datetime] = Query(
+        None,
+        description="Data inicial do período (ISO 8601)"
+    ),
+    end_date: Optional[datetime] = Query(
+        None,
+        description="Data final do período (ISO 8601)"
+    ),
+    period_preset: Optional[ReportPeriodPreset] = Query(
+        None,
+        description="Preset de período"
+    ),
+    project_id: Optional[int] = Query(
+        None,
+        description="Filtrar por projeto específico"
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Endpoint para o usuário obter seu próprio relatório de eficiência
+    """
+    return ReportService.generate_user_efficiency_report(
+        db=db,
+        user_id=current_user.id,
+        current_user_id=current_user.id,
+        start_date=start_date,
+        end_date=end_date,
+        period_preset=period_preset.value if period_preset else None,
+        project_id=project_id
+    )
 
 
 @router.get(
@@ -73,51 +123,6 @@ def get_user_efficiency_report(
     return ReportService.generate_user_efficiency_report(
         db=db,
         user_id=user_id,
-        current_user_id=current_user.id,
-        start_date=start_date,
-        end_date=end_date,
-        period_preset=period_preset.value if period_preset else None,
-        project_id=project_id
-    )
-
-
-@router.get(
-    "/user/me/efficiency",
-    response_model=UserEfficiencyReportResponse,
-    summary="Relatório de eficiência do usuário atual",
-    description="""
-    Gera relatório de eficiência do usuário autenticado (você mesmo).
-
-    Este é um atalho conveniente para `/user/{user_id}/efficiency` usando o ID do usuário atual.
-    """,
-    tags=["Reports"]
-)
-def get_my_efficiency_report(
-    start_date: Optional[datetime] = Query(
-        None,
-        description="Data inicial do período (ISO 8601)"
-    ),
-    end_date: Optional[datetime] = Query(
-        None,
-        description="Data final do período (ISO 8601)"
-    ),
-    period_preset: Optional[ReportPeriodPreset] = Query(
-        None,
-        description="Preset de período"
-    ),
-    project_id: Optional[int] = Query(
-        None,
-        description="Filtrar por projeto específico"
-    ),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Endpoint para o usuário obter seu próprio relatório de eficiência
-    """
-    return ReportService.generate_user_efficiency_report(
-        db=db,
-        user_id=current_user.id,
         current_user_id=current_user.id,
         start_date=start_date,
         end_date=end_date,
@@ -226,6 +231,74 @@ def get_team_efficiency_report(
 
 # === ENDPOINTS DE DOWNLOAD (PDF) ===
 
+# IMPORTANTE: Rota mais específica (/user/me/...) deve vir ANTES da rota genérica (/user/{user_id}/...)
+# para evitar que FastAPI tente converter "me" em inteiro
+
+@router.get(
+    "/user/me/efficiency/download",
+    summary="Download do relatório de eficiência do usuário atual (PDF)",
+    description="""
+    Gera e baixa o relatório de eficiência do usuário autenticado em formato PDF.
+
+    Atalho conveniente para download do próprio relatório.
+    """,
+    tags=["Reports"],
+    response_class=StreamingResponse
+)
+def download_my_efficiency_report(
+    start_date: Optional[datetime] = Query(
+        None,
+        description="Data inicial do período (ISO 8601)"
+    ),
+    end_date: Optional[datetime] = Query(
+        None,
+        description="Data final do período (ISO 8601)"
+    ),
+    period_preset: Optional[ReportPeriodPreset] = Query(
+        None,
+        description="Preset de período"
+    ),
+    project_id: Optional[int] = Query(
+        None,
+        description="Filtrar por projeto específico"
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Endpoint para download do próprio relatório de eficiência em PDF
+    """
+    try:
+        # Gerar PDF
+        pdf_buffer = ReportService.generate_user_efficiency_pdf(
+            db=db,
+            user_id=current_user.id,
+            current_user_id=current_user.id,
+            start_date=start_date,
+            end_date=end_date,
+            period_preset=period_preset.value if period_preset else None,
+            project_id=project_id
+        )
+
+        filename = f"relatorio_eficiencia_{current_user.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
+
+        # Retornar como download
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Access-Control-Expose-Headers": "Content-Disposition"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de eficiência para usuário {current_user.id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao gerar relatório: {str(e)}"
+        )
+
+
 @router.get(
     "/user/{user_id}/efficiency/download",
     summary="Download do relatório de eficiência do usuário (PDF)",
@@ -276,63 +349,6 @@ def download_user_efficiency_report(
     from app.models.user import User as UserModel
     user = db.query(UserModel).filter(UserModel.id == user_id).first()
     filename = f"relatorio_eficiencia_{user.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
-
-    # Retornar como download
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}"
-        }
-    )
-
-
-@router.get(
-    "/user/me/efficiency/download",
-    summary="Download do relatório de eficiência do usuário atual (PDF)",
-    description="""
-    Gera e baixa o relatório de eficiência do usuário autenticado em formato PDF.
-
-    Atalho conveniente para download do próprio relatório.
-    """,
-    tags=["Reports"],
-    response_class=StreamingResponse
-)
-def download_my_efficiency_report(
-    start_date: Optional[datetime] = Query(
-        None,
-        description="Data inicial do período (ISO 8601)"
-    ),
-    end_date: Optional[datetime] = Query(
-        None,
-        description="Data final do período (ISO 8601)"
-    ),
-    period_preset: Optional[ReportPeriodPreset] = Query(
-        None,
-        description="Preset de período"
-    ),
-    project_id: Optional[int] = Query(
-        None,
-        description="Filtrar por projeto específico"
-    ),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Endpoint para download do próprio relatório de eficiência em PDF
-    """
-    # Gerar PDF
-    pdf_buffer = ReportService.generate_user_efficiency_pdf(
-        db=db,
-        user_id=current_user.id,
-        current_user_id=current_user.id,
-        start_date=start_date,
-        end_date=end_date,
-        period_preset=period_preset.value if period_preset else None,
-        project_id=project_id
-    )
-
-    filename = f"relatorio_eficiencia_{current_user.name.replace(' ', '_')}_{datetime.utcnow().strftime('%Y%m%d')}.pdf"
 
     # Retornar como download
     return StreamingResponse(
