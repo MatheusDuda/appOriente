@@ -37,6 +37,29 @@ export function useWebSocketChat({
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Refs para callbacks - previne loop de reconexão
+  const onMessageRef = useRef(onMessage);
+  const onTypingRef = useRef(onTyping);
+  const onReadRef = useRef(onRead);
+  const onErrorRef = useRef(onError);
+
+  // Atualiza refs quando callbacks mudam
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
+
+  useEffect(() => {
+    onTypingRef.current = onTyping;
+  }, [onTyping]);
+
+  useEffect(() => {
+    onReadRef.current = onRead;
+  }, [onRead]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
   /**
    * Envia uma mensagem pelo WebSocket
    */
@@ -100,7 +123,7 @@ export function useWebSocketChat({
     const token = localStorage.getItem("auth_token");
     if (!token) {
       console.error("[WebSocket] Token não encontrado no localStorage");
-      onError?.("Token de autenticação não encontrado");
+      onErrorRef.current?.("Token de autenticação não encontrado");
       return;
     }
 
@@ -125,17 +148,17 @@ export function useWebSocketChat({
 
         switch (message.type) {
           case "message":
-            onMessage?.(message.data as ChatMessage);
+            onMessageRef.current?.(message.data as ChatMessage);
             break;
           case "typing":
-            onTyping?.(message.data as TypingEvent);
+            onTypingRef.current?.(message.data as TypingEvent);
             break;
           case "read":
-            onRead?.(message.data as ReadEvent);
+            onReadRef.current?.(message.data as ReadEvent);
             break;
           case "error":
             console.error("[WebSocket] Erro do servidor:", message.data);
-            onError?.(message.data?.message || "Erro desconhecido");
+            onErrorRef.current?.(message.data?.message || "Erro desconhecido");
             break;
           case "connected":
             console.log("[WebSocket] Confirmação de conexão recebida");
@@ -150,7 +173,7 @@ export function useWebSocketChat({
 
     ws.onerror = (error) => {
       console.error("[WebSocket] Erro na conexão:", error);
-      onError?.("Erro na conexão WebSocket");
+      onErrorRef.current?.("Erro na conexão WebSocket");
     };
 
     ws.onclose = (event) => {
@@ -169,12 +192,12 @@ export function useWebSocketChat({
         }, RECONNECT_DELAY);
       } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
         console.error("[WebSocket] Número máximo de tentativas de reconexão atingido");
-        onError?.("Não foi possível reconectar ao chat");
+        onErrorRef.current?.("Não foi possível reconectar ao chat");
       }
     };
 
     wsRef.current = ws;
-  }, [chatId, onMessage, onTyping, onRead, onError]);
+  }, [chatId]); // Agora depende apenas de chatId!
 
   /**
    * Desconecta do WebSocket
@@ -201,7 +224,8 @@ export function useWebSocketChat({
     return () => {
       disconnect();
     };
-  }, [chatId, connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId]); // Apenas chatId - connect/disconnect causariam loop de reconexão
 
   return {
     isConnected,

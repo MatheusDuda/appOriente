@@ -13,6 +13,7 @@ from app.schemas.chat import (
 )
 from app.services.chat_service import ChatService
 from app.services.chat_message_service import ChatMessageService
+from app.routers.chat_ws import manager
 
 router = APIRouter()
 
@@ -124,7 +125,7 @@ def get_chat_messages(
 
 
 @router.post("/chats/{chat_id}/messages", response_model=ChatMessageResponse, status_code=status.HTTP_201_CREATED)
-def send_message(
+async def send_message(
     chat_id: int,
     message_data: ChatMessageCreate,
     db: Session = Depends(get_db),
@@ -137,12 +138,24 @@ def send_message(
     - **content**: Conteúdo da mensagem
 
     A mensagem será enviada e notificações serão criadas para os outros participantes.
-
-    **Nota**: Para comunicação em tempo real, use o WebSocket endpoint em `/ws/chat/{chat_id}`
+    A mensagem também será broadcast via WebSocket para usuários conectados.
 
     Permissões: Apenas participantes do chat
     """
-    return ChatMessageService.send_message(db, chat_id, message_data, current_user.id)
+    # Criar mensagem no banco de dados
+    message = ChatMessageService.send_message(db, chat_id, message_data, current_user.id)
+
+    # Broadcast para usuários conectados via WebSocket (exceto o remetente)
+    await manager.broadcast_to_chat(
+        {
+            "type": "message",
+            "data": message.model_dump(mode='json')  # Serializa automaticamente com campos corretos
+        },
+        chat_id,
+        exclude_user_id=current_user.id  # Remetente já tem a mensagem localmente
+    )
+
+    return message
 
 
 @router.put("/chats/{chat_id}/messages/{message_id}", response_model=ChatMessageResponse)

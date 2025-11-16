@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import chatService from "../services/chatService";
 import { useWebSocketChat } from "../hooks/useWebSocketChat";
 import type {
@@ -80,6 +80,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setError(error);
   }, []);
 
+  // Refs para funções - previne problemas de ordem de declaração
+  const loadMessagesRef = useRef<((chatId: number, offset?: number) => Promise<void>) | null>(null);
+  const markAsReadRef = useRef<((chatId: number) => Promise<void>) | null>(null);
+
   // WebSocket Hook
   const { isConnected, sendTyping } = useWebSocketChat({
     chatId: selectedChat?.id || null,
@@ -120,18 +124,22 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const chat = await chatService.getChatById(chatId);
       setSelectedChat(chat);
 
-      // Carrega mensagens
-      await loadMessages(chatId);
+      // Carrega mensagens usando ref
+      if (loadMessagesRef.current) {
+        await loadMessagesRef.current(chatId);
+      }
 
-      // Marca como lido
-      await markAsRead(chatId);
+      // Marca como lido usando ref
+      if (markAsReadRef.current) {
+        await markAsReadRef.current(chatId);
+      }
 
       console.log(`[ChatContext] ✓ Chat ${chatId} selecionado`);
     } catch (err: any) {
       console.error("[ChatContext] Erro ao selecionar chat:", err);
       setError(err.response?.data?.message || "Erro ao selecionar chat");
     }
-  }, []);
+  }, []); // Array vazio - usa refs para evitar dependências circulares
 
   /**
    * Carrega mensagens de um chat
@@ -145,9 +153,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const data = await chatService.getChatMessages(chatId, 50, offset);
 
       if (offset === 0) {
-        setMessages(data.messages);
+        // Reverte array: backend retorna DESC, frontend exibe ASC (WhatsApp style)
+        setMessages([...data.messages].reverse());
       } else {
-        setMessages((prev) => [...data.messages, ...prev]);
+        // Para paginação: reverte e prepend mensagens mais antigas
+        setMessages((prev) => [[...data.messages].reverse(), ...prev]);
       }
 
       console.log(`[ChatContext] ✓ ${data.messages.length} mensagens carregadas`);
@@ -158,6 +168,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setIsLoadingMessages(false);
     }
   }, []);
+
+  // Atualiza ref quando loadMessages muda
+  useEffect(() => {
+    loadMessagesRef.current = loadMessages;
+  }, [loadMessages]);
 
   /**
    * Cria um novo chat
@@ -276,6 +291,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       console.error("[ChatContext] Erro ao marcar como lido:", err);
     }
   }, []);
+
+  // Atualiza ref quando markAsRead muda
+  useEffect(() => {
+    markAsReadRef.current = markAsRead;
+  }, [markAsRead]);
 
   /**
    * Atualiza nome do grupo
