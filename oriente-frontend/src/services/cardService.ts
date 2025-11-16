@@ -5,6 +5,10 @@ import type {
     CommentCreate,
     CommentUpdate,
     CardHistoryListResponse,
+    CardUpdateRequest,
+    CardStatusUpdateRequest,
+    Tag,
+    TagCreateRequest,
 } from "../types";
 
 /**
@@ -117,6 +121,80 @@ const cardService = {
             {
                 params: { page, size },
             }
+        );
+        return response.data;
+    },
+
+    /**
+     * Atualiza os dados de um card
+     * @param projectId - ID do projeto
+     * @param cardId - ID do card
+     * @param data - Dados para atualização
+     * @returns Card atualizado
+     */
+    async updateCard(
+        projectId: number,
+        cardId: string,
+        data: CardUpdateRequest
+    ): Promise<Card> {
+        const response = await api.put<Card>(
+            `/api/projects/${projectId}/cards/${cardId}`,
+            data
+        );
+        return response.data;
+    },
+
+    /**
+     * Deleta um card
+     * @param projectId - ID do projeto
+     * @param cardId - ID do card
+     */
+    async deleteCard(projectId: number, cardId: string): Promise<void> {
+        await api.delete(`/api/projects/${projectId}/cards/${cardId}`);
+    },
+
+    /**
+     * Atualiza o status de um card (arquivar/restaurar)
+     * @param projectId - ID do projeto
+     * @param cardId - ID do card
+     * @param status - Novo status (active, archived, deleted)
+     * @returns Card atualizado
+     */
+    async updateCardStatus(
+        projectId: number,
+        cardId: string,
+        status: "active" | "archived" | "deleted"
+    ): Promise<Card> {
+        const payload: CardStatusUpdateRequest = { status };
+        const response = await api.patch<Card>(
+            `/api/projects/${projectId}/cards/${cardId}/status`,
+            payload
+        );
+        return response.data;
+    },
+
+    /**
+     * Lista todas as tags de um projeto
+     * @param projectId - ID do projeto
+     * @returns Lista de tags
+     */
+    async getProjectTags(projectId: number): Promise<Tag[]> {
+        const response = await api.get<Tag[]>(
+            `/api/projects/${projectId}/tags`
+        );
+        return response.data;
+    },
+
+    /**
+     * Cria uma nova tag no projeto
+     * @param projectId - ID do projeto
+     * @param data - Dados da tag
+     * @returns Tag criada
+     */
+    async createTag(projectId: number, data: TagCreateRequest): Promise<Tag> {
+        const response = await api.post<Tag>(
+            `/api/projects/${projectId}/tags`,
+            data
         );
         return response.data;
     },

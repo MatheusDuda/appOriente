@@ -42,8 +42,10 @@ import {
     DeleteOutlined,
 } from "@mui/icons-material";
 import Opcoes from "../../components/Tarefas/Opcoes";
+import EditTask from "../../components/Tarefas/EditTask";
 import cardService from "../../services/cardService";
-import type { Card, Comment, CardHistory, CardHistoryAction } from "../../types";
+import projectService from "../../services/projectService";
+import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn } from "../../types";
 
 const getPrioridadeColor = (prioridade: Card["priority"]) => {
     switch (prioridade) {
@@ -139,6 +141,8 @@ export default function Tarefa() {
     const [dialogExcluir, setDialogExcluir] = useState(false);
     const [dialogArquivar, setDialogArquivar] = useState(false);
     const [dialogExcluirComentario, setDialogExcluirComentario] = useState(false);
+    const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
+    const [columns, setColumns] = useState<KanbanColumn[]>([]);
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
         message: string;
@@ -155,6 +159,7 @@ export default function Tarefa() {
             loadCard();
             loadComments();
             loadHistory(1);
+            loadColumns();
         }
     }, [projectId, cardId]);
 
@@ -208,6 +213,15 @@ export default function Tarefa() {
             });
         } finally {
             setLoadingHistory(false);
+        }
+    };
+
+    const loadColumns = async () => {
+        try {
+            const boardData = await projectService.getProjectBoard(Number(projectId));
+            setColumns(boardData.board);
+        } catch (error: any) {
+            console.error("Erro ao carregar colunas:", error);
         }
     };
 
@@ -319,70 +333,153 @@ export default function Tarefa() {
     };
 
     const handleEditar = () => {
-        console.log("Editar tarefa");
-        setSnackbar({
-            open: true,
-            message: "Função de edição em desenvolvimento",
-            severity: "info",
-        });
+        setEditTaskDialogOpen(true);
     };
 
-    const handleDuplicar = () => {
-        console.log("Duplicar tarefa");
-        setSnackbar({
-            open: true,
-            message: "Tarefa duplicada com sucesso!",
-            severity: "success",
-        });
+    const handleSaveEdit = async (data: {
+        title: string;
+        description: string;
+        priority: Card["priority"];
+        assignee_ids: number[];
+        tag_ids: number[];
+        due_date?: string;
+    }) => {
+        try {
+            await cardService.updateCard(Number(projectId), cardId!, data);
+            setEditTaskDialogOpen(false);
+            await loadCard(); // Reload card to get updated data
+            await loadHistory(1); // Reload history to show the update
+            setSnackbar({
+                open: true,
+                message: "Tarefa atualizada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao atualizar tarefa",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleDuplicar = async () => {
+        if (!card) return;
+
+        try {
+            await projectService.createCard(Number(projectId), {
+                title: `${card.title} (Cópia)`,
+                description: card.description,
+                priority: card.priority,
+                column_id: card.column_id,
+                due_date: card.due_date,
+                assignee_ids: card.assignees.map((a) => a.id),
+                tag_ids: card.tags.map((t) => t.id),
+            });
+            setSnackbar({
+                open: true,
+                message: "Tarefa duplicada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao duplicar tarefa",
+                severity: "error",
+            });
+        }
     };
 
     const handleArquivar = () => {
         setDialogArquivar(true);
     };
 
-    const handleConfirmarArquivar = () => {
-        console.log("Tarefa arquivada");
-        setDialogArquivar(false);
-        setSnackbar({
-            open: true,
-            message: "Tarefa arquivada com sucesso!",
-            severity: "success",
-        });
+    const handleConfirmarArquivar = async () => {
+        try {
+            await cardService.updateCardStatus(Number(projectId), cardId!, "archived");
+            setDialogArquivar(false);
+            setSnackbar({
+                open: true,
+                message: "Tarefa arquivada com sucesso!",
+                severity: "success",
+            });
+            setTimeout(() => {
+                navigate(`/projetos/${projectId}`);
+            }, 1500);
+        } catch (error: any) {
+            setDialogArquivar(false);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao arquivar tarefa",
+                severity: "error",
+            });
+        }
     };
 
     const handleAdicionarResponsavel = () => {
-        console.log("Adicionar responsável");
-        setSnackbar({
-            open: true,
-            message: "Função em desenvolvimento",
-            severity: "info",
-        });
+        // This functionality is integrated in the edit dialog
+        handleEditar();
     };
 
     const handleAlterarData = () => {
-        console.log("Alterar data limite");
-        setSnackbar({
-            open: true,
-            message: "Função em desenvolvimento",
-            severity: "info",
-        });
+        // This functionality is integrated in the edit dialog
+        handleEditar();
     };
 
     const handleExcluir = () => {
         setDialogExcluir(true);
     };
 
-    const handleConfirmarExcluir = () => {
-        console.log("Tarefa excluída");
-        setDialogExcluir(false);
-        setSnackbar({
-            open: true,
-            message: "Tarefa excluída com sucesso!",
-            severity: "success",
-        });
-        setTimeout(() => {
-            navigate("/projetos");
-        }, 1500);
+    const handleConfirmarExcluir = async () => {
+        try {
+            await cardService.deleteCard(Number(projectId), cardId!);
+            setDialogExcluir(false);
+            setSnackbar({
+                open: true,
+                message: "Tarefa excluída com sucesso!",
+                severity: "success",
+            });
+            setTimeout(() => {
+                navigate(`/projetos/${projectId}`);
+            }, 1500);
+        } catch (error: any) {
+            setDialogExcluir(false);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao excluir tarefa",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleMoverParaColuna = async (columnId: number) => {
+        if (!card) return;
+
+        try {
+            // Calculate new position (add at the end of target column)
+            const targetColumn = columns.find((col) => col.id === columnId);
+            const newPosition = targetColumn ? targetColumn.cards.length : 0;
+
+            await projectService.moveCard(Number(projectId), card.id, {
+                column_id: columnId,
+                new_position: newPosition,
+            });
+
+            await loadCard(); // Reload card to show new column
+            await loadHistory(1); // Reload history to show the move
+
+            setSnackbar({
+                open: true,
+                message: "Tarefa movida com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao mover tarefa",
+                severity: "error",
+            });
+        }
     };
 
     const handleHistoryPageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
@@ -450,6 +547,9 @@ export default function Tarefa() {
                     onAdicionarResponsavel={handleAdicionarResponsavel}
                     onAlterarData={handleAlterarData}
                     onExcluir={handleExcluir}
+                    onMoverParaColuna={handleMoverParaColuna}
+                    columns={columns}
+                    currentColumnId={card.column_id}
                 />
             </Box>
 
@@ -889,6 +989,17 @@ export default function Tarefa() {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Edit Task Dialog */}
+            {card && (
+                <EditTask
+                    open={editTaskDialogOpen}
+                    onClose={() => setEditTaskDialogOpen(false)}
+                    onSave={handleSaveEdit}
+                    card={card}
+                    projectId={Number(projectId)}
+                />
+            )}
 
             {/* Snackbar */}
             <Snackbar

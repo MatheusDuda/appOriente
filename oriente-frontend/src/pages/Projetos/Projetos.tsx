@@ -56,6 +56,7 @@ import type {
 } from "../../types";
 import { CardPriority } from "../../types";
 import projectService from "../../services/projectService";
+import cardService from "../../services/cardService";
 
 const getPriorityColor = (priority: CardPriority) => {
     switch (priority) {
@@ -86,7 +87,15 @@ const getPriorityLabel = (priority: CardPriority) => {
     }
 };
 
-function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: number) => void }) {
+function TaskCard({
+    task,
+    onClickTask,
+    onOpenMenu,
+}: {
+    task: CardType;
+    onClickTask: (id: number) => void;
+    onOpenMenu: (event: React.MouseEvent<HTMLButtonElement>, task: CardType) => void;
+}) {
     const {
         attributes,
         listeners,
@@ -108,6 +117,11 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
             return;
         }
         onClickTask(task.id);
+    };
+
+    const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        onOpenMenu(e, task);
     };
 
     return (
@@ -135,7 +149,12 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
                         {task.title}
                     </Typography>
-                    <IconButton size="small" sx={{ ml: 1, mt: -0.5 }} data-menu-trigger>
+                    <IconButton
+                        size="small"
+                        sx={{ ml: 1, mt: -0.5 }}
+                        data-menu-trigger
+                        onClick={handleMenuClick}
+                    >
                         <MoreVertOutlined fontSize="small" />
                     </IconButton>
                 </Box>
@@ -255,6 +274,10 @@ export default function Projects() {
         title: string;
         hasCards: boolean;
     } | null>(null);
+
+    // Card menu states
+    const [cardMenuAnchorEl, setCardMenuAnchorEl] = useState<null | HTMLElement>(null);
+    const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
 
     // Loading states
     const [loadingProjects, setLoadingProjects] = useState(true);
@@ -679,6 +702,97 @@ export default function Projects() {
     const handleClickTask = (taskId: number) => {
         if (!selectedProject) return;
         navigate(`/projetos/${selectedProject.id}/tarefas/${taskId}`);
+    };
+
+    const handleOpenCardMenu = (event: React.MouseEvent<HTMLButtonElement>, card: CardType) => {
+        setCardMenuAnchorEl(event.currentTarget);
+        setSelectedCard(card);
+    };
+
+    const handleCloseCardMenu = () => {
+        setCardMenuAnchorEl(null);
+        setSelectedCard(null);
+    };
+
+    const handleEditCard = () => {
+        if (selectedCard && selectedProject) {
+            handleCloseCardMenu();
+            navigate(`/projetos/${selectedProject.id}/tarefas/${selectedCard.id}`);
+        }
+    };
+
+    const handleDuplicateCard = async () => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await projectService.createCard(selectedProject.id, {
+                title: `${selectedCard.title} (Cópia)`,
+                description: selectedCard.description,
+                priority: selectedCard.priority,
+                column_id: selectedCard.column_id,
+                due_date: selectedCard.due_date,
+                assignee_ids: selectedCard.assignees.map((a) => a.id),
+                tag_ids: selectedCard.tags.map((t) => t.id),
+            });
+            handleCloseCardMenu();
+            // Reload board to show duplicated card
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa duplicada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao duplicar tarefa",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleArchiveCard = async () => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.updateCardStatus(selectedProject.id, String(selectedCard.id), "archived");
+            handleCloseCardMenu();
+            // Reload board to remove archived card
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa arquivada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao arquivar tarefa",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleDeleteCard = async () => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.deleteCard(selectedProject.id, String(selectedCard.id));
+            handleCloseCardMenu();
+            // Reload board to remove deleted card
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa excluída com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao excluir tarefa",
+                severity: "error",
+            });
+        }
     };
 
     const findContainer = (id: number) => {

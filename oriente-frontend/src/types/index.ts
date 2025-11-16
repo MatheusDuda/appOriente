@@ -329,6 +329,31 @@ export interface CardMoveRequest {
     new_position: number;
 }
 
+export interface CardUpdateRequest {
+    title?: string;
+    description?: string;
+    priority?: CardPriority;
+    due_date?: string;
+    assignee_ids?: number[];
+    tag_ids?: number[];
+}
+
+export interface CardStatusUpdateRequest {
+    status: "active" | "archived" | "deleted";
+}
+
+export interface TagCreateRequest {
+    name: string;
+    color?: string;
+}
+
+export interface Tag {
+    id: number;
+    name: string;
+    color: string;
+    project_id: number;
+}
+
 export interface ProjectBoard {
     board: KanbanColumn[];
     total_columns: number;
