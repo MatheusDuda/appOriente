@@ -157,7 +157,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setMessages([...data.messages].reverse());
       } else {
         // Para paginação: reverte e prepend mensagens mais antigas
-        setMessages((prev) => [[...data.messages].reverse(), ...prev]);
+        setMessages((prev) => [...[...data.messages].reverse(), ...prev]);
       }
 
       console.log(`[ChatContext] ✓ ${data.messages.length} mensagens carregadas`);
