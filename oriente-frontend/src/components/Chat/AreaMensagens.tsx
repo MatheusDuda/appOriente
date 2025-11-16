@@ -18,6 +18,7 @@ import {
 } from "@mui/icons-material";
 import { useChat } from "../../contexts/ChatContext";
 import type { Chat } from "../../types/chat";
+import { authService, type UserData } from "../../services/authService";
 
 type AreaMensagensProps = {
   conversa: Chat;
@@ -28,6 +29,7 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
   const [mensagemTexto, setMensagemTexto] = useState("");
   const mensagensEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
 
   const { messages, sendMessage, sendTyping, isLoadingMessages, typingUsers } = useChat();
 
@@ -38,6 +40,18 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error("Erro ao buscar usuário logado:", error);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
 
   const handleEnviar = async () => {
     if (mensagemTexto.trim()) {
@@ -159,8 +173,7 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
           </Box>
         ) : (
           messages.map((mensagem) => {
-            // TODO: Comparar com userId real do usuário logado
-            const isUsuario = mensagem.sender?.name === "Você" || !mensagem.sender;
+            const isUsuario = currentUser ? mensagem.sender_id === currentUser.id : false;
 
             return (
               <Box
