@@ -131,7 +131,7 @@ export default function Perfil() {
                                         bottom: 0,
                                         right: 0,
                                         bgcolor: "primary.main",
-                                        color: "white",
+                                        color: "primary.contrastText",
                                         "&:hover": { bgcolor: "primary.dark" },
                                     }}
                                     size="small"

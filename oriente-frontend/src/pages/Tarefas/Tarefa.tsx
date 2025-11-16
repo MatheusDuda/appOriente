@@ -607,7 +607,7 @@ export default function Tarefa() {
                                             <ListItem
                                                 key={item.id}
                                                 sx={{
-                                                    bgcolor: "grey.50",
+                                                    bgcolor: "background.paper",
                                                     borderRadius: 1.5,
                                                     mb: 1,
                                                     borderLeft: 4,

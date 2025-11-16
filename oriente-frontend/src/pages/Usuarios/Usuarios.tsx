@@ -189,7 +189,7 @@ export default function Usuarios() {
                         <TableContainer>
                             <Table>
                                 <TableHead>
-                                    <TableRow sx={{ bgcolor: "grey.50" }}>
+                                    <TableRow sx={{ bgcolor: "action.hover" }}>
                                         <TableCell sx={{ fontWeight: 600 }}>Usuário</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Função</TableCell>

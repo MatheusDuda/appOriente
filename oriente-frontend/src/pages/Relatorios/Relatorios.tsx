@@ -138,7 +138,7 @@ export default function Relatorios() {
                 <TableContainer>
                     <Table>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: "grey.50" }}>
+                            <TableRow sx={{ bgcolor: "action.hover" }}>
                                 <TableCell sx={{ fontWeight: 600 }}>Nome</TableCell>
                                 <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
                                 <TableCell sx={{ fontWeight: 600 }}>Projeto</TableCell>

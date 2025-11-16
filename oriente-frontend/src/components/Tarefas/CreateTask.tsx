@@ -36,10 +36,10 @@ type CreateTaskProps = {
 };
 
 const priorities = [
-    { value: CardPriority.URGENT, label: "Urgent" },
-    { value: CardPriority.HIGH, label: "High" },
-    { value: CardPriority.MEDIUM, label: "Medium" },
-    { value: CardPriority.LOW, label: "Low" },
+    { value: CardPriority.URGENT, label: "Urgente" },
+    { value: CardPriority.HIGH, label: "Alta" },
+    { value: CardPriority.MEDIUM, label: "Média" },
+    { value: CardPriority.LOW, label: "Baixa" },
 ];
 
 export default function CreateTask({ open, onClose, onSave, columns }: CreateTaskProps) {
@@ -104,7 +104,7 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-            <DialogTitle>New Task</DialogTitle>
+            <DialogTitle>Nova Tarefa</DialogTitle>
             <DialogContent>
                 <Box sx={{ pt: 2 }}>
                     <Grid container spacing={2}>
@@ -113,10 +113,10 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                                 autoFocus
                                 fullWidth
                                 required
-                                label="Title"
+                                label="Título"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                placeholder="e.g., Implement feature X"
+                                placeholder="Ex: Implementar funcionalidade X"
                             />
                         </Grid>
 
@@ -125,19 +125,19 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                                 fullWidth
                                 multiline
                                 rows={3}
-                                label="Description"
+                                label="Descrição"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Describe the task in detail..."
+                                placeholder="Descreva a tarefa em detalhes..."
                             />
                         </Grid>
 
                         <Grid size={{ xs: 12, md: 6 }}>
                             <FormControl fullWidth required>
-                                <InputLabel>Priority</InputLabel>
+                                <InputLabel>Prioridade</InputLabel>
                                 <Select
                                     value={priority}
-                                    label="Priority"
+                                    label="Prioridade"
                                     onChange={(e) => setPriority(e.target.value as CardPriority)}
                                 >
                                     {priorities.map((p) => (
@@ -151,10 +151,10 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
 
                         <Grid size={{ xs: 12, md: 6 }}>
                             <FormControl fullWidth required>
-                                <InputLabel>Column</InputLabel>
+                                <InputLabel>Coluna</InputLabel>
                                 <Select
                                     value={columnId}
-                                    label="Column"
+                                    label="Coluna"
                                     onChange={(e) => setColumnId(e.target.value as number)}
                                 >
                                     {columns.map((col) => (
@@ -168,11 +168,11 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
 
                         <Grid size={{ xs: 12, md: 6 }}>
                             <FormControl fullWidth disabled={loadingUsers}>
-                                <InputLabel>Assignees</InputLabel>
+                                <InputLabel>Responsáveis</InputLabel>
                                 <Select
                                     multiple
                                     value={assignees}
-                                    label="Assignees"
+                                    label="Responsáveis"
                                     onChange={(e) => setAssignees(e.target.value as number[])}
                                     renderValue={(selected) => (
                                         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
@@ -209,7 +209,7 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                             <TextField
                                 fullWidth
                                 type="date"
-                                label="Due Date"
+                                label="Data Limite"
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
                                 InputLabelProps={{ shrink: true }}
@@ -219,13 +219,13 @@ export default function CreateTask({ open, onClose, onSave, columns }: CreateTas
                 </Box>
             </DialogContent>
             <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
+                <Button onClick={handleClose}>Cancelar</Button>
                 <Button
                     variant="contained"
                     onClick={handleSave}
                     disabled={!title.trim() || !columnId}
                 >
-                    Create Task
+                    Criar Tarefa
                 </Button>
             </DialogActions>
         </Dialog>
