@@ -153,7 +153,7 @@ class CardHistoryService:
             str: Mensagem formatada
         """
         # Buscar nome do usuário
-        from app.models.User import User
+        from app.models.user import User
         user_name = "Sistema"
         if user_id:
             user = db.query(User).filter(User.id == user_id).first()

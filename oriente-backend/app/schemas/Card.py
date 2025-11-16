@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Union
+from datetime import datetime, date
 from enum import Enum
 
 
@@ -27,14 +27,50 @@ class CardBase(BaseModel):
     priority: CardPriorityEnum = Field(CardPriorityEnum.MEDIUM, description="Prioridade da tarefa")
     due_date: Optional[datetime] = Field(None, description="Data de vencimento")
 
+    @field_validator('description', mode='before')
+    @classmethod
+    def empty_str_to_none_description(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator('due_date', mode='before')
+    @classmethod
+    def parse_due_date(cls, v):
+        if v == "" or v is None:
+            return None
+        # Se já é datetime, retornar como está
+        if isinstance(v, datetime):
+            return v
+        # Se é date, converter para datetime
+        if isinstance(v, date):
+            return datetime.combine(v, datetime.min.time())
+        # Se é string no formato YYYY-MM-DD, converter para datetime
+        if isinstance(v, str):
+            try:
+                # Tentar parsear como data (YYYY-MM-DD)
+                parsed_date = datetime.strptime(v, "%Y-%m-%d")
+                return parsed_date
+            except ValueError:
+                # Se falhar, deixar o Pydantic tentar parsear
+                pass
+        return v
+
 
 # === REQUEST SCHEMAS ===
 
 class CardCreate(CardBase):
     column_id: int = Field(..., description="ID da coluna onde criar a tarefa")
     position: Optional[int] = Field(None, ge=0, description="Posição na coluna (None = última)")
-    assignee_ids: Optional[List[int]] = Field([], description="IDs dos usuários atribuídos")
-    tag_ids: Optional[List[int]] = Field([], description="IDs das tags")
+    assignee_ids: Optional[List[int]] = Field(default=None, description="IDs dos usuários atribuídos")
+    tag_ids: Optional[List[int]] = Field(default=None, description="IDs das tags")
+
+    @field_validator('assignee_ids', 'tag_ids', mode='before')
+    @classmethod
+    def empty_list_to_none(cls, v):
+        if v == [] or v is None:
+            return None
+        return v
 
 
 class CardUpdate(BaseModel):
@@ -59,7 +95,7 @@ class CardStatusUpdate(BaseModel):
 
 class UserBasic(BaseModel):
     id: int
-    full_name: str
+    name: str
     email: str
 
     class Config:

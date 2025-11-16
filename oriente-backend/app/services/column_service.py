@@ -1,9 +1,10 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 from typing import List, Optional
 from fastapi import HTTPException, status
 
 from app.models.Column import KanbanColumn
+from app.models.Card import Card
 from app.models.project import Project
 from app.schemas.Column import ColumnCreate, ColumnUpdate, ColumnMove
 from app.services.project_service import ProjectService
@@ -69,6 +70,9 @@ class ColumnService:
 
         columns = db.query(KanbanColumn).filter(
             KanbanColumn.project_id == project_id
+        ).options(
+            joinedload(KanbanColumn.cards).joinedload(Card.assignees),
+            joinedload(KanbanColumn.cards).joinedload(Card.tags)
         ).order_by(KanbanColumn.position).all()
 
         return columns
