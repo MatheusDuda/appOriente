@@ -133,6 +133,10 @@ class ReportService:
             Card.created_at >= start_date,
             Card.created_at <= end_date,
             Card.status != CardStatus.DELETED
+        ).options(
+            joinedload(Card.column),
+            joinedload(Card.project),
+            joinedload(Card.assignees)
         )
 
         # Filtrar por projeto se especificado
@@ -401,13 +405,25 @@ class ReportService:
         pending = total - completed
 
         # Tarefas atrasadas (due_date passou e não foi concluída)
-        overdue = len([
-            c for c in cards
-            if c.due_date
-            and c.due_date < reference_date
-            and not c.completed_at
-            and c.status == CardStatus.ACTIVE
-        ])
+        def is_overdue(card):
+            if not card.due_date or card.completed_at or card.status != CardStatus.ACTIVE:
+                return False
+
+            try:
+                due_date = card.due_date
+                ref_date = reference_date
+
+                # Normalizar timezone
+                if due_date.tzinfo is not None and ref_date.tzinfo is None:
+                    due_date = due_date.replace(tzinfo=None)
+                elif due_date.tzinfo is None and ref_date.tzinfo is not None:
+                    ref_date = ref_date.replace(tzinfo=None)
+
+                return due_date < ref_date
+            except:
+                return False
+
+        overdue = len([c for c in cards if is_overdue(c)])
 
         completion_rate = (completed / total * 100) if total > 0 else 0.0
 
@@ -447,11 +463,26 @@ class ReportService:
         completed_late = 0
 
         for card in completed_cards:
-            if card.due_date:
-                if card.completed_at <= card.due_date:
-                    completed_on_time += 1
-                else:
-                    completed_late += 1
+            if card.due_date and card.completed_at:
+                # Normalizar timezone - converter ambas para aware ou naive
+                try:
+                    completed_at = card.completed_at
+                    due_date = card.due_date
+
+                    # Se uma tem timezone e outra não, converter para naive (sem timezone)
+                    if completed_at.tzinfo is not None and due_date.tzinfo is None:
+                        completed_at = completed_at.replace(tzinfo=None)
+                    elif completed_at.tzinfo is None and due_date.tzinfo is not None:
+                        due_date = due_date.replace(tzinfo=None)
+
+                    # Agora podemos comparar
+                    if completed_at <= due_date:
+                        completed_on_time += 1
+                    else:
+                        completed_late += 1
+                except Exception as e:
+                    # Em caso de erro na comparação, ignorar este card
+                    continue
 
         return {
             "average_completion_time_hours": (
@@ -482,7 +513,12 @@ class ReportService:
         }
 
         for card in cards:
-            priority = card.priority.value if card.priority else "medium"
+            try:
+                # card.priority é sempre um enum (nullable=False), mas protegemos contra casos edge
+                priority = card.priority.value if hasattr(card.priority, 'value') else str(card.priority)
+            except (AttributeError, TypeError):
+                priority = "medium"
+
             if priority in distribution:
                 distribution[priority] += 1
 
@@ -703,7 +739,9 @@ class ReportService:
         elements.append(title)
 
         # Informações do período
-        period_text = f"<b>Período:</b> {report_data['period_start'].strftime('%d/%m/%Y')} a {report_data['period_end'].strftime('%d/%m/%Y')}"
+        start_date_str = report_data['period_start'].strftime('%d/%m/%Y') if report_data['period_start'] else 'N/A'
+        end_date_str = report_data['period_end'].strftime('%d/%m/%Y') if report_data['period_end'] else 'N/A'
+        period_text = f"<b>Período:</b> {start_date_str} a {end_date_str}"
         elements.append(Paragraph(period_text, normal_style))
         elements.append(Paragraph(f"<b>Email:</b> {report_data['user_email']}", normal_style))
         elements.append(Spacer(1, 20))
@@ -783,7 +821,8 @@ class ReportService:
             elements.append(Paragraph("Projetos Envolvidos", heading_style))
             project_data = [['Projeto', 'Tarefas']]
             for proj in report_data['projects_involved']:
-                project_data.append([proj['project_name'], str(proj['task_count'])])
+                project_name = proj['project_name'] or 'Sem nome'
+                project_data.append([project_name, str(proj['task_count'])])
 
             project_table = Table(project_data, colWidths=[3.5*inch, 2*inch])
             project_table.setStyle(TableStyle([
@@ -881,7 +920,9 @@ class ReportService:
         elements.append(title)
 
         # Informações do período
-        period_text = f"<b>Período:</b> {report_data['period_start'].strftime('%d/%m/%Y')} a {report_data['period_end'].strftime('%d/%m/%Y')}"
+        start_date_str = report_data['period_start'].strftime('%d/%m/%Y') if report_data['period_start'] else 'N/A'
+        end_date_str = report_data['period_end'].strftime('%d/%m/%Y') if report_data['period_end'] else 'N/A'
+        period_text = f"<b>Período:</b> {start_date_str} a {end_date_str}"
         elements.append(Paragraph(period_text, normal_style))
         elements.append(Paragraph(f"<b>Descrição:</b> {report_data['project_description'] or 'N/A'}", normal_style))
         elements.append(Paragraph(f"<b>Total de Membros:</b> {report_data['total_members']}", normal_style))
@@ -1059,7 +1100,9 @@ class ReportService:
         elements.append(title)
 
         # Informações do período
-        period_text = f"<b>Período:</b> {report_data['period_start'].strftime('%d/%m/%Y')} a {report_data['period_end'].strftime('%d/%m/%Y')}"
+        start_date_str = report_data['period_start'].strftime('%d/%m/%Y') if report_data['period_start'] else 'N/A'
+        end_date_str = report_data['period_end'].strftime('%d/%m/%Y') if report_data['period_end'] else 'N/A'
+        period_text = f"<b>Período:</b> {start_date_str} a {end_date_str}"
         elements.append(Paragraph(period_text, normal_style))
         elements.append(Spacer(1, 20))
 
