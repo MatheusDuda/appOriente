@@ -4,12 +4,15 @@ import App from "./App";
 import "./index.css";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ChatProvider } from "./contexts/ChatContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <ThemeProvider>
             <AuthProvider>
-                <App />
+                <ChatProvider>
+                    <App />
+                </ChatProvider>
             </AuthProvider>
         </ThemeProvider>
     </React.StrictMode>
