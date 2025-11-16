@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Box, Paper, Typography } from "@mui/material";
-import ListaConversas from "../../components/Chat/ListaConversas";
-import AreaMensagens from "../../components/Chat/AreaMensagens";
-import type { Conversa, Mensagem } from "../../types/chat";
+import ConversationList from "../../components/Chat/ConversationList";
+import MessageArea from "../../components/Chat/MessageArea";
+import type { Conversation, Message } from "../../types/chat";
 
-const mockConversas: Conversa[] = [
+const mockConversations: Conversation[] = [
     {
         id: 1,
         nome: "João Silva",
@@ -79,46 +79,46 @@ const mockConversas: Conversa[] = [
 ];
 
 export default function Chat() {
-    const [conversaSelecionada, setConversaSelecionada] = useState<Conversa | null>(mockConversas[0]);
-    const [conversas, setConversas] = useState<Conversa[]>(mockConversas);
+    const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(mockConversations[0]);
+    const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
 
-    const handleSelecionarConversa = (conversa: Conversa) => {
-        setConversaSelecionada(conversa);
+    const handleSelectConversation = (conversation: Conversation) => {
+        setSelectedConversation(conversation);
         // Marcar como lida
-        setConversas(
-            conversas.map((c) =>
-                c.id === conversa.id ? { ...c, naoLidas: 0 } : c
+        setConversations(
+            conversations.map((c) =>
+                c.id === conversation.id ? { ...c, naoLidas: 0 } : c
             )
         );
     };
 
-    const handleEnviarMensagem = (texto: string) => {
-        if (!conversaSelecionada || !texto.trim()) return;
+    const handleSendMessage = (text: string) => {
+        if (!selectedConversation || !text.trim()) return;
 
-        const novaMensagem: Mensagem = {
+        const newMessage: Message = {
             id: Date.now(),
-            texto,
+            texto: text,
             remetente: "Você",
             timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
             lida: false,
         };
 
-        setConversas(
-            conversas.map((c) =>
-                c.id === conversaSelecionada.id
+        setConversations(
+            conversations.map((c) =>
+                c.id === selectedConversation.id
                     ? {
                           ...c,
-                          mensagens: [...c.mensagens, novaMensagem],
-                          ultimaMensagem: texto,
+                          mensagens: [...c.mensagens, newMessage],
+                          ultimaMensagem: text,
                           timestamp: "Agora",
                       }
                     : c
             )
         );
 
-        setConversaSelecionada({
-            ...conversaSelecionada,
-            mensagens: [...conversaSelecionada.mensagens, novaMensagem],
+        setSelectedConversation({
+            ...selectedConversation,
+            mensagens: [...selectedConversation.mensagens, newMessage],
         });
     };
 
@@ -127,31 +127,31 @@ export default function Chat() {
             <Paper
                 sx={{
                     width: { xs: "100%", md: 360 },
-                    display: { xs: conversaSelecionada ? "none" : "flex", md: "flex" },
+                    display: { xs: selectedConversation ? "none" : "flex", md: "flex" },
                     flexDirection: "column",
                     borderRadius: 0,
                     borderRight: (theme) => `1px solid ${theme.palette.divider}`,
                 }}
             >
-                <ListaConversas
-                    conversas={conversas}
-                    conversaSelecionada={conversaSelecionada}
-                    onSelecionarConversa={handleSelecionarConversa}
+                <ConversationList
+                    conversations={conversations}
+                    selectedConversation={selectedConversation}
+                    onSelectConversation={handleSelectConversation}
                 />
             </Paper>
 
             <Box
                 sx={{
                     flexGrow: 1,
-                    display: { xs: conversaSelecionada ? "flex" : "none", md: "flex" },
+                    display: { xs: selectedConversation ? "flex" : "none", md: "flex" },
                     flexDirection: "column",
                 }}
             >
-                {conversaSelecionada ? (
-                    <AreaMensagens
-                        conversa={conversaSelecionada}
-                        onEnviarMensagem={handleEnviarMensagem}
-                        onVoltar={() => setConversaSelecionada(null)}
+                {selectedConversation ? (
+                    <MessageArea
+                        conversation={selectedConversation}
+                        onSendMessage={handleSendMessage}
+                        onBack={() => setSelectedConversation(null)}
                     />
                 ) : (
                     <Box

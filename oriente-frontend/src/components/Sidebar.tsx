@@ -27,21 +27,20 @@ type NavItem = {
     icon: ReactNode;
 };
 
-// Itens principais (sem mudanças)
+// Itens principais
 const primaryItems: NavItem[] = [
     { label: "Dashboard", path: "/dashboard", icon: <DashboardOutlined fontSize="small" /> },
-    { label: "Relatorios", path: "/relatorios", icon: <AssessmentOutlined fontSize="small" /> },
-    { label: "Usuarios", path: "/usuarios", icon: <PeopleAltOutlined fontSize="small" /> },
-    { label: "Equipes", path: "/equipes", icon: <GroupsOutlined fontSize="small" /> },
-    { label: "Projetos", path: "/projetos", icon: <FolderOutlined fontSize="small" /> },
+    { label: "Reports", path: "/reports", icon: <AssessmentOutlined fontSize="small" /> },
+    { label: "Users", path: "/users", icon: <PeopleAltOutlined fontSize="small" /> },
+    { label: "Teams", path: "/teams", icon: <GroupsOutlined fontSize="small" /> },
+    { label: "Projects", path: "/projects", icon: <FolderOutlined fontSize="small" /> },
 ];
 
-// --- MUDANÇA 1: "Perfil" foi removido daqui ---
 const secondaryItems: NavItem[] = [
     { label: "Chat", path: "/chat", icon: <ForumOutlined fontSize="small" /> },
-    { label: "Notificacoes", path: "/notificacoes", icon: <NotificationsNoneOutlined fontSize="small" /> },
-    { label: "Configuracoes", path: "/configuracoes", icon: <SettingsOutlined fontSize="small" /> },
-    { label: "Perfil", path: "/perfil", icon: <PersonOutline fontSize="small" />}
+    { label: "Notifications", path: "/notifications", icon: <NotificationsNoneOutlined fontSize="small" /> },
+    { label: "Settings", path: "/settings", icon: <SettingsOutlined fontSize="small" /> },
+    { label: "Profile", path: "/profile", icon: <PersonOutline fontSize="small" />}
 ];
 
 function isActivePath(currentPath: string, targetPath: string) {
@@ -100,7 +99,7 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
     };
 
     const handleProjectClick = (projectId: number) => {
-        navigate(`/projetos/${projectId}`);
+        navigate(`/projects/${projectId}`);
     };
 
     // Função de renderização (sem mudanças)

@@ -5,18 +5,18 @@ import Login from "../pages/Login/Login";
 import ForgotPassword from "../pages/Auth/ForgotPassword";
 import ResetPassword from "../pages/Auth/ResetPassword";
 import Dashboard from "../pages/Dashboard/Dashboard";
-import Relatorios from "../pages/Relatorios/Relatorios";
-import Usuarios from "../pages/Usuarios/Usuarios";
-import Permissoes from "../pages/Permissoes/Permissoes";
-import Equipes from "../pages/Equipes/Equipes";
-import EditarEquipe from "../pages/Equipes/EditarEquipe";
+import Reports from "../pages/Reports/Reports";
+import Users from "../pages/Users/Users";
+import Permissions from "../pages/Permissions/Permissions";
+import Teams from "../pages/Teams/Teams";
+import EditTeam from "../pages/Teams/EditTeam";
 import Chat from "../pages/Chat/Chat";
-import Projetos from "../pages/Projetos/Projetos";
-import CriarProjeto from "../pages/Projetos/CriarProjeto";
-import Tarefa from "../pages/Tarefas/Tarefa";
-import Notificacoes from "../pages/Notificacoes/Notificacoes";
-import Perfil from "../pages/Perfil/Perfil";
-import Configuracoes from "../pages/Configuracoes/Configuracoes";
+import Projects from "../pages/Projects/Projects";
+import CreateProject from "../pages/Projects/CreateProject";
+import TaskDetail from "../pages/Tasks/TaskDetail";
+import Notifications from "../pages/Notifications/Notifications";
+import Profile from "../pages/Profile/Profile";
+import Settings from "../pages/Settings/Settings";
 
 import { useAuth } from "../contexts/AuthContext";
 
@@ -79,19 +79,19 @@ export default function AppRoutes() {
                 <Route element={<RequireAuth />}>
                     <Route element={<Layout />}>
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/relatorios" element={<Relatorios />} />
-                        <Route path="/usuarios" element={<Usuarios />} />
-                        <Route path="/permissoes" element={<Permissoes />} />
-                        <Route path="/equipes" element={<Equipes />} />
-                        <Route path="/equipes/:id" element={<EditarEquipe />} />
+                        <Route path="/reports" element={<Reports />} />
+                        <Route path="/users" element={<Users />} />
+                        <Route path="/permissions" element={<Permissions />} />
+                        <Route path="/teams" element={<Teams />} />
+                        <Route path="/teams/:id" element={<EditTeam />} />
                         <Route path="/chat" element={<Chat />} />
-                        <Route path="/projetos" element={<Projetos />} />
-                        <Route path="/projetos/novo" element={<CriarProjeto />} />
-                        <Route path="/projetos/:projectId" element={<Projetos />} />
-                        <Route path="/projetos/:projectId/tarefas/:cardId" element={<Tarefa />} />
-                        <Route path="/notificacoes" element={<Notificacoes />} />
-                        <Route path="/perfil" element={<Perfil />} />
-                        <Route path="/configuracoes" element={<Configuracoes />} />
+                        <Route path="/projects" element={<Projects />} />
+                        <Route path="/projects/new" element={<CreateProject />} />
+                        <Route path="/projects/:projectId" element={<Projects />} />
+                        <Route path="/projects/:projectId/tasks/:cardId" element={<TaskDetail />} />
+                        <Route path="/notifications" element={<Notifications />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<Settings />} />
                     </Route>
                 </Route>
 

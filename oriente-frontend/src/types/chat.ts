@@ -1,4 +1,4 @@
-export type Mensagem = {
+export type Message = {
     id: number;
     texto: string;
     remetente: string;
@@ -6,7 +6,7 @@ export type Mensagem = {
     lida: boolean;
 };
 
-export type Conversa = {
+export type Conversation = {
     id: number;
     nome: string;
     avatar?: string;
@@ -15,5 +15,5 @@ export type Conversa = {
     naoLidas: number;
     online: boolean;
     tipo: "individual" | "grupo";
-    mensagens: Mensagem[];
+    mensagens: Message[];
 };

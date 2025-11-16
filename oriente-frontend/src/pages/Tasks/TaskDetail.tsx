@@ -1,0 +1,910 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+    Box,
+    Paper,
+    Typography,
+    Button,
+    Chip,
+    Avatar,
+    AvatarGroup,
+    Divider,
+    TextField,
+    IconButton,
+    List,
+    ListItem,
+    ListItemText,
+    ListItemAvatar,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
+    Alert,
+    Snackbar,
+    CircularProgress,
+    Pagination,
+    Menu,
+    MenuItem,
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+    ArrowBackOutlined,
+    MoreVertOutlined,
+    CalendarTodayOutlined,
+    PersonOutlined,
+    FlagOutlined,
+    ChatBubbleOutlineOutlined,
+    CheckCircleOutlineOutlined,
+    SendOutlined,
+    HistoryOutlined,
+    EditOutlined,
+    DeleteOutlined,
+} from "@mui/icons-material";
+import TaskOptions from "../../components/Tasks/TaskOptions";
+import cardService from "../../services/cardService";
+import type { Card, Comment, CardHistory, CardHistoryAction } from "../../types";
+
+const getPriorityColor = (priority: Card["priority"]) => {
+    switch (priority) {
+        case "urgent":
+            return "error";
+        case "high":
+            return "error";
+        case "medium":
+            return "warning";
+        case "low":
+            return "success";
+        default:
+            return "default";
+    }
+};
+
+const getPriorityLabel = (priority: Card["priority"]) => {
+    switch (priority) {
+        case "urgent":
+            return "Urgente";
+        case "high":
+            return "Alta";
+        case "medium":
+            return "Média";
+        case "low":
+            return "Baixa";
+        default:
+            return priority;
+    }
+};
+
+const getHistoryActionLabel = (action: CardHistoryAction): string => {
+    const labels: Record<CardHistoryAction, string> = {
+        CREATED: "Criado",
+        UPDATED: "Atualizado",
+        MOVED: "Movido",
+        COMMENT_ADDED: "Comentário adicionado",
+        COMMENT_DELETED: "Comentário deletado",
+        ASSIGNEE_ADDED: "Responsável adicionado",
+        ASSIGNEE_REMOVED: "Responsável removido",
+        TAG_ADDED: "Tag adicionada",
+        TAG_REMOVED: "Tag removida",
+    };
+    return labels[action] || action;
+};
+
+const getHistoryActionColor = (action: CardHistoryAction): string => {
+    switch (action) {
+        case "CREATED":
+            return "#4caf50";
+        case "UPDATED":
+            return "#2196f3";
+        case "MOVED":
+            return "#ff9800";
+        case "COMMENT_ADDED":
+        case "COMMENT_DELETED":
+            return "#9c27b0";
+        case "ASSIGNEE_ADDED":
+        case "ASSIGNEE_REMOVED":
+            return "#00bcd4";
+        case "TAG_ADDED":
+        case "TAG_REMOVED":
+            return "#795548";
+        default:
+            return "#757575";
+    }
+};
+
+export default function TaskDetail() {
+    const navigate = useNavigate();
+    const { projectId, cardId } = useParams<{ projectId: string; cardId: string }>();
+
+    // Estados para dados
+    const [card, setCard] = useState<Card | null>(null);
+    const [comments, setComments] = useState<Comment[]>([]);
+    const [history, setHistory] = useState<CardHistory[]>([]);
+    const [historyPage, setHistoryPage] = useState(1);
+    const [historyTotalPages, setHistoryTotalPages] = useState(1);
+
+    // Estados de loading
+    const [loadingCard, setLoadingCard] = useState(true);
+    const [loadingComments, setLoadingComments] = useState(true);
+    const [loadingHistory, setLoadingHistory] = useState(true);
+    const [submittingComment, setSubmittingComment] = useState(false);
+
+    // Estados de UI
+    const [newComment, setNewComment] = useState("");
+    const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
+    const [commentMenuAnchorEl, setCommentMenuAnchorEl] = useState<HTMLElement | null>(null);
+    const [selectedCommentId, setSelectedCommentId] = useState<number | null>(null);
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editingCommentText, setEditingCommentText] = useState("");
+    const [deleteDialog, setDeleteDialog] = useState(false);
+    const [archiveDialog, setArchiveDialog] = useState(false);
+    const [deleteCommentDialog, setDeleteCommentDialog] = useState(false);
+    const [snackbar, setSnackbar] = useState<{
+        open: boolean;
+        message: string;
+        severity: "success" | "error" | "info"
+    }>({
+        open: false,
+        message: "",
+        severity: "success",
+    });
+
+    // Carregar dados do card
+    useEffect(() => {
+        if (projectId && cardId) {
+            loadCard();
+            loadComments();
+            loadHistory(1);
+        }
+    }, [projectId, cardId]);
+
+    const loadCard = async () => {
+        try {
+            setLoadingCard(true);
+            const data = await cardService.getCard(Number(projectId), cardId!);
+            setCard(data);
+        } catch (error: any) {
+            console.error("Erro ao carregar card:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao carregar dados do card",
+                severity: "error",
+            });
+        } finally {
+            setLoadingCard(false);
+        }
+    };
+
+    const loadComments = async () => {
+        try {
+            setLoadingComments(true);
+            const data = await cardService.getCardComments(Number(projectId), cardId!);
+            setComments(data);
+        } catch (error: any) {
+            console.error("Erro ao carregar comentários:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao carregar comentários",
+                severity: "error",
+            });
+        } finally {
+            setLoadingComments(false);
+        }
+    };
+
+    const loadHistory = async (page: number) => {
+        try {
+            setLoadingHistory(true);
+            const data = await cardService.getCardHistory(Number(projectId), cardId!, page, 10);
+            setHistory(data.history);
+            setHistoryTotalPages(data.total_pages);
+            setHistoryPage(page);
+        } catch (error: any) {
+            console.error("Erro ao carregar histórico:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao carregar histórico",
+                severity: "error",
+            });
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    const handleBack = () => {
+        navigate(`/projects/${projectId}`);
+    };
+
+    const handleSubmitComment = async () => {
+        if (!newComment.trim()) return;
+
+        try {
+            setSubmittingComment(true);
+            await cardService.createComment(Number(projectId), cardId!, newComment);
+            setNewComment("");
+            setSnackbar({
+                open: true,
+                message: "Comentário adicionado com sucesso!",
+                severity: "success",
+            });
+            // Recarregar comentários e histórico
+            loadComments();
+            loadHistory(1);
+        } catch (error: any) {
+            console.error("Erro ao criar comentário:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao criar comentário",
+                severity: "error",
+            });
+        } finally {
+            setSubmittingComment(false);
+        }
+    };
+
+    const handleEditComment = (comment: Comment) => {
+        setEditingCommentId(comment.id);
+        setEditingCommentText(comment.content);
+        setCommentMenuAnchorEl(null);
+    };
+
+    const handleSaveCommentEdit = async (commentId: number) => {
+        if (!editingCommentText.trim()) return;
+
+        try {
+            await cardService.updateComment(Number(projectId), cardId!, commentId, editingCommentText);
+            setEditingCommentId(null);
+            setEditingCommentText("");
+            setSnackbar({
+                open: true,
+                message: "Comentário atualizado com sucesso!",
+                severity: "success",
+            });
+            loadComments();
+        } catch (error: any) {
+            console.error("Erro ao atualizar comentário:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao atualizar comentário",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleCancelCommentEdit = () => {
+        setEditingCommentId(null);
+        setEditingCommentText("");
+    };
+
+    const handleOpenCommentMenu = (event: React.MouseEvent<HTMLElement>, commentId: number) => {
+        setCommentMenuAnchorEl(event.currentTarget);
+        setSelectedCommentId(commentId);
+    };
+
+    const handleCloseCommentMenu = () => {
+        setCommentMenuAnchorEl(null);
+        setSelectedCommentId(null);
+    };
+
+    const handleConfirmDeleteComment = async () => {
+        if (!selectedCommentId) return;
+
+        try {
+            await cardService.deleteComment(Number(projectId), cardId!, selectedCommentId);
+            setDeleteCommentDialog(false);
+            setSelectedCommentId(null);
+            setSnackbar({
+                open: true,
+                message: "Comentário excluído com sucesso!",
+                severity: "success",
+            });
+            loadComments();
+            loadHistory(1);
+        } catch (error: any) {
+            console.error("Erro ao excluir comentário:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao excluir comentário",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+        setMenuAnchorEl(event.currentTarget);
+    };
+
+    const handleCloseMenu = () => {
+        setMenuAnchorEl(null);
+    };
+
+    const handleEdit = () => {
+        console.log("Editar tarefa");
+        setSnackbar({
+            open: true,
+            message: "Função de edição em desenvolvimento",
+            severity: "info",
+        });
+    };
+
+    const handleDuplicate = () => {
+        console.log("Duplicar tarefa");
+        setSnackbar({
+            open: true,
+            message: "Tarefa duplicada com sucesso!",
+            severity: "success",
+        });
+    };
+
+    const handleArchive = () => {
+        setArchiveDialog(true);
+    };
+
+    const handleConfirmArchive = () => {
+        console.log("Tarefa arquivada");
+        setArchiveDialog(false);
+        setSnackbar({
+            open: true,
+            message: "Tarefa arquivada com sucesso!",
+            severity: "success",
+        });
+    };
+
+    const handleAddAssignee = () => {
+        console.log("Adicionar responsável");
+        setSnackbar({
+            open: true,
+            message: "Função em desenvolvimento",
+            severity: "info",
+        });
+    };
+
+    const handleChangeDate = () => {
+        console.log("Alterar data limite");
+        setSnackbar({
+            open: true,
+            message: "Função em desenvolvimento",
+            severity: "info",
+        });
+    };
+
+    const handleDelete = () => {
+        setDeleteDialog(true);
+    };
+
+    const handleConfirmDelete = () => {
+        console.log("Tarefa excluída");
+        setDeleteDialog(false);
+        setSnackbar({
+            open: true,
+            message: "Tarefa excluída com sucesso!",
+            severity: "success",
+        });
+        setTimeout(() => {
+            navigate("/projects");
+        }, 1500);
+    };
+
+    const handleHistoryPageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+        loadHistory(value);
+    };
+
+    if (loadingCard) {
+        return (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (!card) {
+        return (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "center", mt: 5 }}>
+                <Typography variant="h5">Card não encontrado</Typography>
+                <Button variant="contained" onClick={handleBack}>
+                    Voltar para Projetos
+                </Button>
+            </Box>
+        );
+    }
+
+    return (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {/* Header */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Button
+                        startIcon={<ArrowBackOutlined />}
+                        onClick={handleBack}
+                        variant="outlined"
+                        size="small"
+                    >
+                        Voltar
+                    </Button>
+                    <Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                                {card.title}
+                            </Typography>
+                            <Chip
+                                label={getPriorityLabel(card.priority)}
+                                color={getPriorityColor(card.priority)}
+                                size="small"
+                            />
+                        </Box>
+                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            Criado em {new Date(card.created_at).toLocaleDateString("pt-BR")}
+                        </Typography>
+                    </Box>
+                </Box>
+                <IconButton onClick={handleOpenMenu}>
+                    <MoreVertOutlined />
+                </IconButton>
+                <TaskOptions
+                    anchorEl={menuAnchorEl}
+                    open={Boolean(menuAnchorEl)}
+                    onClose={handleCloseMenu}
+                    onEdit={handleEdit}
+                    onDuplicate={handleDuplicate}
+                    onArchive={handleArchive}
+                    onAddAssignee={handleAddAssignee}
+                    onChangeDate={handleChangeDate}
+                    onDelete={handleDelete}
+                />
+            </Box>
+
+            <Grid container spacing={3}>
+                {/* Coluna Principal */}
+                <Grid size={{ xs: 12, md: 8 }}>
+                    {/* Descrição */}
+                    <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                            Descrição
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{
+                                color: "text.secondary",
+                                whiteSpace: "pre-wrap",
+                                lineHeight: 1.8,
+                            }}
+                        >
+                            {card.description || "Sem descrição"}
+                        </Typography>
+                    </Paper>
+
+                    {/* Comentários */}
+                    <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+                            <ChatBubbleOutlineOutlined fontSize="small" />
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                Comentários ({comments.length})
+                            </Typography>
+                        </Box>
+
+                        {loadingComments ? (
+                            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                                <CircularProgress size={24} />
+                            </Box>
+                        ) : (
+                            <>
+                                <Box sx={{ mb: 3 }}>
+                                    {comments.length === 0 ? (
+                                        <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                                            Nenhum comentário ainda. Seja o primeiro a comentar!
+                                        </Typography>
+                                    ) : (
+                                        comments.map((comment) => (
+                                            <Box key={comment.id} sx={{ mb: 3 }}>
+                                                <Box sx={{ display: "flex", gap: 2 }}>
+                                                    <Avatar sx={{ bgcolor: "primary.main" }}>
+                                                        {comment.user.name.charAt(0).toUpperCase()}
+                                                    </Avatar>
+                                                    <Box sx={{ flex: 1 }}>
+                                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                                                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                                                {comment.user.name}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                                                {new Date(comment.created_at).toLocaleString("pt-BR")}
+                                                            </Typography>
+                                                            {(comment.can_edit || comment.can_delete) && (
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={(e) => handleOpenCommentMenu(e, comment.id)}
+                                                                    sx={{ ml: "auto" }}
+                                                                >
+                                                                    <MoreVertOutlined fontSize="small" />
+                                                                </IconButton>
+                                                            )}
+                                                        </Box>
+                                                        {editingCommentId === comment.id ? (
+                                                            <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                                                                <TextField
+                                                                    fullWidth
+                                                                    multiline
+                                                                    rows={2}
+                                                                    value={editingCommentText}
+                                                                    onChange={(e) => setEditingCommentText(e.target.value)}
+                                                                    size="small"
+                                                                />
+                                                                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        color="primary"
+                                                                        onClick={() => handleSaveCommentEdit(comment.id)}
+                                                                        disabled={!editingCommentText.trim()}
+                                                                    >
+                                                                        <SendOutlined fontSize="small" />
+                                                                    </IconButton>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={handleCancelCommentEdit}
+                                                                    >
+                                                                        <DeleteOutlined fontSize="small" />
+                                                                    </IconButton>
+                                                                </Box>
+                                                            </Box>
+                                                        ) : (
+                                                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                                                {comment.content}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                </Box>
+                                            </Box>
+                                        ))
+                                    )}
+                                </Box>
+
+                                <Divider sx={{ mb: 3 }} />
+
+                                <Box sx={{ display: "flex", gap: 2 }}>
+                                    <Avatar sx={{ bgcolor: "primary.main" }}>U</Avatar>
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={2}
+                                        placeholder="Adicione um comentário..."
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        disabled={submittingComment}
+                                    />
+                                    <IconButton
+                                        color="primary"
+                                        onClick={handleSubmitComment}
+                                        disabled={!newComment.trim() || submittingComment}
+                                    >
+                                        {submittingComment ? <CircularProgress size={24} /> : <SendOutlined />}
+                                    </IconButton>
+                                </Box>
+                            </>
+                        )}
+                    </Paper>
+
+                    {/* Histórico de Auditoria */}
+                    <Paper sx={{ p: 3, borderRadius: 3 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+                            <HistoryOutlined fontSize="small" />
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                Histórico de Auditoria
+                            </Typography>
+                        </Box>
+
+                        {loadingHistory ? (
+                            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                                <CircularProgress size={24} />
+                            </Box>
+                        ) : (
+                            <>
+                                {history.length === 0 ? (
+                                    <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                                        Nenhum histórico disponível.
+                                    </Typography>
+                                ) : (
+                                    <List>
+                                        {history.map((item) => (
+                                            <ListItem
+                                                key={item.id}
+                                                sx={{
+                                                    bgcolor: "background.paper",
+                                                    borderRadius: 1.5,
+                                                    mb: 1,
+                                                    borderLeft: 4,
+                                                    borderColor: getHistoryActionColor(item.action),
+                                                }}
+                                            >
+                                                <ListItemAvatar>
+                                                    <Avatar
+                                                        sx={{
+                                                            bgcolor: getHistoryActionColor(item.action),
+                                                            width: 32,
+                                                            height: 32,
+                                                        }}
+                                                    >
+                                                        {item.user.name.charAt(0).toUpperCase()}
+                                                    </Avatar>
+                                                </ListItemAvatar>
+                                                <ListItemText
+                                                    primary={
+                                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                                {item.user.name}
+                                                            </Typography>
+                                                            <Chip
+                                                                label={getHistoryActionLabel(item.action)}
+                                                                size="small"
+                                                                sx={{
+                                                                    height: 20,
+                                                                    fontSize: "0.7rem",
+                                                                    bgcolor: getHistoryActionColor(item.action),
+                                                                    color: "white",
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    }
+                                                    secondary={
+                                                        <>
+                                                            <Typography variant="body2" sx={{ color: "text.primary", mt: 0.5 }}>
+                                                                {item.message}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                                                {new Date(item.created_at).toLocaleString("pt-BR")}
+                                                            </Typography>
+                                                        </>
+                                                    }
+                                                />
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                )}
+
+                                {historyTotalPages > 1 && (
+                                    <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                                        <Pagination
+                                            count={historyTotalPages}
+                                            page={historyPage}
+                                            onChange={handleHistoryPageChange}
+                                            color="primary"
+                                        />
+                                    </Box>
+                                )}
+                            </>
+                        )}
+                    </Paper>
+                </Grid>
+
+                {/* Sidebar */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper sx={{ p: 3, borderRadius: 3, position: "sticky", top: 24 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                            Detalhes
+                        </Typography>
+
+                        {/* Status */}
+                        <Box sx={{ mb: 3 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                                <CheckCircleOutlineOutlined fontSize="small" sx={{ color: "text.secondary" }} />
+                                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                                    STATUS
+                                </Typography>
+                            </Box>
+                            <Chip label={card.status} color="primary" />
+                        </Box>
+
+                        <Divider sx={{ mb: 3 }} />
+
+                        {/* Prioridade */}
+                        <Box sx={{ mb: 3 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                                <FlagOutlined fontSize="small" sx={{ color: "text.secondary" }} />
+                                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                                    PRIORIDADE
+                                </Typography>
+                            </Box>
+                            <Chip
+                                label={getPriorityLabel(card.priority)}
+                                color={getPriorityColor(card.priority)}
+                            />
+                        </Box>
+
+                        <Divider sx={{ mb: 3 }} />
+
+                        {/* Responsáveis */}
+                        {card.assignees && card.assignees.length > 0 && (
+                            <>
+                                <Box sx={{ mb: 3 }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                                        <PersonOutlined fontSize="small" sx={{ color: "text.secondary" }} />
+                                        <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                                            RESPONSÁVEIS
+                                        </Typography>
+                                    </Box>
+                                    <AvatarGroup max={4}>
+                                        {card.assignees.map((assignee) => (
+                                            <Avatar
+                                                key={assignee.id}
+                                                sx={{ bgcolor: "primary.main" }}
+                                                title={assignee.name}
+                                            >
+                                                {assignee.name.charAt(0).toUpperCase()}
+                                            </Avatar>
+                                        ))}
+                                    </AvatarGroup>
+                                    <Box sx={{ mt: 1 }}>
+                                        {card.assignees.map((assignee) => (
+                                            <Typography
+                                                key={assignee.id}
+                                                variant="body2"
+                                                sx={{ color: "text.secondary" }}
+                                            >
+                                                {assignee.name}
+                                            </Typography>
+                                        ))}
+                                    </Box>
+                                </Box>
+
+                                <Divider sx={{ mb: 3 }} />
+                            </>
+                        )}
+
+                        {/* Data Limite */}
+                        {card.due_date && (
+                            <>
+                                <Box sx={{ mb: 3 }}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                                        <CalendarTodayOutlined fontSize="small" sx={{ color: "text.secondary" }} />
+                                        <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                                            DATA LIMITE
+                                        </Typography>
+                                    </Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                        {new Date(card.due_date).toLocaleDateString("pt-BR", {
+                                            day: "2-digit",
+                                            month: "long",
+                                            year: "numeric",
+                                        })}
+                                    </Typography>
+                                </Box>
+
+                                <Divider sx={{ mb: 3 }} />
+                            </>
+                        )}
+
+                        {/* Tags */}
+                        {card.tags && card.tags.length > 0 && (
+                            <Box>
+                                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, mb: 1, display: "block" }}>
+                                    TAGS
+                                </Typography>
+                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                                    {card.tags.map((tag) => (
+                                        <Chip
+                                            key={tag.id}
+                                            label={tag.name}
+                                            size="small"
+                                            sx={{ bgcolor: tag.color, color: "white" }}
+                                        />
+                                    ))}
+                                </Box>
+                            </Box>
+                        )}
+                    </Paper>
+                </Grid>
+            </Grid>
+
+            {/* Menu de opções do comentário */}
+            <Menu
+                anchorEl={commentMenuAnchorEl}
+                open={Boolean(commentMenuAnchorEl)}
+                onClose={handleCloseCommentMenu}
+            >
+                {comments.find(c => c.id === selectedCommentId)?.can_edit && (
+                    <MenuItem onClick={() => {
+                        const comment = comments.find(c => c.id === selectedCommentId);
+                        if (comment) handleEditComment(comment);
+                    }}>
+                        <EditOutlined fontSize="small" sx={{ mr: 1 }} />
+                        Editar
+                    </MenuItem>
+                )}
+                {comments.find(c => c.id === selectedCommentId)?.can_delete && (
+                    <MenuItem
+                        onClick={() => {
+                            setDeleteCommentDialog(true);
+                            handleCloseCommentMenu();
+                        }}
+                        sx={{ color: "error.main" }}
+                    >
+                        <DeleteOutlined fontSize="small" sx={{ mr: 1 }} />
+                        Excluir
+                    </MenuItem>
+                )}
+            </Menu>
+
+            {/* Dialog Excluir Comentário */}
+            <Dialog
+                open={deleteCommentDialog}
+                onClose={() => setDeleteCommentDialog(false)}
+                PaperProps={{
+                    sx: { borderRadius: 2 },
+                }}
+            >
+                <DialogTitle>Excluir comentário?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Tem certeza que deseja excluir este comentário? Esta ação não pode ser desfeita.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setDeleteCommentDialog(false)}>Cancelar</Button>
+                    <Button onClick={handleConfirmDeleteComment} variant="contained" color="error">
+                        Excluir
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Dialog Excluir */}
+            <Dialog
+                open={deleteDialog}
+                onClose={() => setDeleteDialog(false)}
+                PaperProps={{
+                    sx: { borderRadius: 2 },
+                }}
+            >
+                <DialogTitle>Excluir tarefa?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Tem certeza que deseja excluir a tarefa "<strong>{card.title}</strong>"?
+                        Esta ação não pode ser desfeita.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setDeleteDialog(false)}>Cancelar</Button>
+                    <Button onClick={handleConfirmDelete} variant="contained" color="error">
+                        Excluir
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Dialog Arquivar */}
+            <Dialog
+                open={archiveDialog}
+                onClose={() => setArchiveDialog(false)}
+                PaperProps={{
+                    sx: { borderRadius: 2 },
+                }}
+            >
+                <DialogTitle>Arquivar tarefa?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Deseja arquivar a tarefa "<strong>{card.title}</strong>"?
+                        Você poderá restaurá-la posteriormente.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setArchiveDialog(false)}>Cancelar</Button>
+                    <Button onClick={handleConfirmArchive} variant="contained">
+                        Arquivar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Snackbar */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={3000}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            >
+                <Alert
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
+                    severity={snackbar.severity}
+                    sx={{ width: "100%", borderRadius: 2 }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </Box>
+    );
+}

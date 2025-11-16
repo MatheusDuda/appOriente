@@ -7,6 +7,8 @@ import type {
     ProjectBoard,
     KanbanColumn,
     ColumnCreateRequest,
+    ColumnUpdateRequest,
+    ColumnMoveRequest,
     Card,
     CardCreateRequest,
     CardMoveRequest,
@@ -118,6 +120,54 @@ const projectService = {
     async getColumns(projectId: number): Promise<KanbanColumn[]> {
         const response = await api.get<KanbanColumn[]>(
             `/api/projects/${projectId}/columns`
+        );
+        return response.data;
+    },
+
+    /**
+     * Atualiza uma coluna (nome, descrição, cor)
+     * @param projectId - ID do projeto
+     * @param columnId - ID da coluna
+     * @param data - Dados para atualização
+     * @returns Coluna atualizada
+     */
+    async updateColumn(
+        projectId: number,
+        columnId: number,
+        data: ColumnUpdateRequest
+    ): Promise<KanbanColumn> {
+        const response = await api.put<KanbanColumn>(
+            `/api/projects/${projectId}/columns/${columnId}`,
+            data
+        );
+        return response.data;
+    },
+
+    /**
+     * Deleta uma coluna
+     * Coluna deve estar vazia (sem cards)
+     * @param projectId - ID do projeto
+     * @param columnId - ID da coluna
+     */
+    async deleteColumn(projectId: number, columnId: number): Promise<void> {
+        await api.delete(`/api/projects/${projectId}/columns/${columnId}`);
+    },
+
+    /**
+     * Move uma coluna para uma nova posição
+     * @param projectId - ID do projeto
+     * @param columnId - ID da coluna
+     * @param data - Nova posição
+     * @returns Coluna atualizada
+     */
+    async moveColumn(
+        projectId: number,
+        columnId: number,
+        data: ColumnMoveRequest
+    ): Promise<KanbanColumn> {
+        const response = await api.patch<KanbanColumn>(
+            `/api/projects/${projectId}/columns/${columnId}/move`,
+            data
         );
         return response.data;
     },

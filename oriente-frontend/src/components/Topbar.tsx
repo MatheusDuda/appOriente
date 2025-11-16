@@ -31,57 +31,57 @@ import type { NotificationType } from "../types/notifications";
 import { authService, type UserData } from "../services/authService";
 
 // Função para obter ícone e cor de fundo baseado no tipo
-const getNotificationStyle = (tipo: NotificationType) => {
-    switch (tipo) {
+const getNotificationStyle = (type: NotificationType) => {
+    switch (type) {
         case "TASK":
             return {
-                icone: <TaskAltOutlined fontSize="small" />,
-                corFundo: "action.hover",
+                icon: <TaskAltOutlined fontSize="small" />,
+                backgroundColor: "action.hover",
             };
         case "TEAM":
             return {
-                icone: <PersonAddOutlined fontSize="small" />,
-                corFundo: "action.selected",
+                icon: <PersonAddOutlined fontSize="small" />,
+                backgroundColor: "action.selected",
             };
         case "SYSTEM":
             return {
-                icone: <NotificationsOutlined fontSize="small" />,
-                corFundo: "action.hover",
+                icon: <NotificationsOutlined fontSize="small" />,
+                backgroundColor: "action.hover",
             };
         default:
             return {
-                icone: <NotificationsOutlined fontSize="small" />,
-                corFundo: "action.disabledBackground",
+                icon: <NotificationsOutlined fontSize="small" />,
+                backgroundColor: "action.disabledBackground",
             };
     }
 };
 
 // Função para formatar timestamp relativo
-const formatarTimestamp = (dataISO: string): string => {
-    const data = new Date(dataISO);
-    const agora = new Date();
-    const diferencaMs = agora.getTime() - data.getTime();
-    const diferencaMinutos = Math.floor(diferencaMs / 60000);
-    const diferencaHoras = Math.floor(diferencaMs / 3600000);
+const formatTimestamp = (dateISO: string): string => {
+    const date = new Date(dateISO);
+    const now = new Date();
+    const differenceMs = now.getTime() - date.getTime();
+    const differenceMinutes = Math.floor(differenceMs / 60000);
+    const differenceHours = Math.floor(differenceMs / 3600000);
 
-    if (diferencaMinutos < 1) return "Agora mesmo";
-    if (diferencaMinutos < 60) return `${diferencaMinutos} min atrás`;
-    if (diferencaHoras < 24) return `${diferencaHoras} hora${diferencaHoras > 1 ? "s" : ""} atrás`;
+    if (differenceMinutes < 1) return "Agora mesmo";
+    if (differenceMinutes < 60) return `${differenceMinutes} min atrás`;
+    if (differenceHours < 24) return `${differenceHours} hora${differenceHours > 1 ? "s" : ""} atrás`;
     return "Há mais de 1 dia";
 };
 
 // Função para formatar data por extenso
-const formatarDataPorExtenso = (): string => {
-    const agora = new Date();
-    const diasSemana = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-    const meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const formatDateExtended = (): string => {
+    const now = new Date();
+    const weekDays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+    const months = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
-    const diaSemana = diasSemana[agora.getDay()];
-    const dia = agora.getDate();
-    const mes = meses[agora.getMonth()];
-    const ano = agora.getFullYear();
+    const weekDay = weekDays[now.getDay()];
+    const day = now.getDate();
+    const month = months[now.getMonth()];
+    const year = now.getFullYear();
 
-    return `${diaSemana}, ${dia} de ${mes} de ${ano}`;
+    return `${weekDay}, ${day} de ${month} de ${year}`;
 };
 
 type TopbarProps = {
@@ -149,7 +149,7 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
     }, [fetchNotifications]);
 
     // Pegar apenas as 5 notificações mais recentes
-    const notificacoesRecentes = notifications.slice(0, 5);
+    const recentNotifications = notifications.slice(0, 5);
 
     // Gerar iniciais do nome do usuário
     const getInitials = (name: string | undefined): string => {
@@ -185,7 +185,7 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                     {userData?.name || "Carregando..."}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    {formatarDataPorExtenso()}
+                    {formatDateExtended()}
                 </Typography>
             </Box>
 
@@ -238,7 +238,7 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                         <Box sx={{ py: 6, textAlign: "center" }}>
                             <CircularProgress size={32} />
                         </Box>
-                    ) : notificacoesRecentes.length === 0 ? (
+                    ) : recentNotifications.length === 0 ? (
                         <Box sx={{ py: 6, textAlign: "center" }}>
                             <NotificationsOutlined
                                 sx={{ fontSize: 48, color: "text.disabled", mb: 1 }}
@@ -249,15 +249,15 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                         </Box>
                     ) : (
                         <List sx={{ p: 0, maxHeight: 360, overflow: "auto" }}>
-                            {notificacoesRecentes.map((notificacao, index) => {
-                                const style = getNotificationStyle(notificacao.type);
+                            {recentNotifications.map((notification, index) => {
+                                const style = getNotificationStyle(notification.type);
                                 return (
-                                    <Box key={notificacao.id}>
+                                    <Box key={notification.id}>
                                         <ListItem
                                             sx={{
                                                 py: 1.5,
                                                 px: 2,
-                                                bgcolor: notificacao.is_read ? "transparent" : "action.hover",
+                                                bgcolor: notification.is_read ? "transparent" : "action.hover",
                                                 cursor: "pointer",
                                                 "&:hover": {
                                                     bgcolor: "action.selected",
@@ -271,13 +271,13 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                                             <ListItemAvatar>
                                                 <Avatar
                                                     sx={{
-                                                        bgcolor: style.corFundo,
+                                                        bgcolor: style.backgroundColor,
                                                         color: "primary.main",
                                                         width: 40,
                                                         height: 40,
                                                     }}
                                                 >
-                                                    {style.icone}
+                                                    {style.icon}
                                                 </Avatar>
                                             </ListItemAvatar>
                                             <ListItemText
@@ -286,13 +286,13 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                                                         <Typography
                                                             variant="body2"
                                                             sx={{
-                                                                fontWeight: notificacao.is_read ? 500 : 600,
+                                                                fontWeight: notification.is_read ? 500 : 600,
                                                                 flex: 1,
                                                             }}
                                                         >
-                                                            {notificacao.title}
+                                                            {notification.title}
                                                         </Typography>
-                                                        {!notificacao.is_read && (
+                                                        {!notification.is_read && (
                                                             <Box
                                                                 sx={{
                                                                     width: 8,
@@ -317,20 +317,20 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                                                                 whiteSpace: "nowrap",
                                                             }}
                                                         >
-                                                            {notificacao.message}
+                                                            {notification.message}
                                                         </Typography>
                                                         <Typography
                                                             component="span"
                                                             variant="caption"
                                                             sx={{ color: "text.disabled" }}
                                                         >
-                                                            {formatarTimestamp(notificacao.created_at)}
+                                                            {formatTimestamp(notification.created_at)}
                                                         </Typography>
                                                     </>
                                                 }
                                             />
                                         </ListItem>
-                                        {index < notificacoesRecentes.length - 1 && (
+                                        {index < recentNotifications.length - 1 && (
                                             <Divider component="li" />
                                         )}
                                     </Box>
@@ -345,7 +345,7 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                             fullWidth
                             onClick={() => {
                                 handleCloseNotifMenu();
-                                navigate("/notificacoes");
+                                navigate("/notifications");
                             }}
                         >
                             Ver todas as notificações
@@ -394,13 +394,13 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
                         </Typography>
                     </Box>
                     <Divider />
-                    <MenuItem onClick={() => navigate("/perfil")}>
+                    <MenuItem onClick={() => navigate("/profile")}>
                         <ListItemIcon>
                             <PersonOutline fontSize="small" />
                         </ListItemIcon>
                         Meu Perfil
                     </MenuItem>
-                    <MenuItem onClick={() => navigate("/configuracoes")}>
+                    <MenuItem onClick={() => navigate("/settings")}>
                         <ListItemIcon>
                             <SettingsOutlined fontSize="small" />
                         </ListItemIcon>
