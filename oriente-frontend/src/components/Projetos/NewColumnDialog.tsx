@@ -36,16 +36,16 @@ export default function NewColumnDialog({ open, onClose, onSave }: NewColumnDial
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>New Column</DialogTitle>
+            <DialogTitle>Nova Coluna</DialogTitle>
             <DialogContent>
                 <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
                     <TextField
                         autoFocus
                         fullWidth
-                        label="Column Title"
+                        label="Título da Coluna"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="e.g., In Review, Approved, etc."
+                        placeholder="Ex: Em Revisão, Aprovado, etc."
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
                                 handleSave();
@@ -56,7 +56,7 @@ export default function NewColumnDialog({ open, onClose, onSave }: NewColumnDial
                         <TextField
                             fullWidth
                             type="color"
-                            label="Column Color (Optional)"
+                            label="Cor da Coluna (Opcional)"
                             value={color}
                             onChange={(e) => setColor(e.target.value)}
                             InputLabelProps={{ shrink: true }}
@@ -65,13 +65,13 @@ export default function NewColumnDialog({ open, onClose, onSave }: NewColumnDial
                 </Box>
             </DialogContent>
             <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
+                <Button onClick={handleClose}>Cancelar</Button>
                 <Button
                     variant="contained"
                     onClick={handleSave}
                     disabled={!title.trim()}
                 >
-                    Create Column
+                    Criar Coluna
                 </Button>
             </DialogActions>
         </Dialog>

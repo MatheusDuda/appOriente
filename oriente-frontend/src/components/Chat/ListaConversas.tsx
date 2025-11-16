@@ -118,7 +118,8 @@ export default function ListaConversas({
                                                 width: 10,
                                                 height: 10,
                                                 borderRadius: "50%",
-                                                border: "2px solid white",
+                                                border: "2px solid",
+                                                borderColor: "background.paper",
                                             },
                                         }}
                                     >

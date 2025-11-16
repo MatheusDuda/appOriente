@@ -695,7 +695,7 @@ export default function Projects() {
                     <IconButton
                         sx={{
                             bgcolor: "primary.main",
-                            color: "white",
+                            color: "primary.contrastText",
                             "&:hover": { bgcolor: "primary.dark" },
                         }}
                     >
@@ -797,7 +797,7 @@ export default function Projects() {
                                     display: "flex",
                                     flexDirection: "column",
                                     borderRadius: 2,
-                                    bgcolor: "grey.50",
+                                    bgcolor: "action.hover",
                                 }}
                             >
                                 <Box

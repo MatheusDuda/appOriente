@@ -81,7 +81,8 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                             width: 12,
                             height: 12,
                             borderRadius: "50%",
-                            border: "2px solid white",
+                            border: "2px solid",
+                            borderColor: "background.paper",
                         },
                     }}
                 >
@@ -142,8 +143,8 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                                     elevation={0}
                                     sx={{
                                         p: 1.5,
-                                        bgcolor: isUsuario ? "primary.main" : "grey.100",
-                                        color: isUsuario ? "white" : "text.primary",
+                                        bgcolor: isUsuario ? "primary.main" : "background.paper",
+                                        color: isUsuario ? "primary.contrastText" : "text.primary",
                                         borderRadius: 2,
                                         borderTopRightRadius: isUsuario ? 0 : 2,
                                         borderTopLeftRadius: isUsuario ? 2 : 0,
@@ -171,7 +172,8 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                                             variant="caption"
                                             sx={{
                                                 fontSize: "0.7rem",
-                                                color: isUsuario ? "rgba(255,255,255,0.7)" : "text.secondary",
+                                                color: isUsuario ? "primary.contrastText" : "text.secondary",
+                                                opacity: isUsuario ? 0.7 : 1,
                                             }}
                                         >
                                             {mensagem.timestamp}
@@ -180,7 +182,8 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                                             <DoneAllOutlined
                                                 sx={{
                                                     fontSize: 14,
-                                                    color: mensagem.lida ? "info.light" : "rgba(255,255,255,0.7)",
+                                                    color: mensagem.lida ? "info.light" : "primary.contrastText",
+                                                    opacity: mensagem.lida ? 1 : 0.7,
                                                 }}
                                             />
                                         )}
@@ -228,9 +231,9 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                         sx={{
                             "& .MuiOutlinedInput-root": {
                                 borderRadius: 3,
-                                bgcolor: "grey.50",
+                                bgcolor: "background.default",
                                 "&:hover": {
-                                    bgcolor: "grey.100",
+                                    bgcolor: "action.hover",
                                 },
                                 "&.Mui-focused": {
                                     bgcolor: "background.paper",
@@ -246,7 +249,7 @@ export default function AreaMensagens({ conversa, onEnviarMensagem, onVoltar }: 
                         aria-label="Enviar mensagem"
                         sx={{
                             bgcolor: mensagemTexto.trim() ? "primary.main" : "transparent",
-                            color: mensagemTexto.trim() ? "white" : "action.disabled",
+                            color: mensagemTexto.trim() ? "primary.contrastText" : "action.disabled",
                             "&:hover": {
                                 bgcolor: mensagemTexto.trim() ? "primary.dark" : "transparent",
                             },
