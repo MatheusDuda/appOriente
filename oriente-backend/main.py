@@ -7,7 +7,8 @@ from app.routers import Columns as columns, Cards as cards, comments, card_histo
 
 # Criar tabelas no banco de dados
 # Equivalente ao spring.jpa.hibernate.ddl-auto=create-drop
-Base.metadata.create_all(bind=engine)
+# COMENTADO: O banco Railway já possui estrutura/dados
+# Base.metadata.create_all(bind=engine)
 
 # Criar aplicação FastAPI
 app = FastAPI(
