@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
 import {
     EditOutlined,
@@ -6,7 +7,10 @@ import {
     ArchiveOutlined,
     PersonAddOutlined,
     CalendarTodayOutlined,
+    DriveFileMoveOutlined,
+    ChevronRightOutlined,
 } from "@mui/icons-material";
+import type { KanbanColumn } from "../../types";
 
 type OpcoesProps = {
     anchorEl: HTMLElement | null;
@@ -18,6 +22,9 @@ type OpcoesProps = {
     onAdicionarResponsavel: () => void;
     onAlterarData: () => void;
     onExcluir: () => void;
+    onMoverParaColuna?: (columnId: number) => void;
+    columns?: KanbanColumn[];
+    currentColumnId?: number;
 };
 
 export default function Opcoes({
@@ -30,31 +37,54 @@ export default function Opcoes({
     onAdicionarResponsavel,
     onAlterarData,
     onExcluir,
+    onMoverParaColuna,
+    columns,
+    currentColumnId,
 }: OpcoesProps) {
+    const [moveMenuAnchorEl, setMoveMenuAnchorEl] = useState<null | HTMLElement>(null);
+    const moveMenuOpen = Boolean(moveMenuAnchorEl);
+
+    const handleMoveMenuOpen = (event: React.MouseEvent<HTMLLIElement>) => {
+        setMoveMenuAnchorEl(event.currentTarget);
+    };
+
+    const handleMoveMenuClose = () => {
+        setMoveMenuAnchorEl(null);
+    };
+
+    const handleMoveToColumn = (columnId: number) => {
+        if (onMoverParaColuna) {
+            onMoverParaColuna(columnId);
+        }
+        handleMoveMenuClose();
+        onClose();
+    };
+
     return (
-        <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={onClose}
-            anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "right",
-            }}
-            transformOrigin={{
-                vertical: "top",
-                horizontal: "right",
-            }}
-            slotProps={{
-                paper: {
-                    elevation: 3,
-                    sx: {
-                        minWidth: 220,
-                        borderRadius: 2,
-                        mt: 1,
+        <>
+            <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={onClose}
+                anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "right",
+                }}
+                transformOrigin={{
+                    vertical: "top",
+                    horizontal: "right",
+                }}
+                slotProps={{
+                    paper: {
+                        elevation: 3,
+                        sx: {
+                            minWidth: 220,
+                            borderRadius: 2,
+                            mt: 1,
+                        },
                     },
-                },
-            }}
-        >
+                }}
+            >
             <MenuItem
                 onClick={() => {
                     onEditar();
@@ -78,6 +108,16 @@ export default function Opcoes({
                 </ListItemIcon>
                 <ListItemText>Duplicar tarefa</ListItemText>
             </MenuItem>
+
+            {columns && columns.length > 0 && (
+                <MenuItem onClick={handleMoveMenuOpen}>
+                    <ListItemIcon>
+                        <DriveFileMoveOutlined fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Mover para...</ListItemText>
+                    <ChevronRightOutlined fontSize="small" sx={{ ml: 1 }} />
+                </MenuItem>
+            )}
 
             <MenuItem
                 onClick={() => {
@@ -130,5 +170,40 @@ export default function Opcoes({
                 <ListItemText>Excluir tarefa</ListItemText>
             </MenuItem>
         </Menu>
+
+        {/* Submenu para mover tarefa */}
+        <Menu
+            anchorEl={moveMenuAnchorEl}
+            open={moveMenuOpen}
+            onClose={handleMoveMenuClose}
+            anchorOrigin={{
+                vertical: "top",
+                horizontal: "right",
+            }}
+            transformOrigin={{
+                vertical: "top",
+                horizontal: "left",
+            }}
+            slotProps={{
+                paper: {
+                    elevation: 3,
+                    sx: {
+                        minWidth: 200,
+                        borderRadius: 2,
+                        ml: 0.5,
+                    },
+                },
+            }}
+        >
+            {columns && columns.filter(col => col.id !== currentColumnId).map((column) => (
+                <MenuItem
+                    key={column.id}
+                    onClick={() => handleMoveToColumn(column.id)}
+                >
+                    <ListItemText>{column.title}</ListItemText>
+                </MenuItem>
+            ))}
+        </Menu>
+        </>
     );
 }

@@ -49,6 +49,10 @@ import EditColumnDialog from "../../components/Projetos/EditColumnDialog";
 import DeleteColumnDialog from "../../components/Projetos/DeleteColumnDialog";
 import ColumnOptionsMenu from "../../components/Projetos/ColumnOptionsMenu";
 import CreateTask from "../../components/Tarefas/CreateTask";
+import EditTask from "../../components/Tarefas/EditTask";
+import QuickAssigneeDialog from "../../components/Tarefas/QuickAssigneeDialog";
+import QuickDateDialog from "../../components/Tarefas/QuickDateDialog";
+import Opcoes from "../../components/Tarefas/Opcoes";
 import type {
     Card as CardType,
     KanbanColumn,
@@ -56,6 +60,7 @@ import type {
 } from "../../types";
 import { CardPriority } from "../../types";
 import projectService from "../../services/projectService";
+import cardService from "../../services/cardService";
 
 const getPriorityColor = (priority: CardPriority) => {
     switch (priority) {
@@ -86,7 +91,15 @@ const getPriorityLabel = (priority: CardPriority) => {
     }
 };
 
-function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: number) => void }) {
+function TaskCard({
+    task,
+    onClickTask,
+    onOpenMenu,
+}: {
+    task: CardType;
+    onClickTask: (id: number) => void;
+    onOpenMenu: (event: React.MouseEvent<HTMLButtonElement>, task: CardType) => void;
+}) {
     const {
         attributes,
         listeners,
@@ -108,6 +121,11 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
             return;
         }
         onClickTask(task.id);
+    };
+
+    const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        onOpenMenu(e, task);
     };
 
     return (
@@ -135,7 +153,12 @@ function TaskCard({ task, onClickTask }: { task: CardType; onClickTask: (id: num
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
                         {task.title}
                     </Typography>
-                    <IconButton size="small" sx={{ ml: 1, mt: -0.5 }} data-menu-trigger>
+                    <IconButton
+                        size="small"
+                        sx={{ ml: 1, mt: -0.5 }}
+                        data-menu-trigger
+                        onClick={handleMenuClick}
+                    >
                         <MoreVertOutlined fontSize="small" />
                     </IconButton>
                 </Box>
@@ -255,6 +278,13 @@ export default function Projects() {
         title: string;
         hasCards: boolean;
     } | null>(null);
+
+    // Card menu states
+    const [cardMenuAnchorEl, setCardMenuAnchorEl] = useState<null | HTMLElement>(null);
+    const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
+    const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
+    const [quickAssigneeDialogOpen, setQuickAssigneeDialogOpen] = useState(false);
+    const [quickDateDialogOpen, setQuickDateDialogOpen] = useState(false);
 
     // Loading states
     const [loadingProjects, setLoadingProjects] = useState(true);
@@ -681,6 +711,201 @@ export default function Projects() {
         navigate(`/projetos/${selectedProject.id}/tarefas/${taskId}`);
     };
 
+    const handleOpenCardMenu = (event: React.MouseEvent<HTMLButtonElement>, card: CardType) => {
+        setCardMenuAnchorEl(event.currentTarget);
+        setSelectedCard(card);
+    };
+
+    const handleCloseCardMenu = () => {
+        setCardMenuAnchorEl(null);
+        setSelectedCard(null);
+    };
+
+    const handleEditCard = () => {
+        if (selectedCard && selectedProject) {
+            handleCloseCardMenu();
+            setTimeout(() => {
+                setEditTaskDialogOpen(true);
+            }, 100);
+        }
+    };
+
+    const handleDuplicateCard = async () => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await projectService.createCard(selectedProject.id, {
+                title: `${selectedCard.title} (Cópia)`,
+                description: selectedCard.description,
+                priority: selectedCard.priority,
+                column_id: selectedCard.column_id,
+                due_date: selectedCard.due_date,
+                assignee_ids: selectedCard.assignees.map((a) => a.id),
+                tag_ids: selectedCard.tags.map((t) => t.id),
+            });
+            handleCloseCardMenu();
+            // Reload board to show duplicated card
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa duplicada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao duplicar tarefa";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleArchiveCard = async () => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.updateCardStatus(selectedProject.id, String(selectedCard.id), "archived");
+            handleCloseCardMenu();
+            // Reload board to remove archived card
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa arquivada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao arquivar tarefa";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleDeleteCard = async () => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.deleteCard(selectedProject.id, String(selectedCard.id));
+            handleCloseCardMenu();
+            // Reload board to remove deleted card
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa excluída com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao excluir tarefa";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleQuickAssignee = async (userId: number) => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.updateCard(selectedProject.id, String(selectedCard.id), {
+                assignee_ids: [userId],
+            });
+            setQuickAssigneeDialogOpen(false);
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Responsável atribuído com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao atribuir responsável";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleQuickDate = async (date: string) => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            // Convert YYYY-MM-DD to ISO format with time
+            const isoDate = new Date(date + "T00:00:00Z").toISOString();
+
+            await cardService.updateCard(selectedProject.id, String(selectedCard.id), {
+                due_date: isoDate,
+                title: selectedCard.title,
+                description: selectedCard.description,
+                priority: selectedCard.priority,
+                assignee_ids: selectedCard.assignees.map((a) => a.id),
+            });
+            setQuickDateDialogOpen(false);
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Data alterada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao alterar data";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleSaveEditTask = async (data: {
+        title: string;
+        description: string;
+        priority: CardType["priority"];
+        assignee_ids: number[];
+        due_date?: string;
+    }) => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.updateCard(selectedProject.id, String(selectedCard.id), data);
+            setEditTaskDialogOpen(false);
+            // Reload board to show updated data
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa atualizada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            let errorMessage = "Erro ao atualizar tarefa";
+            if (error.response?.data?.detail) {
+                errorMessage = typeof error.response.data.detail === 'string'
+                    ? error.response.data.detail
+                    : "Erro ao atualizar tarefa";
+            }
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
     const findContainer = (id: number) => {
         for (const column of columns) {
             if (column.cards.find((card) => card.id === id)) {
@@ -1016,6 +1241,7 @@ export default function Projects() {
                                                 key={card.id}
                                                 task={card}
                                                 onClickTask={handleClickTask}
+                                                onOpenMenu={handleOpenCardMenu}
                                             />
                                         ))}
                                     </DroppableColumn>
@@ -1105,6 +1331,85 @@ export default function Projects() {
                 columns={columns}
                 projectId={selectedProject?.id}
             />
+
+            {selectedCard && selectedProject && (
+                <Opcoes
+                    anchorEl={cardMenuAnchorEl}
+                    open={Boolean(cardMenuAnchorEl)}
+                    onClose={handleCloseCardMenu}
+                    onEditar={handleEditCard}
+                    onDuplicar={handleDuplicateCard}
+                    onArquivar={handleArchiveCard}
+                    onAdicionarResponsavel={() => {
+                        handleCloseCardMenu();
+                        setTimeout(() => {
+                            setQuickAssigneeDialogOpen(true);
+                        }, 100);
+                    }}
+                    onAlterarData={() => {
+                        handleCloseCardMenu();
+                        setTimeout(() => {
+                            setQuickDateDialogOpen(true);
+                        }, 100);
+                    }}
+                    onExcluir={handleDeleteCard}
+                    onMoverParaColuna={(columnId) => {
+                        if (selectedCard && selectedProject) {
+                            // Find the last position in the target column
+                            const targetColumn = columns.find(col => col.id === columnId);
+                            const newPosition = targetColumn ? targetColumn.cards.length : 0;
+
+                            cardService.moveCard(selectedProject.id, String(selectedCard.id), columnId, newPosition).then(() => {
+                                handleCloseCardMenu();
+                                loadProjectBoard(selectedProject.id);
+                                setSnackbar({
+                                    open: true,
+                                    message: "Tarefa movida com sucesso!",
+                                    severity: "success",
+                                });
+                            }).catch((error: any) => {
+                                const errorMessage = typeof error.response?.data?.detail === 'string'
+                                    ? error.response.data.detail
+                                    : "Erro ao mover tarefa";
+                                setSnackbar({
+                                    open: true,
+                                    message: errorMessage,
+                                    severity: "error",
+                                });
+                            });
+                        }
+                    }}
+                    columns={columns}
+                    currentColumnId={selectedCard.column_id}
+                />
+            )}
+
+            {selectedCard && (
+                <EditTask
+                    open={editTaskDialogOpen}
+                    onClose={() => setEditTaskDialogOpen(false)}
+                    onSave={handleSaveEditTask}
+                    card={selectedCard}
+                />
+            )}
+
+            {selectedCard && (
+                <QuickAssigneeDialog
+                    open={quickAssigneeDialogOpen}
+                    onClose={() => setQuickAssigneeDialogOpen(false)}
+                    onSave={handleQuickAssignee}
+                    currentAssigneeId={selectedCard.assignees[0]?.id}
+                />
+            )}
+
+            {selectedCard && (
+                <QuickDateDialog
+                    open={quickDateDialogOpen}
+                    onClose={() => setQuickDateDialogOpen(false)}
+                    onSave={handleQuickDate}
+                    currentDate={selectedCard.due_date}
+                />
+            )}
 
             <EditColumnDialog
                 open={editColumnDialogOpen}
