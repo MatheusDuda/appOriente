@@ -43,6 +43,8 @@ import {
 } from "@mui/icons-material";
 import Opcoes from "../../components/Tarefas/Opcoes";
 import EditTask from "../../components/Tarefas/EditTask";
+import QuickAssigneeDialog from "../../components/Tarefas/QuickAssigneeDialog";
+import QuickDateDialog from "../../components/Tarefas/QuickDateDialog";
 import cardService from "../../services/cardService";
 import projectService from "../../services/projectService";
 import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn } from "../../types";
@@ -142,6 +144,8 @@ export default function Tarefa() {
     const [dialogArquivar, setDialogArquivar] = useState(false);
     const [dialogExcluirComentario, setDialogExcluirComentario] = useState(false);
     const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
+    const [quickAssigneeDialogOpen, setQuickAssigneeDialogOpen] = useState(false);
+    const [quickDateDialogOpen, setQuickDateDialogOpen] = useState(false);
     const [columns, setColumns] = useState<KanbanColumn[]>([]);
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
@@ -344,7 +348,6 @@ export default function Tarefa() {
         description: string;
         priority: Card["priority"];
         assignee_ids: number[];
-        tag_ids: number[];
         due_date?: string;
     }) => {
         try {
@@ -358,9 +361,15 @@ export default function Tarefa() {
                 severity: "success",
             });
         } catch (error: any) {
+            let errorMessage = "Erro ao atualizar tarefa";
+            if (error.response?.data?.detail) {
+                errorMessage = typeof error.response.data.detail === 'string'
+                    ? error.response.data.detail
+                    : "Erro ao atualizar tarefa";
+            }
             setSnackbar({
                 open: true,
-                message: error.response?.data?.detail || "Erro ao atualizar tarefa",
+                message: errorMessage,
                 severity: "error",
             });
         }
@@ -420,19 +429,84 @@ export default function Tarefa() {
     };
 
     const handleAdicionarResponsavel = () => {
-        // Close menu first, then open edit dialog
+        // Close menu first, then open quick assignee dialog
         setMenuAnchorEl(null);
         setTimeout(() => {
-            setEditTaskDialogOpen(true);
+            setQuickAssigneeDialogOpen(true);
         }, 100);
     };
 
     const handleAlterarData = () => {
-        // Close menu first, then open edit dialog
+        // Close menu first, then open quick date dialog
         setMenuAnchorEl(null);
         setTimeout(() => {
-            setEditTaskDialogOpen(true);
+            setQuickDateDialogOpen(true);
         }, 100);
+    };
+
+    const handleQuickAssignee = async (userId: number) => {
+        if (!card) return;
+
+        try {
+            await cardService.updateCard(Number(projectId), cardId!, {
+                assignee_ids: [userId],
+            });
+            setQuickAssigneeDialogOpen(false);
+            await loadCard();
+            setSnackbar({
+                open: true,
+                message: "Responsável atribuído com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            let errorMessage = "Erro ao atribuir responsável";
+            if (error.response?.data?.detail) {
+                errorMessage = typeof error.response.data.detail === 'string'
+                    ? error.response.data.detail
+                    : "Erro ao atribuir responsável";
+            }
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleQuickDate = async (date: string) => {
+        if (!card) return;
+
+        try {
+            // Convert YYYY-MM-DD to ISO format with time
+            const isoDate = new Date(date + "T00:00:00Z").toISOString();
+
+            await cardService.updateCard(Number(projectId), cardId!, {
+                due_date: isoDate,
+                title: card.title,
+                description: card.description,
+                priority: card.priority,
+                assignee_ids: card.assignees.map((a) => a.id),
+            });
+            setQuickDateDialogOpen(false);
+            await loadCard();
+            setSnackbar({
+                open: true,
+                message: "Data alterada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            let errorMessage = "Erro ao alterar data";
+            if (error.response?.data?.detail) {
+                errorMessage = typeof error.response.data.detail === 'string'
+                    ? error.response.data.detail
+                    : "Erro ao alterar data";
+            }
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
     };
 
     const handleExcluir = () => {
@@ -1006,7 +1080,26 @@ export default function Tarefa() {
                     onClose={() => setEditTaskDialogOpen(false)}
                     onSave={handleSaveEdit}
                     card={card}
-                    projectId={Number(projectId)}
+                />
+            )}
+
+            {/* Quick Assignee Dialog */}
+            {card && (
+                <QuickAssigneeDialog
+                    open={quickAssigneeDialogOpen}
+                    onClose={() => setQuickAssigneeDialogOpen(false)}
+                    onSave={handleQuickAssignee}
+                    currentAssigneeId={card.assignees[0]?.id}
+                />
+            )}
+
+            {/* Quick Date Dialog */}
+            {card && (
+                <QuickDateDialog
+                    open={quickDateDialogOpen}
+                    onClose={() => setQuickDateDialogOpen(false)}
+                    onSave={handleQuickDate}
+                    currentDate={card.due_date}
                 />
             )}
 

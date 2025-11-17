@@ -49,6 +49,9 @@ import EditColumnDialog from "../../components/Projetos/EditColumnDialog";
 import DeleteColumnDialog from "../../components/Projetos/DeleteColumnDialog";
 import ColumnOptionsMenu from "../../components/Projetos/ColumnOptionsMenu";
 import CreateTask from "../../components/Tarefas/CreateTask";
+import EditTask from "../../components/Tarefas/EditTask";
+import QuickAssigneeDialog from "../../components/Tarefas/QuickAssigneeDialog";
+import QuickDateDialog from "../../components/Tarefas/QuickDateDialog";
 import Opcoes from "../../components/Tarefas/Opcoes";
 import type {
     Card as CardType,
@@ -279,6 +282,9 @@ export default function Projects() {
     // Card menu states
     const [cardMenuAnchorEl, setCardMenuAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
+    const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
+    const [quickAssigneeDialogOpen, setQuickAssigneeDialogOpen] = useState(false);
+    const [quickDateDialogOpen, setQuickDateDialogOpen] = useState(false);
 
     // Loading states
     const [loadingProjects, setLoadingProjects] = useState(true);
@@ -718,7 +724,9 @@ export default function Projects() {
     const handleEditCard = () => {
         if (selectedCard && selectedProject) {
             handleCloseCardMenu();
-            navigate(`/projetos/${selectedProject.id}/tarefas/${selectedCard.id}`);
+            setTimeout(() => {
+                setEditTaskDialogOpen(true);
+            }, 100);
         }
     };
 
@@ -744,9 +752,12 @@ export default function Projects() {
                 severity: "success",
             });
         } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao duplicar tarefa";
             setSnackbar({
                 open: true,
-                message: error.response?.data?.detail || "Erro ao duplicar tarefa",
+                message: errorMessage,
                 severity: "error",
             });
         }
@@ -766,9 +777,12 @@ export default function Projects() {
                 severity: "success",
             });
         } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao arquivar tarefa";
             setSnackbar({
                 open: true,
-                message: error.response?.data?.detail || "Erro ao arquivar tarefa",
+                message: errorMessage,
                 severity: "error",
             });
         }
@@ -788,9 +802,105 @@ export default function Projects() {
                 severity: "success",
             });
         } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao excluir tarefa";
             setSnackbar({
                 open: true,
-                message: error.response?.data?.detail || "Erro ao excluir tarefa",
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleQuickAssignee = async (userId: number) => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.updateCard(selectedProject.id, String(selectedCard.id), {
+                assignee_ids: [userId],
+            });
+            setQuickAssigneeDialogOpen(false);
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Responsável atribuído com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao atribuir responsável";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleQuickDate = async (date: string) => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            // Convert YYYY-MM-DD to ISO format with time
+            const isoDate = new Date(date + "T00:00:00Z").toISOString();
+
+            await cardService.updateCard(selectedProject.id, String(selectedCard.id), {
+                due_date: isoDate,
+                title: selectedCard.title,
+                description: selectedCard.description,
+                priority: selectedCard.priority,
+                assignee_ids: selectedCard.assignees.map((a) => a.id),
+            });
+            setQuickDateDialogOpen(false);
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Data alterada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            const errorMessage = typeof error.response?.data?.detail === 'string'
+                ? error.response.data.detail
+                : "Erro ao alterar data";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        }
+    };
+
+    const handleSaveEditTask = async (data: {
+        title: string;
+        description: string;
+        priority: CardType["priority"];
+        assignee_ids: number[];
+        due_date?: string;
+    }) => {
+        if (!selectedCard || !selectedProject) return;
+
+        try {
+            await cardService.updateCard(selectedProject.id, String(selectedCard.id), data);
+            setEditTaskDialogOpen(false);
+            // Reload board to show updated data
+            loadProjectBoard(selectedProject.id);
+            setSnackbar({
+                open: true,
+                message: "Tarefa atualizada com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            let errorMessage = "Erro ao atualizar tarefa";
+            if (error.response?.data?.detail) {
+                errorMessage = typeof error.response.data.detail === 'string'
+                    ? error.response.data.detail
+                    : "Erro ao atualizar tarefa";
+            }
+            setSnackbar({
+                open: true,
+                message: errorMessage,
                 severity: "error",
             });
         }
@@ -1232,18 +1342,24 @@ export default function Projects() {
                     onArquivar={handleArchiveCard}
                     onAdicionarResponsavel={() => {
                         handleCloseCardMenu();
-                        handleEditCard();
+                        setTimeout(() => {
+                            setQuickAssigneeDialogOpen(true);
+                        }, 100);
                     }}
                     onAlterarData={() => {
                         handleCloseCardMenu();
-                        handleEditCard();
+                        setTimeout(() => {
+                            setQuickDateDialogOpen(true);
+                        }, 100);
                     }}
                     onExcluir={handleDeleteCard}
                     onMoverParaColuna={(columnId) => {
                         if (selectedCard && selectedProject) {
-                            cardService.updateCard(selectedProject.id, String(selectedCard.id), {
-                                column_id: columnId,
-                            }).then(() => {
+                            // Find the last position in the target column
+                            const targetColumn = columns.find(col => col.id === columnId);
+                            const newPosition = targetColumn ? targetColumn.cards.length : 0;
+
+                            cardService.moveCard(selectedProject.id, String(selectedCard.id), columnId, newPosition).then(() => {
                                 handleCloseCardMenu();
                                 loadProjectBoard(selectedProject.id);
                                 setSnackbar({
@@ -1252,9 +1368,12 @@ export default function Projects() {
                                     severity: "success",
                                 });
                             }).catch((error: any) => {
+                                const errorMessage = typeof error.response?.data?.detail === 'string'
+                                    ? error.response.data.detail
+                                    : "Erro ao mover tarefa";
                                 setSnackbar({
                                     open: true,
-                                    message: error.response?.data?.detail || "Erro ao mover tarefa",
+                                    message: errorMessage,
                                     severity: "error",
                                 });
                             });
@@ -1262,6 +1381,33 @@ export default function Projects() {
                     }}
                     columns={columns}
                     currentColumnId={selectedCard.column_id}
+                />
+            )}
+
+            {selectedCard && (
+                <EditTask
+                    open={editTaskDialogOpen}
+                    onClose={() => setEditTaskDialogOpen(false)}
+                    onSave={handleSaveEditTask}
+                    card={selectedCard}
+                />
+            )}
+
+            {selectedCard && (
+                <QuickAssigneeDialog
+                    open={quickAssigneeDialogOpen}
+                    onClose={() => setQuickAssigneeDialogOpen(false)}
+                    onSave={handleQuickAssignee}
+                    currentAssigneeId={selectedCard.assignees[0]?.id}
+                />
+            )}
+
+            {selectedCard && (
+                <QuickDateDialog
+                    open={quickDateDialogOpen}
+                    onClose={() => setQuickDateDialogOpen(false)}
+                    onSave={handleQuickDate}
+                    currentDate={selectedCard.due_date}
                 />
             )}
 

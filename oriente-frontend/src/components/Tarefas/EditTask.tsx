@@ -10,17 +10,14 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    Chip,
     Box,
     CircularProgress,
     Typography,
-    Autocomplete,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import type { Card, User, Tag } from "../../types";
+import type { Card, User } from "../../types";
 import { CardPriority } from "../../types";
 import userService from "../../services/userService";
-import cardService from "../../services/cardService";
 
 type EditTaskProps = {
     open: boolean;
@@ -30,11 +27,9 @@ type EditTaskProps = {
         description: string;
         priority: CardPriority;
         assignee_ids: number[];
-        tag_ids: number[];
         due_date?: string;
     }) => void;
     card: Card;
-    projectId: number;
 };
 
 const priorities = [
@@ -49,16 +44,12 @@ export default function EditTask({
     onClose,
     onSave,
     card,
-    projectId,
 }: EditTaskProps) {
     const [title, setTitle] = useState(card.title);
     const [description, setDescription] = useState(card.description);
     const [priority, setPriority] = useState<CardPriority>(card.priority);
     const [assignees, setAssignees] = useState<number[]>(
         card.assignees.map((a) => a.id)
-    );
-    const [selectedTags, setSelectedTags] = useState<number[]>(
-        card.tags.map((t) => t.id)
     );
     const [dueDate, setDueDate] = useState(
         card.due_date ? card.due_date.split("T")[0] : ""
@@ -68,20 +59,14 @@ export default function EditTask({
     const [users, setUsers] = useState<User[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
 
-    // Tags
-    const [tags, setTags] = useState<Tag[]>([]);
-    const [loadingTags, setLoadingTags] = useState(false);
-
     useEffect(() => {
         if (open) {
             loadUsers();
-            loadTags();
             // Reset to card values when opening
             setTitle(card.title);
             setDescription(card.description);
             setPriority(card.priority);
             setAssignees(card.assignees.map((a) => a.id));
-            setSelectedTags(card.tags.map((t) => t.id));
             setDueDate(card.due_date ? card.due_date.split("T")[0] : "");
         }
     }, [open, card]);
@@ -101,18 +86,6 @@ export default function EditTask({
         }
     };
 
-    const loadTags = async () => {
-        try {
-            setLoadingTags(true);
-            const projectTags = await cardService.getProjectTags(projectId);
-            setTags(projectTags);
-        } catch (error) {
-            console.error("Failed to load tags:", error);
-        } finally {
-            setLoadingTags(false);
-        }
-    };
-
     const handleSave = () => {
         if (title.trim()) {
             const data: any = {
@@ -120,7 +93,6 @@ export default function EditTask({
                 description: description.trim(),
                 priority,
                 assignee_ids: assignees,
-                tag_ids: selectedTags,
             };
 
             // Only include due_date if it has a value
@@ -213,7 +185,7 @@ export default function EditTask({
                                             {selected.map((value) => {
                                                 const user = users.find((u) => u.id === value);
                                                 return user ? (
-                                                    <Chip key={value} label={user.name} size="small" />
+                                                    <Typography key={value} variant="body2">{user.name}</Typography>
                                                 ) : null;
                                             })}
                                         </Box>
@@ -242,43 +214,6 @@ export default function EditTask({
                                     )}
                                 </Select>
                             </FormControl>
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <Autocomplete
-                                multiple
-                                options={tags}
-                                loading={loadingTags}
-                                value={tags.filter((tag) => selectedTags.includes(tag.id))}
-                                onChange={(_, newValue) => {
-                                    setSelectedTags(newValue.map((tag) => tag.id));
-                                }}
-                                getOptionLabel={(option) => option.name}
-                                renderTags={(value, getTagProps) =>
-                                    value.map((option, index) => {
-                                        const { key, ...tagProps } = getTagProps({ index });
-                                        return (
-                                            <Chip
-                                                key={key}
-                                                label={option.name}
-                                                size="small"
-                                                sx={{
-                                                    backgroundColor: option.color,
-                                                    color: "#fff",
-                                                }}
-                                                {...tagProps}
-                                            />
-                                        );
-                                    })
-                                }
-                                renderInput={(params) => (
-                                    <TextField
-                                        {...params}
-                                        label="Tags"
-                                        placeholder="Selecione tags"
-                                    />
-                                )}
-                            />
                         </Grid>
                     </Grid>
                 </Box>

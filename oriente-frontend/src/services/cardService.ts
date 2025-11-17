@@ -7,6 +7,7 @@ import type {
     CardHistoryListResponse,
     CardUpdateRequest,
     CardStatusUpdateRequest,
+    CardMoveRequest,
     Tag,
     TagCreateRequest,
 } from "../types";
@@ -168,6 +169,28 @@ const cardService = {
         const payload: CardStatusUpdateRequest = { status };
         const response = await api.patch<Card>(
             `/api/projects/${projectId}/cards/${cardId}/status`,
+            payload
+        );
+        return response.data;
+    },
+
+    /**
+     * Move um card para outra coluna
+     * @param projectId - ID do projeto
+     * @param cardId - ID do card
+     * @param columnId - ID da coluna de destino
+     * @param newPosition - Nova posição na coluna
+     * @returns Card movido
+     */
+    async moveCard(
+        projectId: number,
+        cardId: string,
+        columnId: number,
+        newPosition: number
+    ): Promise<Card> {
+        const payload: CardMoveRequest = { column_id: columnId, new_position: newPosition };
+        const response = await api.patch<Card>(
+            `/api/projects/${projectId}/cards/${cardId}/move`,
             payload
         );
         return response.data;
