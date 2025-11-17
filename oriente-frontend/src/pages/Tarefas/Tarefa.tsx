@@ -333,7 +333,10 @@ export default function Tarefa() {
     };
 
     const handleEditar = () => {
-        setEditTaskDialogOpen(true);
+        setMenuAnchorEl(null);
+        setTimeout(() => {
+            setEditTaskDialogOpen(true);
+        }, 100);
     };
 
     const handleSaveEdit = async (data: {
@@ -417,13 +420,19 @@ export default function Tarefa() {
     };
 
     const handleAdicionarResponsavel = () => {
-        // This functionality is integrated in the edit dialog
-        handleEditar();
+        // Close menu first, then open edit dialog
+        setMenuAnchorEl(null);
+        setTimeout(() => {
+            setEditTaskDialogOpen(true);
+        }, 100);
     };
 
     const handleAlterarData = () => {
-        // This functionality is integrated in the edit dialog
-        handleEditar();
+        // Close menu first, then open edit dialog
+        setMenuAnchorEl(null);
+        setTimeout(() => {
+            setEditTaskDialogOpen(true);
+        }, 100);
     };
 
     const handleExcluir = () => {

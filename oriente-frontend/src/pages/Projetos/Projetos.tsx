@@ -49,6 +49,7 @@ import EditColumnDialog from "../../components/Projetos/EditColumnDialog";
 import DeleteColumnDialog from "../../components/Projetos/DeleteColumnDialog";
 import ColumnOptionsMenu from "../../components/Projetos/ColumnOptionsMenu";
 import CreateTask from "../../components/Tarefas/CreateTask";
+import Opcoes from "../../components/Tarefas/Opcoes";
 import type {
     Card as CardType,
     KanbanColumn,
@@ -1130,6 +1131,7 @@ export default function Projects() {
                                                 key={card.id}
                                                 task={card}
                                                 onClickTask={handleClickTask}
+                                                onOpenMenu={handleOpenCardMenu}
                                             />
                                         ))}
                                     </DroppableColumn>
@@ -1219,6 +1221,49 @@ export default function Projects() {
                 columns={columns}
                 projectId={selectedProject?.id}
             />
+
+            {selectedCard && selectedProject && (
+                <Opcoes
+                    anchorEl={cardMenuAnchorEl}
+                    open={Boolean(cardMenuAnchorEl)}
+                    onClose={handleCloseCardMenu}
+                    onEditar={handleEditCard}
+                    onDuplicar={handleDuplicateCard}
+                    onArquivar={handleArchiveCard}
+                    onAdicionarResponsavel={() => {
+                        handleCloseCardMenu();
+                        handleEditCard();
+                    }}
+                    onAlterarData={() => {
+                        handleCloseCardMenu();
+                        handleEditCard();
+                    }}
+                    onExcluir={handleDeleteCard}
+                    onMoverParaColuna={(columnId) => {
+                        if (selectedCard && selectedProject) {
+                            cardService.updateCard(selectedProject.id, String(selectedCard.id), {
+                                column_id: columnId,
+                            }).then(() => {
+                                handleCloseCardMenu();
+                                loadProjectBoard(selectedProject.id);
+                                setSnackbar({
+                                    open: true,
+                                    message: "Tarefa movida com sucesso!",
+                                    severity: "success",
+                                });
+                            }).catch((error: any) => {
+                                setSnackbar({
+                                    open: true,
+                                    message: error.response?.data?.detail || "Erro ao mover tarefa",
+                                    severity: "error",
+                                });
+                            });
+                        }
+                    }}
+                    columns={columns}
+                    currentColumnId={selectedCard.column_id}
+                />
+            )}
 
             <EditColumnDialog
                 open={editColumnDialogOpen}

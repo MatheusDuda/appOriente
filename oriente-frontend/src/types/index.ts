@@ -336,6 +336,7 @@ export interface CardUpdateRequest {
     due_date?: string;
     assignee_ids?: number[];
     tag_ids?: number[];
+    column_id?: number;
 }
 
 export interface CardStatusUpdateRequest {
