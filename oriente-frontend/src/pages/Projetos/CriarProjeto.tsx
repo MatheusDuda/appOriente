@@ -19,19 +19,21 @@ import Grid from "@mui/material/Grid";
 import { ArrowBackOutlined, SaveOutlined } from "@mui/icons-material";
 import projectService from "../../services/projectService";
 import teamService from "../../services/teamService";
-import type { TeamListItem } from "../../types";
+import userService from "../../services/userService";
+import type { TeamListItem, User } from "../../types";
 
 export default function CriarProjeto() {
     const navigate = useNavigate();
     const [nome, setNome] = useState("");
     const [descricao, setDescricao] = useState("");
     const [teamId, setTeamId] = useState<number | "">("");
-    const [memberNames, setMemberNames] = useState<string[]>([]);
-    const [memberInput, setMemberInput] = useState("");
+    const [memberIds, setMemberIds] = useState<number[]>([]);
 
-    // Teams data
+    // Teams and Users data
     const [teams, setTeams] = useState<TeamListItem[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [loadingTeams, setLoadingTeams] = useState(true);
+    const [loadingUsers, setLoadingUsers] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // Error handling
@@ -47,6 +49,7 @@ export default function CriarProjeto() {
 
     useEffect(() => {
         loadTeams();
+        loadUsers();
     }, []);
 
     const loadTeams = async () => {
@@ -67,22 +70,23 @@ export default function CriarProjeto() {
         }
     };
 
-    const handleAddMember = () => {
-        const trimmedName = memberInput.trim();
-        if (trimmedName && !memberNames.includes(trimmedName)) {
-            setMemberNames([...memberNames, trimmedName]);
-            setMemberInput("");
-        }
-    };
-
-    const handleRemoveMember = (name: string) => {
-        setMemberNames(memberNames.filter((m) => m !== name));
-    };
-
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            handleAddMember();
+    const loadUsers = async () => {
+        try {
+            setLoadingUsers(true);
+            const response = await userService.getUsers(0, 100);
+            // Filter only active users
+            const activeUsers = response.users.filter((user) => user.status === "ACTIVE");
+            console.log("Usuários ativos carregados:", activeUsers);
+            setUsers(activeUsers);
+        } catch (error) {
+            console.error("Erro ao carregar usuários:", error);
+            setSnackbar({
+                open: true,
+                message: "Erro ao carregar usuários",
+                severity: "error",
+            });
+        } finally {
+            setLoadingUsers(false);
         }
     };
 
@@ -96,7 +100,12 @@ export default function CriarProjeto() {
             return;
         }
 
-        console.log("Criando projeto:", { nome, descricao, team_id: teamId, member_names: memberNames });
+        // Convert member IDs to names
+        const selectedMemberNames = memberIds
+            .map((id) => users.find((u) => u.id === id)?.name)
+            .filter((name) => name !== undefined) as string[];
+
+        console.log("Criando projeto:", { nome, descricao, team_id: teamId, member_ids: memberIds, member_names: selectedMemberNames });
 
         try {
             setSaving(true);
@@ -104,7 +113,7 @@ export default function CriarProjeto() {
                 name: nome,
                 description: descricao,
                 team_id: teamId,
-                member_names: memberNames,
+                member_names: selectedMemberNames,
             });
 
             setSnackbar({
@@ -222,43 +231,43 @@ export default function CriarProjeto() {
                     </Grid>
 
                     <Grid size={{ xs: 12 }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                            Membros do Projeto (Opcional)
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary", mb: 2, display: "block" }}>
-                            Digite os nomes dos membros e pressione Enter para adicionar
-                        </Typography>
-                        <TextField
-                            fullWidth
-                            label="Nome do Membro"
-                            value={memberInput}
-                            onChange={(e) => setMemberInput(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Ex: João Silva"
-                            helperText="Pressione Enter para adicionar"
-                        />
+                        <FormControl fullWidth disabled={loadingUsers}>
+                            <InputLabel>Membros do Projeto (Opcional)</InputLabel>
+                            <Select
+                                multiple
+                                value={memberIds}
+                                label="Membros do Projeto (Opcional)"
+                                onChange={(e) => setMemberIds(e.target.value as number[])}
+                                renderValue={(selected) => (
+                                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                        {selected.map((value) => {
+                                            const user = users.find((u) => u.id === value);
+                                            return user ? (
+                                                <Chip key={value} label={user.name} size="small" />
+                                            ) : null;
+                                        })}
+                                    </Box>
+                                )}
+                            >
+                                {loadingUsers ? (
+                                    <MenuItem disabled>
+                                        <CircularProgress size={20} />
+                                    </MenuItem>
+                                ) : (
+                                    users.map((user) => (
+                                        <MenuItem key={user.id} value={user.id}>
+                                            <Box>
+                                                <Typography variant="body2">{user.name}</Typography>
+                                                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                                    {user.email}
+                                                </Typography>
+                                            </Box>
+                                        </MenuItem>
+                                    ))
+                                )}
+                            </Select>
+                        </FormControl>
                     </Grid>
-
-                    {memberNames.length > 0 && (
-                        <Grid size={{ xs: 12 }}>
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                    Membros Adicionados ({memberNames.length})
-                                </Typography>
-                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                    {memberNames.map((name) => (
-                                        <Chip
-                                            key={name}
-                                            label={name}
-                                            onDelete={() => handleRemoveMember(name)}
-                                            color="primary"
-                                            variant="outlined"
-                                        />
-                                    ))}
-                                </Box>
-                            </Box>
-                        </Grid>
-                    )}
                 </Grid>
 
                 <Box sx={{ display: "flex", gap: 2, mt: 4, justifyContent: "flex-end" }}>
