@@ -21,6 +21,7 @@ import {
     MoreVertOutlined,
     FolderOutlined,
     ArrowDropDown,
+    EditOutlined,
 } from "@mui/icons-material";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
@@ -46,6 +47,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import NewColumnDialog from "../../components/Projetos/NewColumnDialog";
 import EditColumnDialog from "../../components/Projetos/EditColumnDialog";
+import EditProjectDialog from "../../components/Projetos/EditProjectDialog";
 import DeleteColumnDialog from "../../components/Projetos/DeleteColumnDialog";
 import ColumnOptionsMenu from "../../components/Projetos/ColumnOptionsMenu";
 import CreateTask from "../../components/Tarefas/CreateTask";
@@ -57,6 +59,7 @@ import type {
     Card as CardType,
     KanbanColumn,
     ProjectSummary,
+    Project,
 } from "../../types";
 import { CardPriority } from "../../types";
 import projectService from "../../services/projectService";
@@ -286,6 +289,11 @@ export default function Projects() {
     const [quickAssigneeDialogOpen, setQuickAssigneeDialogOpen] = useState(false);
     const [quickDateDialogOpen, setQuickDateDialogOpen] = useState(false);
 
+    // Edit project dialog states
+    const [editProjectDialogOpen, setEditProjectDialogOpen] = useState(false);
+    const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [savingProject, setSavingProject] = useState(false);
+
     // Loading states
     const [loadingProjects, setLoadingProjects] = useState(true);
     const [loadingBoard, setLoadingBoard] = useState(false);
@@ -472,6 +480,77 @@ export default function Projects() {
         handleCloseMenu();
         // Navigate to the project URL
         navigate(`/projetos/${project.id}`);
+    };
+
+    const handleOpenEditProject = async () => {
+        if (!selectedProject) return;
+
+        try {
+            // Carrega os dados completos do projeto
+            const fullProject = await projectService.getProjectById(selectedProject.id);
+            setEditingProject(fullProject);
+            handleCloseMenu();
+            setEditProjectDialogOpen(true);
+        } catch (error: any) {
+            console.error("Erro ao carregar projeto para edição:", error);
+            setSnackbar({
+                open: true,
+                message: "Erro ao carregar dados do projeto",
+                severity: "error",
+            });
+        }
+    };
+
+    const handleSaveEditProject = async (data: {
+        name: string;
+        description: string;
+        member_names: string[];
+    }) => {
+        if (!selectedProject) return;
+
+        try {
+            setSavingProject(true);
+            const updatedProject = await projectService.updateProject(selectedProject.id, data);
+
+            // Atualiza a lista de projetos
+            setProjects(
+                projects.map((p) =>
+                    p.id === selectedProject.id
+                        ? {
+                            ...p,
+                            name: updatedProject.name,
+                            description: updatedProject.description,
+                        }
+                        : p
+                )
+            );
+
+            // Atualiza o projeto selecionado
+            setSelectedProject({
+                ...selectedProject,
+                name: updatedProject.name,
+                description: updatedProject.description,
+            });
+
+            setEditProjectDialogOpen(false);
+            setSnackbar({
+                open: true,
+                message: "Projeto atualizado com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            console.error("Erro ao atualizar projeto:", error);
+            const errorMessage =
+                error?.response?.data?.detail ||
+                "Erro ao atualizar projeto";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        } finally {
+            setSavingProject(false);
+        }
     };
 
     const handleAddColumn = async (title: string, color?: string) => {
@@ -1108,7 +1187,7 @@ export default function Projects() {
                                 {selectedProject?.name || "Selecione um projeto"}
                             </Typography>
                             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                Quadro de Tarefas
+                                {selectedProject?.description || "Quadro de Tarefas"}
                             </Typography>
                         </Box>
                         <IconButton
@@ -1154,6 +1233,20 @@ export default function Projects() {
                         {project.name}
                     </MenuItem>
                 ))}
+                {selectedProject && (
+                    <>
+                        <MenuItem divider={true} />
+                        <MenuItem
+                            onClick={handleOpenEditProject}
+                        >
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <EditOutlined fontSize="small" />
+                                Editar Projeto
+                            </Box>
+                        </MenuItem>
+                    </>
+                )}
+                <MenuItem divider={true} />
                 <MenuItem
                     onClick={() => {
                         handleCloseMenu();
@@ -1408,6 +1501,19 @@ export default function Projects() {
                     onClose={() => setQuickDateDialogOpen(false)}
                     onSave={handleQuickDate}
                     currentDate={selectedCard.due_date}
+                />
+            )}
+
+            {editingProject && (
+                <EditProjectDialog
+                    open={editProjectDialogOpen}
+                    onClose={() => {
+                        setEditProjectDialogOpen(false);
+                        setEditingProject(null);
+                    }}
+                    onSave={handleSaveEditProject}
+                    project={editingProject}
+                    isSaving={savingProject}
                 />
             )}
 
