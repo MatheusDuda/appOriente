@@ -6,7 +6,7 @@ pydantic==2.10.5
 pydantic-settings==2.10.0
 
 # Banco de dados
-sqlalchemy==2.0.23
+sqlalchemy==2.0.36
 psycopg2-binary==2.9.9
 alembic==1.13.1
 
