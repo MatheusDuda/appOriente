@@ -9,7 +9,7 @@ from app.core.database import Base, get_db
 from main import app
 from app.models.user import User, UserRole
 from app.models.team import Team, TeamStatus
-from app.core.security import get_password_hash
+from app.core.security import hash_password
 
 # Configurar banco de teste em memória
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_teams.db"
@@ -52,7 +52,7 @@ def admin_user(db_session):
     user = User(
         name="Admin Teste",
         email="admin@test.com",
-        password=get_password_hash("admin123"),
+        password_hash=hash_password("admin123"),
         role=UserRole.ADMIN
     )
     db_session.add(user)
@@ -67,7 +67,7 @@ def regular_user(db_session):
     user = User(
         name="User Teste",
         email="user@test.com",
-        password=get_password_hash("user123"),
+        password_hash=hash_password("user123"),
         role=UserRole.USER
     )
     db_session.add(user)
@@ -82,7 +82,7 @@ def another_user(db_session):
     user = User(
         name="Outro User",
         email="outro@test.com",
-        password=get_password_hash("outro123"),
+        password_hash=hash_password("outro123"),
         role=UserRole.USER
     )
     db_session.add(user)
