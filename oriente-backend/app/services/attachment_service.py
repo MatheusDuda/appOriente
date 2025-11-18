@@ -10,6 +10,7 @@ from app.models.attachment import Attachment
 from app.models.Card import Card
 from app.core.config import settings
 from app.services.project_service import ProjectService
+from app.services.cloudinary_service import cloudinary_service
 
 
 def _get_allowed_extensions() -> set:
@@ -62,40 +63,81 @@ def _sanitize_filename(filename: str) -> str:
 
 def _save_file(file: UploadFile, card_id: int) -> tuple[str, str, int]:
     """
-    Salva arquivo físico no disco
+    Salva arquivo no Cloudinary (produção) ou disco local (desenvolvimento)
 
     Returns:
-        tuple: (file_path, mime_type, file_size)
+        tuple: (file_path_or_url, mime_type, file_size)
     """
-    # Criar pasta do card se não existir
-    card_dir = os.path.join(settings.UPLOAD_DIR, "cards", str(card_id))
-    os.makedirs(card_dir, exist_ok=True)
-
-    # Gerar nome único para o arquivo
+    # Gerar nome único e seguro para o arquivo
     safe_filename = _sanitize_filename(file.filename)
     unique_filename = f"{uuid.uuid4()}_{safe_filename}"
-    file_path = os.path.join(card_dir, unique_filename)
-
-    # Salvar arquivo
-    try:
-        with open(file_path, "wb") as buffer:
-            content = file.file.read()
-            buffer.write(content)
-            file_size = len(content)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao salvar arquivo: {str(e)}"
-        )
 
     # Detectar MIME type
     mime_type = file.content_type or mimetypes.guess_type(safe_filename)[0] or "application/octet-stream"
 
-    return file_path, mime_type, file_size
+    # Ler conteúdo do arquivo
+    try:
+        content = file.file.read()
+        file_size = len(content)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao ler arquivo: {str(e)}"
+        )
+
+    # Se Cloudinary estiver configurado, usar armazenamento em nuvem
+    if settings.use_cloudinary:
+        try:
+            folder = f"oriente/cards/{card_id}"
+            result = cloudinary_service.upload_from_bytes(
+                file_bytes=content,
+                filename=safe_filename,
+                folder=folder
+            )
+            # Retornar URL do Cloudinary como "file_path"
+            return result["url"], mime_type, file_size
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao enviar arquivo para Cloudinary: {str(e)}"
+            )
+
+    # Caso contrário, salvar localmente (desenvolvimento)
+    else:
+        # Criar pasta do card se não existir
+        card_dir = os.path.join(settings.UPLOAD_DIR, "cards", str(card_id))
+        os.makedirs(card_dir, exist_ok=True)
+
+        file_path = os.path.join(card_dir, unique_filename)
+
+        # Salvar arquivo
+        try:
+            with open(file_path, "wb") as buffer:
+                buffer.write(content)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao salvar arquivo: {str(e)}"
+            )
+
+        return file_path, mime_type, file_size
 
 
 def _delete_file(file_path: str) -> bool:
-    """Remove arquivo físico do disco"""
+    """
+    Remove arquivo físico do disco (desenvolvimento)
+
+    Em produção com Cloudinary, file_path é uma URL e não precisa ser deletado
+    localmente (o arquivo está no Cloudinary)
+
+    Nota: Para deletar do Cloudinary também, seria necessário armazenar o public_id
+    no banco de dados. Por enquanto, mantemos os arquivos no Cloudinary.
+    """
+    # Se for uma URL do Cloudinary, não tentar deletar localmente
+    if file_path.startswith("http://") or file_path.startswith("https://"):
+        return True  # Arquivo está no Cloudinary, não precisa deletar localmente
+
+    # Deletar arquivo local
     try:
         if os.path.exists(file_path):
             os.remove(file_path)

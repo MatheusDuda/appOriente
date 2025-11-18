@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from typing import List
 import os
@@ -86,8 +86,7 @@ def list_card_attachments(
 
 
 @router.get(
-    "/{project_id}/cards/{card_id}/attachments/{attachment_id}",
-    response_class=FileResponse
+    "/{project_id}/cards/{card_id}/attachments/{attachment_id}"
 )
 def download_attachment(
     project_id: int,
@@ -103,6 +102,9 @@ def download_attachment(
     - **card_id**: ID do card
     - **attachment_id**: ID do anexo
 
+    Em produção (Cloudinary), redireciona para URL do arquivo
+    Em desenvolvimento (local), retorna o arquivo diretamente
+
     Permissões: Membros do projeto podem fazer download
     """
     attachment = attachment_service.get_attachment(
@@ -113,6 +115,11 @@ def download_attachment(
         user_id=current_user.id
     )
 
+    # Se file_path for uma URL (Cloudinary), redirecionar
+    if attachment.file_path.startswith("http://") or attachment.file_path.startswith("https://"):
+        return RedirectResponse(url=attachment.file_path)
+
+    # Caso contrário, servir arquivo local
     # Verificar se arquivo físico existe
     if not os.path.exists(attachment.file_path):
         raise HTTPException(
