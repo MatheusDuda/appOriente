@@ -1,0 +1,54 @@
+# Ambientes virtuais Python
+venv/
+env/
+ENV/
+.venv/
+
+# Arquivos Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Arquivos de configuração local
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Uploads locais (usaremos Cloudinary em produção)
+uploads/
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentação
+*.md
+!README.md
+
+# Outros
+*.bak
+*.tmp
+.cache/
