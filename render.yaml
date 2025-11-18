@@ -6,7 +6,7 @@ services:
     plan: free
     branch: main
     rootDirectory: oriente-backend
-    buildCommand: "./build.sh"
+    buildCommand: "./oriente-backend/build.sh"
     startCommand: "gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"
     envVars:
       - key: PYTHON_VERSION
