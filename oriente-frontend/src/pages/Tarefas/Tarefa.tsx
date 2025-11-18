@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     Box,
@@ -45,6 +46,7 @@ import Opcoes from "../../components/Tarefas/Opcoes";
 import EditTask from "../../components/Tarefas/EditTask";
 import QuickAssigneeDialog from "../../components/Tarefas/QuickAssigneeDialog";
 import QuickDateDialog from "../../components/Tarefas/QuickDateDialog";
+import CommentInput from "../../components/Tarefas/CommentInput";
 import cardService from "../../services/cardService";
 import projectService from "../../services/projectService";
 import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn } from "../../types";
@@ -116,6 +118,44 @@ const getHistoryActionColor = (action: CardHistoryAction): string => {
     }
 };
 
+/**
+ * Renderizar comentário com menções coloridas
+ * Encontra @username e colore com cor primária
+ */
+const renderCommentWithMentions = (content: string): ReactNode[] => {
+    // Regex para encontrar @username (sem espaços)
+    const mentionPattern = /@([\w.-]+)/g;
+    const parts: ReactNode[] = [];
+    let lastIndex = 0;
+
+    const matches = content.matchAll(mentionPattern);
+
+    for (const match of matches) {
+        // Adicionar texto antes da menção
+        if (match.index! > lastIndex) {
+            parts.push(content.substring(lastIndex, match.index));
+        }
+
+        const fullMention = match[0]; // Inclui o @
+
+        // Colorir a menção
+        parts.push(
+            <span key={`mention-${parts.length}`} style={{ color: "#1976d2", fontWeight: 500 }}>
+                {fullMention}
+            </span>
+        );
+
+        lastIndex = match.index! + fullMention.length;
+    }
+
+    // Adicionar texto restante
+    if (lastIndex < content.length) {
+        parts.push(content.substring(lastIndex));
+    }
+
+    return parts;
+};
+
 export default function Tarefa() {
     const navigate = useNavigate();
     const { projectId, cardId } = useParams<{ projectId: string; cardId: string }>();
@@ -134,7 +174,6 @@ export default function Tarefa() {
     const [submittingComment, setSubmittingComment] = useState(false);
 
     // Estados de UI
-    const [novoComentario, setNovoComentario] = useState("");
     const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
     const [commentMenuAnchorEl, setCommentMenuAnchorEl] = useState<HTMLElement | null>(null);
     const [selectedCommentId, setSelectedCommentId] = useState<number | null>(null);
@@ -233,13 +272,12 @@ export default function Tarefa() {
         navigate(`/projetos/${projectId}`);
     };
 
-    const handleEnviarComentario = async () => {
-        if (!novoComentario.trim()) return;
+    const handleEnviarComentario = async (content: string) => {
+        if (!content.trim()) return;
 
         try {
             setSubmittingComment(true);
-            await cardService.createComment(Number(projectId), cardId!, novoComentario);
-            setNovoComentario("");
+            await cardService.createComment(Number(projectId), cardId!, content);
             setSnackbar({
                 open: true,
                 message: "Comentário adicionado com sucesso!",
@@ -730,7 +768,7 @@ export default function Tarefa() {
                                                             </Box>
                                                         ) : (
                                                             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                                                {comment.content}
+                                                                {renderCommentWithMentions(comment.content)}
                                                             </Typography>
                                                         )}
                                                     </Box>
@@ -744,22 +782,12 @@ export default function Tarefa() {
 
                                 <Box sx={{ display: "flex", gap: 2 }}>
                                     <Avatar sx={{ bgcolor: "primary.main" }}>U</Avatar>
-                                    <TextField
-                                        fullWidth
-                                        multiline
-                                        rows={2}
-                                        placeholder="Adicione um comentário..."
-                                        value={novoComentario}
-                                        onChange={(e) => setNovoComentario(e.target.value)}
+                                    <CommentInput
+                                        onSubmit={handleEnviarComentario}
                                         disabled={submittingComment}
+                                        projectId={Number(projectId)}
+                                        placeholder="Escrever um comentário... (use @nome para mencionar)"
                                     />
-                                    <IconButton
-                                        color="primary"
-                                        onClick={handleEnviarComentario}
-                                        disabled={!novoComentario.trim() || submittingComment}
-                                    >
-                                        {submittingComment ? <CircularProgress size={24} /> : <SendOutlined />}
-                                    </IconButton>
                                 </Box>
                             </>
                         )}

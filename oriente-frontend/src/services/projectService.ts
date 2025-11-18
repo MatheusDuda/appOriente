@@ -11,6 +11,7 @@ import type {
     Card,
     CardCreateRequest,
     CardMoveRequest,
+    User,
 } from "../types";
 
 /**
@@ -219,6 +220,22 @@ const projectService = {
         const response = await api.patch<Card>(
             `/api/projects/${projectId}/cards/${cardId}/move`,
             data
+        );
+        return response.data;
+    },
+
+    // ========================================
+    // MEMBROS
+    // ========================================
+
+    /**
+     * Lista membros do projeto para mencionar em comentários
+     * @param projectId - ID do projeto
+     * @returns Lista de usuários membros do projeto
+     */
+    async getProjectMembers(projectId: number): Promise<User[]> {
+        const response = await api.get<User[]>(
+            `/api/projects/${projectId}/members`
         );
         return response.data;
     },
