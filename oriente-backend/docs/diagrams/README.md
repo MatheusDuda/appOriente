@@ -31,11 +31,27 @@ Mostra a arquitetura de classes Python, incluindo:
 - Analisar dependências entre classes
 - Revisar a arquitetura do projeto
 
+### 3. [Diagrama UML Detalhado (Classes + Métodos)](./uml-detailed-diagram.md)
+Complementa o diagrama UML básico adicionando:
+- **Todos os métodos existentes** nas classes
+- Properties computadas (ex: `Chat.is_individual`)
+- Métodos de lógica de negócio (ex: `Chat.get_participant_ids()`)
+- Classes utilitárias (ex: `ChatHelpers`)
+- Documentação sobre o propósito de cada método
+
+**Use quando precisar:**
+- Entender a **lógica de negócio** implementada
+- Ver quais operações cada classe suporta
+- Identificar métodos disponíveis antes de implementar novos
+- Documentar comportamentos além da estrutura de dados
+
 ## 🔄 Regenerando os Diagramas
 
-Os diagramas são gerados automaticamente a partir do código usando o script `generate_diagrams.py`.
+### Diagramas Automáticos (ER e UML)
 
-### Como executar
+Os diagramas **ER** e **UML** são gerados automaticamente a partir do código usando o script `generate_diagrams.py`.
+
+#### Como executar
 
 ```bash
 # A partir da raiz do projeto backend
@@ -45,7 +61,7 @@ cd oriente-backend
 python generate_diagrams.py
 ```
 
-### Quando regenerar
+#### Quando regenerar
 
 Execute o script sempre que fizer alterações em:
 - Models SQLAlchemy (`app/models/*.py`)
@@ -60,6 +76,16 @@ python generate_diagrams.py
 git add docs/diagrams/
 git commit -m "docs: Atualiza diagramas após mudanças nos models"
 ```
+
+### Diagrama UML Detalhado (Manual)
+
+O diagrama **UML Detalhado** (`uml-detailed-diagram.md`) é mantido **manualmente** e deve ser atualizado quando:
+- Novos métodos são adicionados às classes
+- Métodos existentes mudam de assinatura
+- Novas classes utilitárias são criadas
+- Properties computadas são adicionadas ou modificadas
+
+**⚠️ Importante:** Este diagrama NÃO é atualizado pelo script automático. Mantenha-o sincronizado com o código!
 
 ## 👀 Como Visualizar os Diagramas
 
@@ -98,14 +124,15 @@ mmdc -i docs/diagrams/uml-diagram.md -o docs/diagrams/uml-diagram.svg
 
 ```
 oriente-backend/
-├── generate_diagrams.py      # Script de geração automática
+├── generate_diagrams.py           # Script de geração automática
 ├── docs/
 │   └── diagrams/
-│       ├── README.md          # Este arquivo
-│       ├── er-diagram.md      # Diagrama Entity-Relationship
-│       └── uml-diagram.md     # Diagrama UML de Classes
+│       ├── README.md              # Este arquivo
+│       ├── er-diagram.md          # Diagrama Entity-Relationship (automático)
+│       ├── uml-diagram.md         # Diagrama UML de Classes (automático)
+│       └── uml-detailed-diagram.md # Diagrama UML com Métodos (manual)
 └── app/
-    └── models/                # Models analisados pelo script
+    └── models/                    # Models analisados pelo script
         ├── user.py
         ├── team.py
         ├── project.py
