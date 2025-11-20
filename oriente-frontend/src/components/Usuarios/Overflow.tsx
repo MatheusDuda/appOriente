@@ -3,13 +3,13 @@ import { IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/mat
 import {
     MoreVertOutlined,
     EditOutlined,
-    LockOutlined,
+    SecurityOutlined,
     PersonOffOutlined,
     CheckCircleOutlined,
 } from "@mui/icons-material";
 import EditarUsuario from "./EditarUsuario";
+import EditarPermissaoDialog from "./EditarPermissaoDialog";
 import ConfirmDialog from "../Common/ConfirmDialog";
-import { useNavigate } from "react-router-dom";
 import userService from "../../services/userService";
 import type { User } from "../../types";
 
@@ -18,6 +18,7 @@ type UsuarioOverflowProps = {
     onUserUpdated: () => void;
     onUserDeleted: () => void;
     onUserActivated: () => void;
+    onPermissionUpdated?: () => void;
 };
 
 export default function UsuarioOverflow({
@@ -25,10 +26,11 @@ export default function UsuarioOverflow({
     onUserUpdated,
     onUserDeleted,
     onUserActivated,
+    onPermissionUpdated,
 }: UsuarioOverflowProps) {
-    const navigate = useNavigate();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [editarOpen, setEditarOpen] = useState(false);
+    const [editarPermissaoOpen, setEditarPermissaoOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
@@ -58,9 +60,9 @@ export default function UsuarioOverflow({
         setEditarOpen(true);
     };
 
-    const handleGerenciarPermissoes = () => {
+    const handleEditarPermissao = () => {
         handleClose();
-        navigate("/permissoes", { state: { usuario: user } });
+        setEditarPermissaoOpen(true);
     };
 
     const handleToggleStatus = () => {
@@ -137,11 +139,11 @@ export default function UsuarioOverflow({
                     </ListItemIcon>
                     <ListItemText>Editar</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleGerenciarPermissoes}>
+                <MenuItem onClick={handleEditarPermissao}>
                     <ListItemIcon>
-                        <LockOutlined fontSize="small" />
+                        <SecurityOutlined fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText>Gerenciar Permissões</ListItemText>
+                    <ListItemText>Editar Função</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={handleToggleStatus} disabled={loading}>
                     <ListItemIcon>
@@ -160,6 +162,15 @@ export default function UsuarioOverflow({
                 onClose={() => setEditarOpen(false)}
                 user={user}
                 onUserUpdated={onUserUpdated}
+            />
+
+            <EditarPermissaoDialog
+                open={editarPermissaoOpen}
+                onClose={() => setEditarPermissaoOpen(false)}
+                user={user}
+                onPermissionUpdated={() => {
+                    onPermissionUpdated?.();
+                }}
             />
 
             <ConfirmDialog
