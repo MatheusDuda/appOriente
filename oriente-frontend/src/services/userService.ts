@@ -5,6 +5,7 @@ import type {
     UserUpdateRequest,
     UserChangePasswordRequest,
     ApiResponse,
+    UserRole,
 } from "../types";
 
 /**
@@ -79,6 +80,18 @@ const userService = {
      */
     async activateUser(userId: number): Promise<User> {
         const response = await api.patch<ApiResponse<User>>(`/api/users/${userId}/activate`);
+        return response.data.data;
+    },
+
+    /**
+     * Atualiza a role/função de um usuário
+     * Apenas ADMIN pode realizar esta ação
+     * @param userId - ID do usuário
+     * @param role - Nova role (ADMIN, USER, MANAGER)
+     * @returns Usuário com role atualizada
+     */
+    async updateUserRole(userId: number, role: UserRole): Promise<User> {
+        const response = await api.patch<ApiResponse<User>>(`/api/users/${userId}/role`, { role });
         return response.data.data;
     },
 };

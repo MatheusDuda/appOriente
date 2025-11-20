@@ -19,6 +19,7 @@ class UserRole(str, enum.Enum):
     """
     ADMIN = "ADMIN"           # Administrador do sistema
     USER = "USER"             # Usuário padrão
+    MANAGER = "MANAGER"       # Gerenciador/Supervisor
 
 
 class User(Base):

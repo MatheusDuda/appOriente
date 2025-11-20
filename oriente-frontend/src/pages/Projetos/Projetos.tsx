@@ -61,7 +61,7 @@ import type {
     ProjectSummary,
     Project,
 } from "../../types";
-import { CardPriority } from "../../types";
+import { CardPriority } from "@/types";
 import projectService from "../../services/projectService";
 import cardService from "../../services/cardService";
 
@@ -1233,19 +1233,18 @@ export default function Projects() {
                         {project.name}
                     </MenuItem>
                 ))}
-                {selectedProject && (
-                    <>
-                        <MenuItem divider={true} />
-                        <MenuItem
-                            onClick={handleOpenEditProject}
-                        >
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <EditOutlined fontSize="small" />
-                                Editar Projeto
-                            </Box>
-                        </MenuItem>
-                    </>
-                )}
+                {selectedProject && [
+                    <MenuItem key="divider-edit" divider={true} />,
+                    <MenuItem
+                        key="edit-project"
+                        onClick={handleOpenEditProject}
+                    >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <EditOutlined fontSize="small" />
+                            Editar Projeto
+                        </Box>
+                    </MenuItem>
+                ]}
                 <MenuItem divider={true} />
                 <MenuItem
                     onClick={() => {

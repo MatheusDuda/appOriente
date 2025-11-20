@@ -29,11 +29,27 @@ import userService from "../../services/userService";
 import type { User, UserRole, UserStatus } from "../../types";
 
 const getRoleLabel = (role: UserRole): string => {
-    return role === "ADMIN" ? "Administrador" : "Usuário";
+    switch (role) {
+        case "ADMIN":
+            return "Administrador";
+        case "MANAGER":
+            return "Gerenciador";
+        case "USER":
+        default:
+            return "Usuário";
+    }
 };
 
 const getRoleColor = (role: UserRole) => {
-    return role === "ADMIN" ? "error" : "primary";
+    switch (role) {
+        case "ADMIN":
+            return "error";
+        case "MANAGER":
+            return "warning";
+        case "USER":
+        default:
+            return "primary";
+    }
 };
 
 const getStatusLabel = (status: UserStatus): string => {
@@ -126,6 +142,15 @@ export default function Usuarios() {
         setSnackbar({
             open: true,
             message: "Usuário reativado com sucesso!",
+            severity: "success",
+        });
+        loadUsers();
+    };
+
+    const handlePermissionUpdated = () => {
+        setSnackbar({
+            open: true,
+            message: "Função do usuário alterada com sucesso!",
             severity: "success",
         });
         loadUsers();
@@ -240,6 +265,7 @@ export default function Usuarios() {
                                                     onUserUpdated={handleUserUpdated}
                                                     onUserDeleted={handleUserDeleted}
                                                     onUserActivated={handleUserActivated}
+                                                    onPermissionUpdated={handlePermissionUpdated}
                                                 />
                                             </TableCell>
                                         </TableRow>
