@@ -11,7 +11,6 @@ export interface Card {
     updated_at: string;
     due_date?: string;
     assignees?: CardAssignee[];
-    tags?: CardTag[];
 }
 
 export interface CardAssignee {
@@ -19,12 +18,6 @@ export interface CardAssignee {
     name: string;
     email: string;
     avatar?: string;
-}
-
-export interface CardTag {
-    id: number;
-    name: string;
-    color: string;
 }
 
 // Tipos para Comentários
@@ -63,8 +56,6 @@ export enum CardHistoryAction {
     COMMENT_DELETED = "COMMENT_DELETED",
     ASSIGNEE_ADDED = "ASSIGNEE_ADDED",
     ASSIGNEE_REMOVED = "ASSIGNEE_REMOVED",
-    TAG_ADDED = "TAG_ADDED",
-    TAG_REMOVED = "TAG_REMOVED",
 }
 
 export interface CardHistoryUser {

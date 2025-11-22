@@ -22,6 +22,7 @@ import {
     FolderOutlined,
     ArrowDropDown,
     EditOutlined,
+    DeleteOutlined,
 } from "@mui/icons-material";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
@@ -49,6 +50,7 @@ import NewColumnDialog from "../../components/Projetos/NewColumnDialog";
 import EditColumnDialog from "../../components/Projetos/EditColumnDialog";
 import EditProjectDialog from "../../components/Projetos/EditProjectDialog";
 import DeleteColumnDialog from "../../components/Projetos/DeleteColumnDialog";
+import DeleteProjectDialog from "../../components/Projetos/DeleteProjectDialog";
 import ColumnOptionsMenu from "../../components/Projetos/ColumnOptionsMenu";
 import CreateTask from "../../components/Tarefas/CreateTask";
 import EditTask from "../../components/Tarefas/EditTask";
@@ -293,6 +295,10 @@ export default function Projects() {
     const [editProjectDialogOpen, setEditProjectDialogOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [savingProject, setSavingProject] = useState(false);
+
+    // Delete project dialog states
+    const [deleteProjectDialogOpen, setDeleteProjectDialogOpen] = useState(false);
+    const [deletingProject, setDeletingProject] = useState(false);
 
     // Loading states
     const [loadingProjects, setLoadingProjects] = useState(true);
@@ -550,6 +556,53 @@ export default function Projects() {
             });
         } finally {
             setSavingProject(false);
+        }
+    };
+
+    const handleOpenDeleteProject = () => {
+        if (!selectedProject) return;
+        handleCloseMenu();
+        setDeleteProjectDialogOpen(true);
+    };
+
+    const handleConfirmDeleteProject = async () => {
+        if (!selectedProject) return;
+
+        try {
+            setDeletingProject(true);
+            await projectService.deleteProject(selectedProject.id);
+
+            // Remove o projeto da lista
+            const updatedProjects = projects.filter((p) => p.id !== selectedProject.id);
+            setProjects(updatedProjects);
+
+            // Se houver outros projetos, seleciona o primeiro
+            if (updatedProjects.length > 0) {
+                setSelectedProject(updatedProjects[0]);
+            } else {
+                // Se não houver projetos, limpa a seleção
+                setSelectedProject(null);
+                setColumns([]);
+            }
+
+            setDeleteProjectDialogOpen(false);
+            setSnackbar({
+                open: true,
+                message: "Projeto excluído com sucesso!",
+                severity: "success",
+            });
+        } catch (error: any) {
+            console.error("Erro ao excluir projeto:", error);
+            const errorMessage =
+                error?.response?.data?.detail ||
+                "Erro ao excluir projeto. Apenas o owner pode excluir o projeto.";
+            setSnackbar({
+                open: true,
+                message: errorMessage,
+                severity: "error",
+            });
+        } finally {
+            setDeletingProject(false);
         }
     };
 
@@ -820,7 +873,6 @@ export default function Projects() {
                 column_id: selectedCard.column_id,
                 due_date: selectedCard.due_date,
                 assignee_ids: selectedCard.assignees.map((a) => a.id),
-                tag_ids: selectedCard.tags.map((t) => t.id),
             });
             handleCloseCardMenu();
             // Reload board to show duplicated card
@@ -1243,6 +1295,15 @@ export default function Projects() {
                             <EditOutlined fontSize="small" />
                             Editar Projeto
                         </Box>
+                    </MenuItem>,
+                    <MenuItem
+                        key="delete-project"
+                        onClick={handleOpenDeleteProject}
+                    >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "error.main" }}>
+                            <DeleteOutlined fontSize="small" />
+                            Excluir Projeto
+                        </Box>
                     </MenuItem>
                 ]}
                 <MenuItem divider={true} />
@@ -1515,6 +1576,14 @@ export default function Projects() {
                     isSaving={savingProject}
                 />
             )}
+
+            <DeleteProjectDialog
+                open={deleteProjectDialogOpen}
+                onClose={() => setDeleteProjectDialogOpen(false)}
+                onConfirm={handleConfirmDeleteProject}
+                projectName={selectedProject?.name ?? ""}
+                isDeleting={deletingProject}
+            />
 
             <EditColumnDialog
                 open={editColumnDialogOpen}

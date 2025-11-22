@@ -22,7 +22,6 @@ from app.models import (
     Project,
     KanbanColumn,
     Card,
-    Tag,
     Comment,
     CommentMention,
     CommentAudit,

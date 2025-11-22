@@ -169,8 +169,6 @@ class CardHistoryService:
             CardHistoryAction.COMMENT_DELETED: f"Comentário removido por {user_name}",
             CardHistoryAction.ASSIGNEE_ADDED: f"Usuário atribuído por {user_name}",
             CardHistoryAction.ASSIGNEE_REMOVED: f"Usuário removido por {user_name}",
-            CardHistoryAction.TAG_ADDED: f"Tag adicionada por {user_name}",
-            CardHistoryAction.TAG_REMOVED: f"Tag removida por {user_name}",
         }
 
         base_message = messages.get(action, f"Ação realizada por {user_name}")
@@ -196,11 +194,5 @@ class CardHistoryService:
 
             elif action == CardHistoryAction.ASSIGNEE_REMOVED and "assignee_name" in details:
                 base_message += f": {details['assignee_name']}"
-
-            elif action == CardHistoryAction.TAG_ADDED and "tag_name" in details:
-                base_message += f": {details['tag_name']}"
-
-            elif action == CardHistoryAction.TAG_REMOVED and "tag_name" in details:
-                base_message += f": {details['tag_name']}"
 
         return base_message

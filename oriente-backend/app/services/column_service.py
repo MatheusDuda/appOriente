@@ -71,8 +71,7 @@ class ColumnService:
         columns = db.query(KanbanColumn).filter(
             KanbanColumn.project_id == project_id
         ).options(
-            joinedload(KanbanColumn.cards).joinedload(Card.assignees),
-            joinedload(KanbanColumn.cards).joinedload(Card.tags)
+            joinedload(KanbanColumn.cards).joinedload(Card.assignees)
         ).order_by(KanbanColumn.position).all()
 
         return columns

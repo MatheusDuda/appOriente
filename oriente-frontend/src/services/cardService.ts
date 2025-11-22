@@ -8,8 +8,6 @@ import type {
     CardUpdateRequest,
     CardStatusUpdateRequest,
     CardMoveRequest,
-    Tag,
-    TagCreateRequest,
 } from "../types";
 
 /**
@@ -192,32 +190,6 @@ const cardService = {
         const response = await api.patch<Card>(
             `/api/projects/${projectId}/cards/${cardId}/move`,
             payload
-        );
-        return response.data;
-    },
-
-    /**
-     * Lista todas as tags de um projeto
-     * @param projectId - ID do projeto
-     * @returns Lista de tags
-     */
-    async getProjectTags(projectId: number): Promise<Tag[]> {
-        const response = await api.get<Tag[]>(
-            `/api/projects/${projectId}/tags`
-        );
-        return response.data;
-    },
-
-    /**
-     * Cria uma nova tag no projeto
-     * @param projectId - ID do projeto
-     * @param data - Dados da tag
-     * @returns Tag criada
-     */
-    async createTag(projectId: number, data: TagCreateRequest): Promise<Tag> {
-        const response = await api.post<Tag>(
-            `/api/projects/${projectId}/tags`,
-            data
         );
         return response.data;
     },

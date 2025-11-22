@@ -29,7 +29,6 @@ type CriarTarefaProps = {
         prioridade: "Alta" | "Média" | "Baixa";
         responsaveis: number[];
         dataLimite?: string;
-        tags: string[];
         colunaId: string;
     }) => void;
     colunas: { id: string; titulo: string }[];
@@ -52,19 +51,6 @@ export default function CriarTarefa({ open, onClose, onSave, colunas }: CriarTar
     const [responsaveis, setResponsaveis] = useState<number[]>([]);
     const [dataLimite, setDataLimite] = useState("");
     const [colunaId, setColunaId] = useState(colunas[0]?.id || "");
-    const [tagInput, setTagInput] = useState("");
-    const [tags, setTags] = useState<string[]>([]);
-
-    const handleAddTag = () => {
-        if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-            setTags([...tags, tagInput.trim()]);
-            setTagInput("");
-        }
-    };
-
-    const handleRemoveTag = (tag: string) => {
-        setTags(tags.filter((t) => t !== tag));
-    };
 
     const handleSave = () => {
         if (titulo.trim()) {
@@ -74,7 +60,6 @@ export default function CriarTarefa({ open, onClose, onSave, colunas }: CriarTar
                 prioridade,
                 responsaveis,
                 dataLimite: dataLimite || undefined,
-                tags,
                 colunaId,
             });
             handleClose();
@@ -88,8 +73,6 @@ export default function CriarTarefa({ open, onClose, onSave, colunas }: CriarTar
         setResponsaveis([]);
         setDataLimite("");
         setColunaId(colunas[0]?.id || "");
-        setTags([]);
-        setTagInput("");
         onClose();
     };
 
@@ -194,35 +177,6 @@ export default function CriarTarefa({ open, onClose, onSave, colunas }: CriarTar
                                 onChange={(e) => setDataLimite(e.target.value)}
                                 InputLabelProps={{ shrink: true }}
                             />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Tags"
-                                value={tagInput}
-                                onChange={(e) => setTagInput(e.target.value)}
-                                placeholder="Digite uma tag e pressione Enter"
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        handleAddTag();
-                                    }
-                                }}
-                                helperText="Pressione Enter para adicionar uma tag"
-                            />
-                            {tags.length > 0 && (
-                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                                    {tags.map((tag) => (
-                                        <Chip
-                                            key={tag}
-                                            label={tag}
-                                            onDelete={() => handleRemoveTag(tag)}
-                                            size="small"
-                                        />
-                                    ))}
-                                </Box>
-                            )}
                         </Grid>
                     </Grid>
                 </Box>

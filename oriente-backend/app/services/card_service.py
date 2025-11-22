@@ -4,14 +4,14 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 
-from app.models.Card import Card, Tag, CardStatus, CardPriority
+from app.models.Card import Card, CardStatus, CardPriority
 from app.models.Column import KanbanColumn
 from app.models.user import User
 from app.models.project import Project
 from app.models.card_history import CardHistoryAction
 from app.schemas.Card import (
     CardCreate, CardUpdate, CardMove, CardStatusUpdate,
-    CardFilters, TagCreate, TagUpdate
+    CardFilters
 )
 from app.services.project_service import ProjectService
 from app.services.card_history_service import CardHistoryService
@@ -74,10 +74,6 @@ class CardService:
         if card_data.assignee_ids:
             CardService._add_assignees(db, card, card_data.assignee_ids, project_id)
 
-        # Adicionar tags
-        if card_data.tag_ids:
-            CardService._add_tags(db, card, card_data.tag_ids, project_id)
-
         db.commit()
         db.refresh(card)
 
@@ -112,7 +108,6 @@ class CardService:
 
         query = db.query(Card).options(
             joinedload(Card.assignees),
-            joinedload(Card.tags),
             joinedload(Card.created_by),
             joinedload(Card.column)
         ).filter(Card.project_id == project_id)
@@ -130,9 +125,6 @@ class CardService:
 
             if filters.assignee_id:
                 query = query.join(Card.assignees).filter(User.id == filters.assignee_id)
-
-            if filters.tag_id:
-                query = query.join(Card.tags).filter(Tag.id == filters.tag_id)
 
             if filters.due_soon:
                 # Tarefas com vencimento nos próximos 7 dias
@@ -158,7 +150,6 @@ class CardService:
 
         card = db.query(Card).options(
             joinedload(Card.assignees),
-            joinedload(Card.tags),
             joinedload(Card.created_by),
             joinedload(Card.column)
         ).filter(Card.id == card_id).first()
@@ -197,10 +188,9 @@ class CardService:
         old_description = card.description
         old_due_date = card.due_date
         old_assignee_ids = {u.id for u in card.assignees}
-        old_tag_ids = {t.id for t in card.tags}
 
         # Atualizar campos básicos
-        update_data = card_data.model_dump(exclude_unset=True, exclude={'assignee_ids', 'tag_ids'})
+        update_data = card_data.model_dump(exclude_unset=True, exclude={'assignee_ids'})
         for field, value in update_data.items():
             setattr(card, field, value)
 
@@ -232,23 +222,6 @@ class CardService:
                 CardService._add_assignees(db, card, card_data.assignee_ids, card.project_id)
 
             assignees_changed = bool(added_assignees or removed_assignees)
-
-        # Atualizar tags se informado
-        tags_changed = False
-        if card_data.tag_ids is not None:
-            new_tag_ids = set(card_data.tag_ids) if card_data.tag_ids else set()
-
-            # Detectar quais foram adicionadas e removidas
-            added_tags = new_tag_ids - old_tag_ids
-            removed_tags = old_tag_ids - new_tag_ids
-
-            # Remover tags atuais
-            card.tags.clear()
-            # Adicionar novas tags
-            if card_data.tag_ids:
-                CardService._add_tags(db, card, card_data.tag_ids, card.project_id)
-
-            tags_changed = bool(added_tags or removed_tags)
 
         db.commit()
         db.refresh(card)
@@ -298,41 +271,6 @@ class CardService:
                     )
 
             if added_assignees or removed_assignees:
-                db.commit()
-
-        # Registrar mudanças de tags (individualmente)
-        if card_data.tag_ids is not None:
-            new_tag_ids = set(card_data.tag_ids) if card_data.tag_ids else set()
-            added_tags = new_tag_ids - old_tag_ids
-            removed_tags = old_tag_ids - new_tag_ids
-
-            # Criar histórico para cada tag adicionada
-            for tag_id in added_tags:
-                tag = db.query(Tag).filter(Tag.id == tag_id).first()
-                if tag:
-                    CardHistoryService.create_history_entry(
-                        db=db,
-                        action=CardHistoryAction.TAG_ADDED,
-                        card_id=card.id,
-                        project_id=card.project_id,
-                        user_id=user_id,
-                        details={"tag_name": tag.name, "tag_id": tag_id, "tag_color": tag.color}
-                    )
-
-            # Criar histórico para cada tag removida
-            for tag_id in removed_tags:
-                tag = db.query(Tag).filter(Tag.id == tag_id).first()
-                if tag:
-                    CardHistoryService.create_history_entry(
-                        db=db,
-                        action=CardHistoryAction.TAG_REMOVED,
-                        card_id=card.id,
-                        project_id=card.project_id,
-                        user_id=user_id,
-                        details={"tag_name": tag.name, "tag_id": tag_id, "tag_color": tag.color}
-                    )
-
-            if added_tags or removed_tags:
                 db.commit()
 
         return card
@@ -461,59 +399,6 @@ class CardService:
 
         return card
 
-    # === MÉTODOS PARA TAGS ===
-
-    @staticmethod
-    def create_tag(db: Session, project_id: int, tag_data: TagCreate, user_id: int) -> Tag:
-        """Criar nova tag no projeto"""
-
-        # Verificar permissão
-        if not ProjectService.user_can_edit_project(db, project_id, user_id):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sem permissão para criar tags neste projeto"
-            )
-
-        # Verificar se tag já existe no projeto
-        existing_tag = db.query(Tag).filter(
-            and_(
-                Tag.project_id == project_id,
-                Tag.name == tag_data.name
-            )
-        ).first()
-
-        if existing_tag:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tag com este nome já existe no projeto"
-            )
-
-        tag = Tag(
-            name=tag_data.name,
-            color=tag_data.color,
-            project_id=project_id
-        )
-
-        db.add(tag)
-        db.commit()
-        db.refresh(tag)
-
-        return tag
-
-    @staticmethod
-    def get_project_tags(db: Session, project_id: int, user_id: int) -> List[Tag]:
-        """Buscar todas as tags de um projeto"""
-
-        # Verificar acesso ao projeto
-        if not ProjectService.user_can_access_project(db, project_id, user_id):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sem permissão para acessar este projeto"
-            )
-
-        tags = db.query(Tag).filter(Tag.project_id == project_id).all()
-        return tags
-
     # === MÉTODOS AUXILIARES ===
 
     @staticmethod
@@ -542,26 +427,6 @@ class CardService:
         # Por enquanto, permite qualquer usuário válido ser atribuído
 
         card.assignees.extend(users)
-
-    @staticmethod
-    def _add_tags(db: Session, card: Card, tag_ids: List[int], project_id: int):
-        """Adicionar tags ao card"""
-
-        # Verificar se tags pertencem ao projeto
-        valid_tags = db.query(Tag).filter(
-            and_(
-                Tag.id.in_(tag_ids),
-                Tag.project_id == project_id
-            )
-        ).all()
-
-        if len(valid_tags) != len(tag_ids):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Algumas tags não pertencem ao projeto"
-            )
-
-        card.tags.extend(valid_tags)
 
     @staticmethod
     def _adjust_positions_on_insert(db: Session, column_id: int, insert_position: int):

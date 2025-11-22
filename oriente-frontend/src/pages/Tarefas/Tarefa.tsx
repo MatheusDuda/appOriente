@@ -90,8 +90,6 @@ const getHistoryActionLabel = (action: CardHistoryAction): string => {
         COMMENT_DELETED: "Comentário deletado",
         ASSIGNEE_ADDED: "Responsável adicionado",
         ASSIGNEE_REMOVED: "Responsável removido",
-        TAG_ADDED: "Tag adicionada",
-        TAG_REMOVED: "Tag removida",
     };
     return labels[action] || action;
 };
@@ -110,9 +108,6 @@ const getHistoryActionColor = (action: CardHistoryAction): string => {
         case "ASSIGNEE_ADDED":
         case "ASSIGNEE_REMOVED":
             return "#00bcd4";
-        case "TAG_ADDED":
-        case "TAG_REMOVED":
-            return "#795548";
         default:
             return "#757575";
     }
@@ -424,7 +419,6 @@ export default function Tarefa() {
                 column_id: card.column_id,
                 due_date: card.due_date,
                 assignee_ids: card.assignees.map((a) => a.id),
-                tag_ids: card.tags.map((t) => t.id),
             });
             setSnackbar({
                 open: true,
@@ -980,25 +974,6 @@ export default function Tarefa() {
 
                                 <Divider sx={{ mb: 3 }} />
                             </>
-                        )}
-
-                        {/* Tags */}
-                        {card.tags && card.tags.length > 0 && (
-                            <Box>
-                                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, mb: 1, display: "block" }}>
-                                    TAGS
-                                </Typography>
-                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                    {card.tags.map((tag) => (
-                                        <Chip
-                                            key={tag.id}
-                                            label={tag.name}
-                                            size="small"
-                                            sx={{ bgcolor: tag.color, color: "white" }}
-                                        />
-                                    ))}
-                                </Box>
-                            </Box>
                         )}
                     </Paper>
                 </Grid>

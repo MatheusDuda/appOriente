@@ -41,9 +41,29 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list:
-        """Converte CORS_ORIGINS de string para lista"""
+        """Converte CORS_ORIGINS de string para lista
+
+        Aceita três formatos:
+        - JSON array: '["*"]' ou '["http://localhost:5173"]'
+        - String separada por vírgula: "http://localhost:5173,http://localhost:3000"
+        - Wildcard simples: "*"
+        """
         if isinstance(self.CORS_ORIGINS, str):
-            return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+            # Caso especial: wildcard simples
+            if self.CORS_ORIGINS.strip() == "*":
+                return ["*"]
+
+            # Tentar parsear como JSON primeiro
+            try:
+                import json
+                parsed = json.loads(self.CORS_ORIGINS)
+                if isinstance(parsed, list):
+                    return parsed
+                # Se for string única do JSON, retornar como lista
+                return [str(parsed)]
+            except (json.JSONDecodeError, ValueError):
+                # Se não for JSON válido, tratar como string separada por vírgula
+                return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
         return self.CORS_ORIGINS
 
     @property
