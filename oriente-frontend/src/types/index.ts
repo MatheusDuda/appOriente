@@ -37,6 +37,7 @@ export interface User {
     status: UserStatus;
     created_at: string;
     updated_at: string;
+    teams?: TeamListItem[];
 }
 
 export interface UserUpdateRequest {
