@@ -38,6 +38,9 @@ export default function Dashboard() {
     // Buscar dados do usuário logado
     useEffect(() => {
         const fetchUserData = async () => {
+            const token = localStorage.getItem("auth_token");
+            if (!token) return;
+
             try {
                 const user = await authService.getCurrentUser();
                 setUserData(user);
@@ -51,6 +54,9 @@ export default function Dashboard() {
     // Buscar estatísticas e dados para gráficos
     useEffect(() => {
         const fetchStats = async () => {
+            const token = localStorage.getItem("auth_token");
+            if (!token) return;
+
             try {
                 setLoadingCharts(true);
 
