@@ -16,8 +16,6 @@ class CardHistoryAction(str, enum.Enum):
     COMMENT_DELETED = "COMMENT_DELETED"    # Comentário removido
     ASSIGNEE_ADDED = "ASSIGNEE_ADDED"      # Usuário atribuído
     ASSIGNEE_REMOVED = "ASSIGNEE_REMOVED"  # Usuário removido
-    TAG_ADDED = "TAG_ADDED"                # Tag adicionada
-    TAG_REMOVED = "TAG_REMOVED"            # Tag removida
 
 
 class CardHistory(Base):

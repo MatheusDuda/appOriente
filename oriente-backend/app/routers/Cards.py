@@ -8,7 +8,7 @@ from app.models.user import User
 from app.schemas.Card import (
     CardCreate, CardUpdate, CardMove, CardStatusUpdate, CardResponse,
     CardListResponse, CardWithColumn, CardFilters, CardPriorityEnum,
-    CardStatusEnum, TagCreate, TagUpdate, TagResponse
+    CardStatusEnum
 )
 from app.services.card_service import CardService
 
@@ -33,7 +33,6 @@ def create_card(
     - **due_date**: Data de vencimento (opcional)
     - **position**: Posição na coluna (opcional, padrão: última)
     - **assignee_ids**: IDs dos usuários atribuídos (opcional)
-    - **tag_ids**: IDs das tags (opcional)
 
     Permissões: Usuário deve ter permissão de edição no projeto
     """
@@ -48,7 +47,6 @@ def get_project_cards(
         priority: Optional[CardPriorityEnum] = Query(None, description="Filtrar por prioridade"),
         column_id: Optional[int] = Query(None, description="Filtrar por coluna"),
         assignee_id: Optional[int] = Query(None, description="Filtrar por usuário atribuído"),
-        tag_id: Optional[int] = Query(None, description="Filtrar por tag"),
         due_soon: Optional[bool] = Query(None, description="Tarefas com vencimento próximo"),
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
@@ -63,7 +61,6 @@ def get_project_cards(
     - **priority**: low, medium, high, urgent
     - **column_id**: ID da coluna específica
     - **assignee_id**: ID do usuário atribuído
-    - **tag_id**: ID da tag
     - **due_soon**: true para tarefas vencendo em 7 dias
 
     Retorna as tarefas ordenadas por coluna e posição.
@@ -74,7 +71,6 @@ def get_project_cards(
         priority=priority,
         column_id=column_id,
         assignee_id=assignee_id,
-        tag_id=tag_id,
         due_soon=due_soon
     )
 
@@ -95,7 +91,7 @@ def get_card(
     - **project_id**: ID do projeto
     - **card_id**: ID da tarefa
 
-    Inclui assignees, tags, criador e dados da coluna.
+    Inclui assignees, criador e dados da coluna.
     Permissões: Usuário deve ter acesso ao projeto
     """
     return CardService.get_card_by_id(db, card_id, current_user.id)
@@ -119,7 +115,6 @@ def update_card(
     - **priority**: Nova prioridade (opcional)
     - **due_date**: Nova data de vencimento (opcional)
     - **assignee_ids**: Novos usuários atribuídos (opcional, substitui todos)
-    - **tag_ids**: Novas tags (opcional, substitui todas)
 
     Permissões: Usuário deve ter permissão de edição no projeto
     """
@@ -192,43 +187,6 @@ def update_card_status(
     return CardService.update_card_status(db, card_id, status_data, current_user.id)
 
 
-# === ENDPOINTS DE TAGS ===
-
-@router.post("/{project_id}/tags", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
-def create_tag(
-        project_id: int,
-        tag_data: TagCreate,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user)
-):
-    """
-    Criar nova tag no projeto
-
-    - **project_id**: ID do projeto
-    - **name**: Nome da tag (obrigatório, único no projeto)
-    - **color**: Cor em hexadecimal (opcional, padrão: #6366f1)
-
-    Permissões: Usuário deve ter permissão de edição no projeto
-    """
-    return CardService.create_tag(db, project_id, tag_data, current_user.id)
-
-
-@router.get("/{project_id}/tags", response_model=List[TagResponse])
-def get_project_tags(
-        project_id: int,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user)
-):
-    """
-    Listar todas as tags do projeto
-
-    - **project_id**: ID do projeto
-
-    Permissões: Usuário deve ter acesso ao projeto
-    """
-    return CardService.get_project_tags(db, project_id, current_user.id)
-
-
 # === ENDPOINTS AUXILIARES ===
 
 @router.get("/{project_id}/cards/my-assignments", response_model=CardListResponse)
@@ -294,8 +252,7 @@ def get_board_view(
                     "priority": card.priority,
                     "position": card.position,
                     "due_date": card.due_date,
-                    "assignees": [{"id": u.id, "name": u.name} for u in card.assignees],
-                    "tags": [{"id": t.id, "name": t.name, "color": t.color} for t in card.tags]
+                    "assignees": [{"id": u.id, "name": u.name} for u in card.assignees]
                 }
                 for card in column.cards
                 if card.status == CardStatusEnum.ACTIVE

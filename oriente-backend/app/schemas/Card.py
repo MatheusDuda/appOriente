@@ -63,9 +63,8 @@ class CardCreate(CardBase):
     column_id: int = Field(..., description="ID da coluna onde criar a tarefa")
     position: Optional[int] = Field(None, ge=0, description="Posição na coluna (None = última)")
     assignee_ids: Optional[List[int]] = Field(default=None, description="IDs dos usuários atribuídos")
-    tag_ids: Optional[List[int]] = Field(default=None, description="IDs das tags")
 
-    @field_validator('assignee_ids', 'tag_ids', mode='before')
+    @field_validator('assignee_ids', mode='before')
     @classmethod
     def empty_list_to_none(cls, v):
         if v == [] or v is None:
@@ -79,7 +78,6 @@ class CardUpdate(BaseModel):
     priority: Optional[CardPriorityEnum] = Field(None)
     due_date: Optional[datetime] = Field(None)
     assignee_ids: Optional[List[int]] = Field(None)
-    tag_ids: Optional[List[int]] = Field(None)
 
 
 class CardMove(BaseModel):
@@ -102,15 +100,6 @@ class UserBasic(BaseModel):
         from_attributes = True
 
 
-class TagResponse(BaseModel):
-    id: int
-    name: str
-    color: str
-
-    class Config:
-        from_attributes = True
-
-
 class CardResponse(CardBase):
     id: int
     position: int
@@ -124,7 +113,6 @@ class CardResponse(CardBase):
     # Relationships
     created_by: Optional[UserBasic]
     assignees: List[UserBasic] = []
-    tags: List[TagResponse] = []
 
     class Config:
         from_attributes = True
@@ -171,22 +159,5 @@ class CardFilters(BaseModel):
     status: Optional[CardStatusEnum] = Field(None, description="Filtrar por status")
     priority: Optional[CardPriorityEnum] = Field(None, description="Filtrar por prioridade")
     assignee_id: Optional[int] = Field(None, description="Filtrar por usuário atribuído")
-    tag_id: Optional[int] = Field(None, description="Filtrar por tag")
     column_id: Optional[int] = Field(None, description="Filtrar por coluna")
     due_soon: Optional[bool] = Field(None, description="Tarefas com vencimento próximo")
-
-
-# === TAG SCHEMAS ===
-
-class TagBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=50, description="Nome da tag")
-    color: str = Field("#6366f1", pattern="^#[0-9A-Fa-f]{6}$", description="Cor em hexadecimal")
-
-
-class TagCreate(TagBase):
-    pass
-
-
-class TagUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=50)
-    color: Optional[str] = Field(None, pattern="^#[0-9A-Fa-f]{6}$")

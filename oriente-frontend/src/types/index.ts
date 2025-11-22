@@ -255,8 +255,6 @@ export enum CardHistoryAction {
     COMMENT_DELETED = "COMMENT_DELETED",
     ASSIGNEE_ADDED = "ASSIGNEE_ADDED",
     ASSIGNEE_REMOVED = "ASSIGNEE_REMOVED",
-    TAG_ADDED = "TAG_ADDED",
-    TAG_REMOVED = "TAG_REMOVED",
 }
 
 export interface CardHistoryUser {
@@ -294,12 +292,6 @@ export interface CardAssignee {
     email: string;
 }
 
-export interface CardTag {
-    id: number;
-    name: string;
-    color: string;
-}
-
 export interface Card {
     id: number;
     title: string;
@@ -313,7 +305,6 @@ export interface Card {
     created_at: string;
     updated_at: string;
     assignees: CardAssignee[];
-    tags: CardTag[];
 }
 
 export interface CardCreateRequest {
@@ -323,7 +314,6 @@ export interface CardCreateRequest {
     column_id: number;
     due_date?: string;
     assignee_ids?: number[];
-    tag_ids?: number[];
 }
 
 export interface CardMoveRequest {
@@ -337,7 +327,6 @@ export interface CardUpdateRequest {
     priority?: CardPriority;
     due_date?: string;
     assignee_ids?: number[];
-    tag_ids?: number[];
 }
 
 export interface CardMoveRequest {
@@ -347,18 +336,6 @@ export interface CardMoveRequest {
 
 export interface CardStatusUpdateRequest {
     status: "active" | "archived" | "deleted";
-}
-
-export interface TagCreateRequest {
-    name: string;
-    color?: string;
-}
-
-export interface Tag {
-    id: number;
-    name: string;
-    color: string;
-    project_id: number;
 }
 
 export interface ProjectBoard {
