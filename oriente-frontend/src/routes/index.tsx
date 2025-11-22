@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
+import { Box, CircularProgress } from "@mui/material";
 
 import Layout from "../components/Layout";
 import Login from "../pages/Login/Login";
@@ -30,7 +31,11 @@ function RequireAuth() {
     // Wait for auth to initialize before redirecting
     if (!isInitialized) {
         console.log("[RequireAuth] Aguardando inicialização da autenticação...");
-        return null; // or a loading spinner
+        return (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+                <CircularProgress />
+            </Box>
+        );
     }
 
     if (!isAuthenticated) {
@@ -52,7 +57,11 @@ function RedirectIfAuth() {
     // Wait for auth to initialize before redirecting
     if (!isInitialized) {
         console.log("[RedirectIfAuth] Aguardando inicialização da autenticação...");
-        return null; // or a loading spinner
+        return (
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+                <CircularProgress />
+            </Box>
+        );
     }
 
     if (isAuthenticated) {

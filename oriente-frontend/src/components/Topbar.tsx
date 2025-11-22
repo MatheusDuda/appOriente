@@ -29,6 +29,7 @@ import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../hooks/useNotifications";
 import type { NotificationType } from "../types/notifications";
 import { authService, type UserData } from "../services/authService";
+import { useAuth } from "../contexts/AuthContext";
 
 // Função para obter ícone e cor de fundo baseado no tipo
 const getNotificationStyle = (tipo: NotificationType) => {
@@ -90,6 +91,7 @@ type TopbarProps = {
 
 export default function Topbar({ sidebarOpen = true }: TopbarProps) {
     const navigate = useNavigate();
+    const { logout } = useAuth();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
@@ -102,6 +104,9 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
     // Buscar dados do usuário logado
     useEffect(() => {
         const fetchUserData = async () => {
+            const token = localStorage.getItem("auth_token");
+            if (!token) return;
+
             try {
                 const user = await authService.getCurrentUser();
                 setUserData(user);
@@ -132,8 +137,8 @@ export default function Topbar({ sidebarOpen = true }: TopbarProps) {
 
     const handleLogout = () => {
         handleCloseMenu();
-        localStorage.removeItem("auth_token");
-        navigate("/");
+        logout();
+        navigate("/", { replace: true });
     };
 
     // Buscar contador de não lidas ao montar o componente
