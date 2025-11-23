@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
+from app.schemas.comment_attachment import CommentAttachmentResponse
 
 
 # === BASE SCHEMAS ===
@@ -68,6 +69,9 @@ class CommentResponse(CommentBase):
 
     # Lista de menções no comentário
     mentions: List[CommentMentionResponse] = []
+
+    # Lista de anexos do comentário
+    attachments: List[CommentAttachmentResponse] = []
 
     # Permissões calculadas (adicionadas pelo service)
     can_edit: bool = False

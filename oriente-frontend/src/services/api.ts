@@ -14,9 +14,13 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Adicionar Content-Type apenas para requisições JSON (não blob/file downloads)
-        if (!config.responseType || config.responseType === 'json') {
-            config.headers['Content-Type'] = 'application/json';
+        // Não definir Content-Type se estiver enviando FormData (upload de arquivos)
+        // O axios vai definir automaticamente como multipart/form-data com o boundary correto
+        if (!(config.data instanceof FormData)) {
+            // Adicionar Content-Type apenas para requisições JSON (não blob/file downloads)
+            if (!config.responseType || config.responseType === 'json') {
+                config.headers['Content-Type'] = 'application/json';
+            }
         }
 
         return config;

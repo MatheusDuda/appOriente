@@ -18,6 +18,28 @@ export interface ChatMessageSender {
   email: string;
 }
 
+// Anexo de mensagem de chat
+export interface ChatMessageAttachment {
+  id: number;
+  filename: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  message_id: number;
+  uploaded_by_id: number | null;
+  created_at: string;
+  uploaded_by?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+export interface ChatMessageAttachmentListResponse {
+  attachments: ChatMessageAttachment[];
+  total: number;
+}
+
 // Mensagem de chat
 export interface ChatMessage {
   id: number;
@@ -31,6 +53,7 @@ export interface ChatMessage {
   sender?: ChatMessageSender;
   can_edit: boolean;
   can_delete: boolean;
+  attachments?: ChatMessageAttachment[];
 }
 
 // Preview da última mensagem

@@ -223,6 +223,23 @@ export interface CommentAuthor {
     email: string;
 }
 
+export interface CommentAttachment {
+    id: number;
+    filename: string;
+    file_path: string;
+    file_size: number;
+    mime_type: string;
+    comment_id: number;
+    uploaded_by_id: number | null;
+    created_at: string;
+    uploaded_by?: AttachmentUploader;
+}
+
+export interface CommentAttachmentListResponse {
+    attachments: CommentAttachment[];
+    total: number;
+}
+
 export interface Comment {
     id: number;
     content: string;
@@ -233,6 +250,7 @@ export interface Comment {
     user: CommentAuthor;
     can_edit: boolean;
     can_delete: boolean;
+    attachments?: CommentAttachment[];
 }
 
 export interface CommentCreate {
@@ -351,6 +369,43 @@ export interface ApiResponse<T> {
     success: boolean;
     message: string;
     data: T;
+}
+
+// ========================================
+// ATTACHMENT TYPES
+// ========================================
+
+export interface AttachmentUploader {
+    id: number;
+    name: string;
+    email: string;
+}
+
+export interface Attachment {
+    id: number;
+    filename: string;
+    file_path: string;
+    file_size: number;
+    mime_type: string;
+    card_id: number;
+    uploaded_by_id: number | null;
+    created_at: string;
+    uploaded_by?: AttachmentUploader;
+}
+
+export interface AttachmentListResponse {
+    attachments: Attachment[];
+    total: number;
+}
+
+export interface ProjectStorageInfo {
+    used_bytes: number;
+    used_mb: number;
+    quota_bytes: number;
+    quota_mb: number;
+    available_bytes: number;
+    available_mb: number;
+    usage_percentage: number;
 }
 
 // ========================================
