@@ -19,6 +19,8 @@ import {
 import { useChat } from "../../contexts/ChatContext";
 import type { Chat } from "../../types/chat";
 import { authService, type UserData } from "../../services/authService";
+import TaskCardPreview from "./TaskCardPreview";
+import { parseTaskLinks } from "../../utils/taskLinkParser";
 
 type AreaMensagensProps = {
   conversa: Chat;
@@ -89,6 +91,62 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // Renderiza o conteúdo da mensagem com detecção de links de tarefas
+  const renderMessageContent = (content: string) => {
+    const parsedMessage = parseTaskLinks(content);
+
+    if (!parsedMessage.hasTaskLinks) {
+      return (
+        <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+          {content}
+        </Typography>
+      );
+    }
+
+    // Se houver links, renderiza o texto e os cards
+    const segments: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    parsedMessage.taskLinks.forEach((link, index) => {
+      // Adiciona o texto antes do link
+      if (lastIndex < link.startIndex) {
+        const textBefore = content.substring(lastIndex, link.startIndex);
+        if (textBefore) {
+          segments.push(
+            <Typography key={`text-${index}`} variant="body2" sx={{ wordBreak: "break-word" }}>
+              {textBefore}
+            </Typography>
+          );
+        }
+      }
+
+      // Adiciona o card de preview
+      segments.push(
+        <TaskCardPreview
+          key={`card-${index}`}
+          projectId={link.projectId}
+          cardId={link.cardId}
+        />
+      );
+
+      lastIndex = link.endIndex;
+    });
+
+    // Adiciona o texto restante após o último link
+    if (lastIndex < content.length) {
+      const textAfter = content.substring(lastIndex);
+      if (textAfter) {
+        segments.push(
+          <Typography key="text-end" variant="body2" sx={{ wordBreak: "break-word" }}>
+            {textAfter}
+          </Typography>
+        );
+      }
+    }
+
+    return <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>{segments}</Box>;
   };
 
   return (
@@ -217,9 +275,7 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
                       },
                     }}
                   >
-                    <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                      {mensagem.content}
-                    </Typography>
+                    {renderMessageContent(mensagem.content)}
                     <Box
                       sx={{
                         display: "flex",

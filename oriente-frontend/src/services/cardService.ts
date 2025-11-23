@@ -196,3 +196,4 @@ const cardService = {
 };
 
 export default cardService;
+export { cardService };
