@@ -207,6 +207,8 @@ export default function ListaConversas({
                       )}
                     </Box>
                   }
+                  primaryTypographyProps={{ component: "div" }}
+                  secondaryTypographyProps={{ component: "div" }}
                 />
               </ListItemButton>
             </ListItem>

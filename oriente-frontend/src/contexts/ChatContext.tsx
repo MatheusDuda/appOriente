@@ -377,7 +377,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Carrega chats ao montar o componente
   useEffect(() => {
     loadChats();
-  }, [loadChats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Executa apenas uma vez no mount inicial
 
   const value = useMemo(
     () => ({
