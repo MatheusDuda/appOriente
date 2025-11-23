@@ -4,7 +4,6 @@ import {
     EditOutlined,
     DeleteOutlined,
     ContentCopyOutlined,
-    ArchiveOutlined,
     PersonAddOutlined,
     CalendarTodayOutlined,
     DriveFileMoveOutlined,
@@ -18,7 +17,6 @@ type OpcoesProps = {
     onClose: () => void;
     onEditar: () => void;
     onDuplicar: () => void;
-    onArquivar: () => void;
     onAdicionarResponsavel: () => void;
     onAlterarData: () => void;
     onExcluir: () => void;
@@ -33,7 +31,6 @@ export default function Opcoes({
     onClose,
     onEditar,
     onDuplicar,
-    onArquivar,
     onAdicionarResponsavel,
     onAlterarData,
     onExcluir,
@@ -144,18 +141,6 @@ export default function Opcoes({
             </MenuItem>
 
             <Divider sx={{ my: 0.5 }} />
-
-            <MenuItem
-                onClick={() => {
-                    onArquivar();
-                    onClose();
-                }}
-            >
-                <ListItemIcon>
-                    <ArchiveOutlined fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>Arquivar</ListItemText>
-            </MenuItem>
 
             <MenuItem
                 onClick={() => {
