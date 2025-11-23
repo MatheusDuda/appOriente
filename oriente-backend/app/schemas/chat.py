@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 from app.models.chat import ChatType
 
@@ -94,6 +94,9 @@ class ChatMessageResponse(ChatMessageBase):
 
     # Remetente (nested)
     sender: Optional[ChatMessageSender] = None
+
+    # Anexos (nested)
+    attachments: List[Any] = []
 
     # Permissões calculadas
     can_edit: bool = False

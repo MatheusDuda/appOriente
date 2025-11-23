@@ -41,15 +41,19 @@ import {
     HistoryOutlined,
     EditOutlined,
     DeleteOutlined,
+    AttachFileOutlined,
 } from "@mui/icons-material";
 import Opcoes from "../../components/Tarefas/Opcoes";
 import EditTask from "../../components/Tarefas/EditTask";
 import QuickAssigneeDialog from "../../components/Tarefas/QuickAssigneeDialog";
 import QuickDateDialog from "../../components/Tarefas/QuickDateDialog";
 import CommentInput from "../../components/Tarefas/CommentInput";
+import AttachmentDialog from "../../components/Tarefas/AttachmentDialog";
+import CommentAttachments from "../../components/Tarefas/CommentAttachments";
 import cardService from "../../services/cardService";
 import projectService from "../../services/projectService";
-import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn } from "../../types";
+import attachmentService from "../../services/attachmentService";
+import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn, Attachment } from "../../types";
 
 const getPrioridadeColor = (prioridade: Card["priority"]) => {
     switch (prioridade) {
@@ -161,12 +165,14 @@ export default function Tarefa() {
     const [history, setHistory] = useState<CardHistory[]>([]);
     const [historyPage, setHistoryPage] = useState(1);
     const [historyTotalPages, setHistoryTotalPages] = useState(1);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
 
     // Estados de loading
     const [loadingCard, setLoadingCard] = useState(true);
     const [loadingComments, setLoadingComments] = useState(true);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [submittingComment, setSubmittingComment] = useState(false);
+    const [loadingAttachments, setLoadingAttachments] = useState(true);
 
     // Estados de UI
     const [menuAnchorEl, setMenuAnchorEl] = useState<HTMLElement | null>(null);
@@ -180,6 +186,7 @@ export default function Tarefa() {
     const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
     const [quickAssigneeDialogOpen, setQuickAssigneeDialogOpen] = useState(false);
     const [quickDateDialogOpen, setQuickDateDialogOpen] = useState(false);
+    const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
     const [columns, setColumns] = useState<KanbanColumn[]>([]);
     const [snackbar, setSnackbar] = useState<{
         open: boolean;
@@ -198,6 +205,7 @@ export default function Tarefa() {
             loadComments();
             loadHistory(1);
             loadColumns();
+            loadAttachments();
         }
     }, [projectId, cardId]);
 
@@ -260,6 +268,23 @@ export default function Tarefa() {
             setColumns(boardData.board);
         } catch (error: any) {
             console.error("Erro ao carregar colunas:", error);
+        }
+    };
+
+    const loadAttachments = async () => {
+        try {
+            setLoadingAttachments(true);
+            const data = await attachmentService.getCardAttachments(Number(projectId), Number(cardId));
+            setAttachments(data.attachments);
+        } catch (error: any) {
+            console.error("Erro ao carregar anexos:", error);
+            setSnackbar({
+                open: true,
+                message: error.response?.data?.detail || "Erro ao carregar anexos",
+                severity: "error",
+            });
+        } finally {
+            setLoadingAttachments(false);
         }
     };
 
@@ -688,6 +713,53 @@ export default function Tarefa() {
                         </Typography>
                     </Paper>
 
+                    {/* Anexos */}
+                    <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <AttachFileOutlined fontSize="small" />
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                    Anexos ({attachments.length})
+                                </Typography>
+                            </Box>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<AttachFileOutlined />}
+                                onClick={() => setAttachmentDialogOpen(true)}
+                            >
+                                Gerenciar Anexos
+                            </Button>
+                        </Box>
+                        {loadingAttachments ? (
+                            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                                <CircularProgress size={24} />
+                            </Box>
+                        ) : attachments.length === 0 ? (
+                            <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                                Nenhum anexo ainda. Clique em "Gerenciar Anexos" para adicionar arquivos.
+                            </Typography>
+                        ) : (
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                                {attachments.map((attachment) => (
+                                    <Chip
+                                        key={attachment.id}
+                                        label={attachment.filename}
+                                        size="small"
+                                        icon={<AttachFileOutlined />}
+                                        onClick={() => {
+                                            attachmentService.downloadAttachment(
+                                                Number(projectId),
+                                                Number(cardId),
+                                                attachment.id
+                                            );
+                                        }}
+                                    />
+                                ))}
+                            </Box>
+                        )}
+                    </Paper>
+
                     {/* Comentários */}
                     <Paper sx={{ p: 3, borderRadius: 3, mb: 3 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
@@ -761,9 +833,25 @@ export default function Tarefa() {
                                                                 </Box>
                                                             </Box>
                                                         ) : (
-                                                            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                                                                {renderCommentWithMentions(comment.content)}
-                                                            </Typography>
+                                                            <>
+                                                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                                                    {renderCommentWithMentions(comment.content)}
+                                                                </Typography>
+                                                                <CommentAttachments
+                                                                    projectId={Number(projectId)}
+                                                                    cardId={Number(cardId)}
+                                                                    commentId={comment.id}
+                                                                    attachments={comment.attachments || []}
+                                                                    canEdit={comment.can_edit}
+                                                                    onAttachmentsChange={(newAttachments) => {
+                                                                        setComments(comments.map(c =>
+                                                                            c.id === comment.id
+                                                                                ? { ...c, attachments: newAttachments }
+                                                                                : c
+                                                                        ));
+                                                                    }}
+                                                                />
+                                                            </>
                                                         )}
                                                     </Box>
                                                 </Box>
@@ -1105,6 +1193,21 @@ export default function Tarefa() {
                     currentDate={card.due_date}
                 />
             )}
+
+            {/* Attachment Dialog */}
+            <AttachmentDialog
+                open={attachmentDialogOpen}
+                onClose={() => setAttachmentDialogOpen(false)}
+                projectId={Number(projectId)}
+                cardId={Number(cardId)}
+                attachments={attachments}
+                onUploadSuccess={(newAttachment) => {
+                    setAttachments([...attachments, newAttachment]);
+                }}
+                onDelete={(attachmentId) => {
+                    setAttachments(attachments.filter((a) => a.id !== attachmentId));
+                }}
+            />
 
             {/* Snackbar */}
             <Snackbar

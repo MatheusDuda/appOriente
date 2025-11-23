@@ -8,6 +8,8 @@ import {
   Typography,
   Badge,
   CircularProgress,
+  Chip,
+  Alert,
 } from "@mui/material";
 import {
   SendOutlined,
@@ -17,8 +19,10 @@ import {
   DoneAllOutlined,
 } from "@mui/icons-material";
 import { useChat } from "../../contexts/ChatContext";
-import type { Chat } from "../../types/chat";
+import type { Chat, ChatMessageAttachment } from "../../types/chat";
 import { authService, type UserData } from "../../services/authService";
+import chatMessageAttachmentService from "../../services/chatMessageAttachmentService";
+import { InsertDriveFileOutlined, DownloadOutlined } from "@mui/icons-material";
 
 type AreaMensagensProps = {
   conversa: Chat;
@@ -31,7 +35,19 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
 
-  const { messages, sendMessage, sendTyping, isLoadingMessages, typingUsers } = useChat();
+  // Estados para gerenciar anexos
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { messages: contextMessages, sendMessage, sendTyping, isLoadingMessages, typingUsers } = useChat();
+  const [messages, setMessages] = useState(contextMessages);
+
+  // Atualizar mensagens locais quando o contexto mudar
+  useEffect(() => {
+    setMessages(contextMessages);
+  }, [contextMessages]);
 
   const scrollToBottom = () => {
     mensagensEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -54,10 +70,57 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
   }, []);
 
   const handleEnviar = async () => {
-    if (mensagemTexto.trim()) {
-      await sendMessage(mensagemTexto);
+    if (!mensagemTexto.trim() && selectedFiles.length === 0) {
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError(null);
+
+      // Enviar mensagem primeiro (com texto ou espaço se só tiver anexos)
+      const messageContent = mensagemTexto.trim() || " ";
+      const message = await sendMessage(messageContent);
+
+      // Se houver arquivos, fazer upload
+      if (selectedFiles.length > 0 && message?.id) {
+        const uploadedAttachments: ChatMessageAttachment[] = [];
+
+        for (const file of selectedFiles) {
+          try {
+            const attachment = await chatMessageAttachmentService.uploadAttachment(
+              conversa.id,
+              message.id,
+              file
+            );
+            uploadedAttachments.push(attachment);
+          } catch (uploadError: any) {
+            console.error("Erro ao fazer upload do arquivo:", uploadError);
+            setError(`Erro ao enviar ${file.name}: ${uploadError.message || "Erro desconhecido"}`);
+          }
+        }
+
+        // Atualizar a mensagem local com os anexos
+        if (uploadedAttachments.length > 0) {
+          setMessages(prevMessages =>
+            prevMessages.map(msg =>
+              msg.id === message.id
+                ? { ...msg, attachments: uploadedAttachments }
+                : msg
+            )
+          );
+        }
+      }
+
+      // Limpar campos
       setMensagemTexto("");
+      setSelectedFiles([]);
       sendTyping(false);
+    } catch (err: any) {
+      console.error("Erro ao enviar mensagem:", err);
+      setError(err.message || "Erro ao enviar mensagem");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -83,6 +146,43 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
     typingTimeoutRef.current = setTimeout(() => {
       sendTyping(false);
     }, 3000);
+  };
+
+  // Handler para seleção de arquivos
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of Array.from(files)) {
+      const validation = chatMessageAttachmentService.validateFile(file);
+      if (validation.valid) {
+        validFiles.push(file);
+      } else {
+        errors.push(`${file.name}: ${validation.error}`);
+      }
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedFiles([...selectedFiles, ...validFiles]);
+    }
+
+    if (errors.length > 0) {
+      setError(errors.join("; "));
+      setTimeout(() => setError(null), 5000);
+    }
+
+    // Limpa o input para permitir selecionar o mesmo arquivo novamente
+    if (event.target) {
+      event.target.value = "";
+    }
+  };
+
+  // Função para remover arquivo selecionado
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
   };
 
   // Formata timestamp
@@ -220,6 +320,70 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
                     <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
                       {mensagem.content}
                     </Typography>
+
+                    {/* Anexos da mensagem (somente visualização) */}
+                    {mensagem.attachments && mensagem.attachments.length > 0 && (
+                      <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                        {mensagem.attachments.map((attachment: any) => (
+                          <Box
+                            key={attachment.id}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              p: 0.75,
+                              borderRadius: 1,
+                              bgcolor: isUsuario ? "rgba(255,255,255,0.1)" : "action.hover",
+                              cursor: "pointer",
+                              "&:hover": {
+                                bgcolor: isUsuario ? "rgba(255,255,255,0.2)" : "action.selected",
+                              },
+                            }}
+                            onClick={() => chatMessageAttachmentService.downloadAttachment(
+                              conversa.id,
+                              mensagem.id,
+                              attachment.id
+                            )}
+                          >
+                            <InsertDriveFileOutlined
+                              sx={{
+                                fontSize: 18,
+                                color: isUsuario ? "primary.contrastText" : "text.secondary"
+                              }}
+                            />
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                flex: 1,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                color: isUsuario ? "primary.contrastText" : "text.primary",
+                              }}
+                            >
+                              {attachment.filename}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontSize: "0.65rem",
+                                color: isUsuario ? "primary.contrastText" : "text.secondary",
+                                opacity: 0.7,
+                              }}
+                            >
+                              {(attachment.file_size / 1024).toFixed(1)} KB
+                            </Typography>
+                            <DownloadOutlined
+                              sx={{
+                                fontSize: 16,
+                                color: isUsuario ? "primary.contrastText" : "text.secondary"
+                              }}
+                            />
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+
                     <Box
                       sx={{
                         display: "flex",
@@ -269,10 +433,53 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
           bgcolor: "background.paper",
         }}
       >
+        {/* Mensagem de erro */}
+        {error && (
+          <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Preview dos arquivos selecionados */}
+        {selectedFiles.length > 0 && (
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+            {selectedFiles.map((file, index) => (
+              <Chip
+                key={index}
+                label={`${file.name} (${(file.size / 1024).toFixed(1)} KB)`}
+                size="small"
+                icon={<AttachFileOutlined />}
+                onDelete={() => handleRemoveFile(index)}
+                disabled={uploading}
+                sx={{
+                  maxWidth: "300px",
+                  "& .MuiChip-label": {
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  },
+                }}
+              />
+            ))}
+          </Box>
+        )}
+
         <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end" }}>
+          {/* Input file oculto */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileSelect}
+            style={{ display: "none" }}
+            accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.txt,.zip"
+            disabled={uploading}
+          />
+
           <IconButton
             size="small"
             aria-label="Anexar arquivo"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
             sx={{
               color: "text.secondary",
               "&:hover": { color: "primary.main" },
@@ -291,6 +498,7 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
             onKeyPress={handleKeyPress}
             variant="outlined"
             size="small"
+            disabled={uploading}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 3,
@@ -308,18 +516,18 @@ export default function AreaMensagens({ conversa, onVoltar }: AreaMensagensProps
           <IconButton
             color="primary"
             onClick={handleEnviar}
-            disabled={!mensagemTexto.trim()}
+            disabled={(!mensagemTexto.trim() && selectedFiles.length === 0) || uploading}
             aria-label="Enviar mensagem"
             sx={{
-              bgcolor: mensagemTexto.trim() ? "primary.main" : "transparent",
-              color: mensagemTexto.trim() ? "primary.contrastText" : "action.disabled",
+              bgcolor: (mensagemTexto.trim() || selectedFiles.length > 0) && !uploading ? "primary.main" : "transparent",
+              color: (mensagemTexto.trim() || selectedFiles.length > 0) && !uploading ? "primary.contrastText" : "action.disabled",
               "&:hover": {
-                bgcolor: mensagemTexto.trim() ? "primary.dark" : "transparent",
+                bgcolor: (mensagemTexto.trim() || selectedFiles.length > 0) && !uploading ? "primary.dark" : "transparent",
               },
               transition: "all 0.2s ease",
             }}
           >
-            <SendOutlined />
+            {uploading ? <CircularProgress size={24} /> : <SendOutlined />}
           </IconButton>
         </Box>
       </Paper>

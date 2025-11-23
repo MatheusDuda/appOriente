@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 
 from app.models.chat import Chat
 from app.models.chat_message import ChatMessage
+from app.models.chat_message_attachment import ChatMessageAttachment
 from app.models.user import User
 from app.models.notification import Notification, NotificationType
 from app.schemas.chat import (
@@ -126,6 +127,7 @@ class ChatMessageService:
             is_edited=message.is_edited,
             edited_at=message.edited_at,
             sender=sender_data,
+            attachments=[],
             can_edit=ChatMessageService._can_modify_message(message, sender_id),
             can_delete=ChatMessageService._can_modify_message(message, sender_id)
         )
@@ -155,7 +157,8 @@ class ChatMessageService:
         messages = db.query(ChatMessage).filter(
             ChatMessage.chat_id == chat_id
         ).options(
-            joinedload(ChatMessage.sender)
+            joinedload(ChatMessage.sender),
+            joinedload(ChatMessage.attachments).joinedload(ChatMessageAttachment.uploaded_by)
         ).order_by(
             ChatMessage.created_at.desc()
         ).limit(limit).offset(offset).all()
@@ -171,6 +174,26 @@ class ChatMessageService:
                     email=message.sender.email
                 )
 
+            # Serializar anexos
+            attachments_data = []
+            if message.attachments:
+                for attachment in message.attachments:
+                    attachments_data.append({
+                        "id": attachment.id,
+                        "filename": attachment.filename,
+                        "file_path": attachment.file_path,
+                        "file_size": attachment.file_size,
+                        "mime_type": attachment.mime_type,
+                        "message_id": attachment.message_id,
+                        "uploaded_by_id": attachment.uploaded_by_id,
+                        "created_at": attachment.created_at,
+                        "uploaded_by": {
+                            "id": attachment.uploaded_by.id,
+                            "name": attachment.uploaded_by.name,
+                            "email": attachment.uploaded_by.email
+                        } if attachment.uploaded_by else None
+                    })
+
             messages_response.append(ChatMessageResponse(
                 id=message.id,
                 chat_id=message.chat_id,
@@ -181,6 +204,7 @@ class ChatMessageService:
                 is_edited=message.is_edited,
                 edited_at=message.edited_at,
                 sender=sender_data,
+                attachments=attachments_data,
                 can_edit=ChatMessageService._can_modify_message(message, user_id),
                 can_delete=ChatMessageService._can_modify_message(message, user_id)
             ))

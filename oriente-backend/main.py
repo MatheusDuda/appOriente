@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.routers import auth, projects, users, teams, notifications, reports, attachments, chat, chat_ws
-from app.routers import Columns as columns, Cards as cards, comments, card_history
+from app.routers import Columns as columns, Cards as cards, comments, card_history, comment_attachments, chat_message_attachments
 
 # Criar tabelas no banco de dados
 # Equivalente ao spring.jpa.hibernate.ddl-auto=create-drop
@@ -42,6 +42,7 @@ app.include_router(cards.router, prefix="/api/projects", tags=["Cards"])
 app.include_router(comments.router, prefix="/api/projects", tags=["Comments"])
 app.include_router(card_history.router, prefix="/api/projects", tags=["Card History"])
 app.include_router(attachments.router, prefix="/api/projects", tags=["Attachments"])
+app.include_router(comment_attachments.router, prefix="/api/projects", tags=["Comment Attachments"])
 
 # Router de Relatórios
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
@@ -49,6 +50,7 @@ app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 # Routers de Chat
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(chat_ws.router, prefix="/ws", tags=["WebSocket"])
+app.include_router(chat_message_attachments.router, prefix="/api/chats", tags=["Chat Message Attachments"])
 
 
 @app.get("/")

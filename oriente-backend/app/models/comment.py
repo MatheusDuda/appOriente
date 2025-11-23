@@ -18,6 +18,7 @@ class Comment(Base):
     card = relationship("Card", back_populates="comments")
     user = relationship("User", back_populates="comments")
     mentions = relationship("CommentMention", back_populates="comment", cascade="all, delete-orphan")
+    attachments = relationship("CommentAttachment", back_populates="comment", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Comment(id={self.id}, card_id={self.card_id}, user_id={self.user_id})>"

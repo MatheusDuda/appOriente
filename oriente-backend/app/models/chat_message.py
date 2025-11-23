@@ -32,6 +32,7 @@ class ChatMessage(Base):
     # Relacionamentos
     chat = relationship("Chat", back_populates="messages")
     sender = relationship("User", back_populates="chat_messages")
+    attachments = relationship("ChatMessageAttachment", back_populates="message", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<ChatMessage(id={self.id}, chat_id={self.chat_id}, sender_id={self.sender_id})>"

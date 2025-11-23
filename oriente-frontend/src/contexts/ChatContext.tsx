@@ -31,7 +31,7 @@ interface ChatContextType {
 
   // Ações - Mensagens
   loadMessages: (chatId: number, offset?: number) => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string) => Promise<ChatMessage>;
   editMessage: (messageId: number, content: string) => Promise<void>;
   deleteMessage: (messageId: number) => Promise<void>;
   markAsRead: (chatId: number) => Promise<void>;
@@ -204,10 +204,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   /**
    * Envia uma mensagem
    */
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string): Promise<ChatMessage> => {
     if (!selectedChat) {
       console.warn("[ChatContext] Nenhum chat selecionado");
-      return;
+      throw new Error("Nenhum chat selecionado");
     }
 
     try {
@@ -223,6 +223,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
       // Atualiza a lista de chats (move o chat para o topo)
       await loadChats();
+
+      return message;
     } catch (err: any) {
       console.error("[ChatContext] Erro ao enviar mensagem:", err);
       setError(err.response?.data?.message || "Erro ao enviar mensagem");
