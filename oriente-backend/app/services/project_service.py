@@ -150,8 +150,10 @@ class ProjectService:
     @staticmethod
     def delete_project(project_id: int, current_user: User, db: Session) -> None:
         """
-        Remove um projeto
+        Remove um projeto (apenas ADMIN)
         """
+        from app.models.user import UserRole
+
         project = db.query(Project).filter(Project.id == project_id).first()
         if not project:
             raise HTTPException(
@@ -159,11 +161,11 @@ class ProjectService:
                 detail="Projeto não encontrado"
             )
 
-        # Verificar se o usuário tem permissão para deletar
-        if project.owner_id != current_user.id:
+        # Verificar se o usuário tem permissão para deletar (apenas ADMIN)
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas o owner pode deletar o projeto"
+                detail="Apenas administradores podem deletar projetos"
             )
 
         db.delete(project)
@@ -250,19 +252,28 @@ class ProjectService:
     def user_can_edit_project(db: Session, project_id: int, user_id: int) -> bool:
         """
         Verifica se o usuário tem permissão para editar o projeto
-        (owner ou membro do projeto)
+        (owner, membro do projeto, ou MANAGER)
         """
+        from app.models.user import UserRole
+
         project = db.query(Project).filter(Project.id == project_id).first()
         if not project:
             return False
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+
+        # MANAGER pode editar qualquer projeto
+        if user.role == UserRole.MANAGER:
+            return True
 
         # Verificar se é owner
         if project.owner_id == user_id:
             return True
 
         # Verificar se é membro
-        user = db.query(User).filter(User.id == user_id).first()
-        if user and user in project.members:
+        if user in project.members:
             return True
 
         return False
