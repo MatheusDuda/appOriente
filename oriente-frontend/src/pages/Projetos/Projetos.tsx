@@ -894,31 +894,6 @@ export default function Projects() {
         }
     };
 
-    const handleArchiveCard = async () => {
-        if (!selectedCard || !selectedProject) return;
-
-        try {
-            await cardService.updateCardStatus(selectedProject.id, String(selectedCard.id), "archived");
-            handleCloseCardMenu();
-            // Reload board to remove archived card
-            loadProjectBoard(selectedProject.id);
-            setSnackbar({
-                open: true,
-                message: "Tarefa arquivada com sucesso!",
-                severity: "success",
-            });
-        } catch (error: any) {
-            const errorMessage = typeof error.response?.data?.detail === 'string'
-                ? error.response.data.detail
-                : "Erro ao arquivar tarefa";
-            setSnackbar({
-                open: true,
-                message: errorMessage,
-                severity: "error",
-            });
-        }
-    };
-
     const handleDeleteCard = async () => {
         if (!selectedCard || !selectedProject) return;
 
@@ -1492,7 +1467,6 @@ export default function Projects() {
                     onClose={handleCloseCardMenu}
                     onEditar={handleEditCard}
                     onDuplicar={handleDuplicateCard}
-                    onArquivar={handleArchiveCard}
                     onAdicionarResponsavel={() => {
                         handleCloseCardMenu();
                         setTimeout(() => {

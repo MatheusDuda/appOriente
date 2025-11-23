@@ -181,7 +181,6 @@ export default function Tarefa() {
     const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
     const [editingCommentText, setEditingCommentText] = useState("");
     const [dialogExcluir, setDialogExcluir] = useState(false);
-    const [dialogArquivar, setDialogArquivar] = useState(false);
     const [dialogExcluirComentario, setDialogExcluirComentario] = useState(false);
     const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
     const [quickAssigneeDialogOpen, setQuickAssigneeDialogOpen] = useState(false);
@@ -459,32 +458,6 @@ export default function Tarefa() {
         }
     };
 
-    const handleArquivar = () => {
-        setDialogArquivar(true);
-    };
-
-    const handleConfirmarArquivar = async () => {
-        try {
-            await cardService.updateCardStatus(Number(projectId), cardId!, "archived");
-            setDialogArquivar(false);
-            setSnackbar({
-                open: true,
-                message: "Tarefa arquivada com sucesso!",
-                severity: "success",
-            });
-            setTimeout(() => {
-                navigate(`/projetos/${projectId}`);
-            }, 1500);
-        } catch (error: any) {
-            setDialogArquivar(false);
-            setSnackbar({
-                open: true,
-                message: error.response?.data?.detail || "Erro ao arquivar tarefa",
-                severity: "error",
-            });
-        }
-    };
-
     const handleAdicionarResponsavel = () => {
         // Close menu first, then open quick assignee dialog
         setMenuAnchorEl(null);
@@ -683,7 +656,6 @@ export default function Tarefa() {
                     onClose={handleFecharMenu}
                     onEditar={handleEditar}
                     onDuplicar={handleDuplicar}
-                    onArquivar={handleArquivar}
                     onAdicionarResponsavel={handleAdicionarResponsavel}
                     onAlterarData={handleAlterarData}
                     onExcluir={handleExcluir}
@@ -1137,29 +1109,6 @@ export default function Tarefa() {
                     <Button onClick={() => setDialogExcluir(false)}>Cancelar</Button>
                     <Button onClick={handleConfirmarExcluir} variant="contained" color="error">
                         Excluir
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Dialog Arquivar */}
-            <Dialog
-                open={dialogArquivar}
-                onClose={() => setDialogArquivar(false)}
-                PaperProps={{
-                    sx: { borderRadius: 2 },
-                }}
-            >
-                <DialogTitle>Arquivar tarefa?</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Deseja arquivar a tarefa "<strong>{card.title}</strong>"?
-                        Você poderá restaurá-la posteriormente.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => setDialogArquivar(false)}>Cancelar</Button>
-                    <Button onClick={handleConfirmarArquivar} variant="contained">
-                        Arquivar
                     </Button>
                 </DialogActions>
             </Dialog>
