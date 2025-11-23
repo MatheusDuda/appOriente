@@ -9,13 +9,14 @@ import {
     CircularProgress,
     IconButton,
     Box,
+    Chip,
 } from "@mui/material";
-import { SendOutlined } from "@mui/icons-material";
+import { SendOutlined, AttachFileOutlined } from "@mui/icons-material";
 import type { User } from "../../types";
 import projectService from "../../services/projectService";
 
 type CommentInputProps = {
-    onSubmit: (content: string) => Promise<void>;
+    onSubmit: (content: string, files?: File[]) => Promise<void>;
     initialValue?: string;
     disabled?: boolean;
     projectId: number;
@@ -38,6 +39,8 @@ export default function CommentInput({
     const inputRef = useRef<HTMLInputElement>(null);
     const textFieldContainerRef = useRef<HTMLDivElement>(null);
     const [loadingMembers, setLoadingMembers] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Load project members on mount
     useEffect(() => {
@@ -136,15 +139,41 @@ export default function CommentInput({
         }
     };
 
+    // Handle file selection
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            // Validar tamanho (max 10MB por arquivo)
+            const validFiles = files.filter(file => {
+                if (file.size > 10 * 1024 * 1024) {
+                    console.warn(`Arquivo ${file.name} é muito grande (max 10MB)`);
+                    return false;
+                }
+                return true;
+            });
+            setSelectedFiles(prev => [...prev, ...validFiles]);
+        }
+        // Limpar input para permitir selecionar o mesmo arquivo novamente
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    // Remove file from selection
+    const handleRemoveFile = (index: number) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
     // Handle submitting comment
     const handleSubmit = async () => {
-        if (!content.trim() || loading) return;
+        if ((!content.trim() && selectedFiles.length === 0) || loading) return;
 
         try {
             setLoading(true);
-            console.log(`📝 CommentInput: Enviando comentário:`, content);
-            await onSubmit(content);
+            console.log(`📝 CommentInput: Enviando comentário:`, content, `com ${selectedFiles.length} arquivo(s)`);
+            await onSubmit(content, selectedFiles.length > 0 ? selectedFiles : undefined);
             setContent("");
+            setSelectedFiles([]);
         } catch (error) {
             console.error("Erro ao enviar comentário:", error);
         } finally {
@@ -162,27 +191,28 @@ export default function CommentInput({
     };
 
     return (
-        <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end", width: "100%", position: "relative" }}>
-            <Box
-                ref={textFieldContainerRef}
-                sx={{ flex: 1, position: "relative" }}
-            >
-                <TextField
-                    ref={inputRef}
-                    fullWidth
-                    multiline
-                    maxRows={4}
-                    value={content}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    disabled={disabled || loading}
-                    placeholder={placeholder}
-                    variant="outlined"
-                    size="small"
-                />
+        <Box sx={{ width: "100%" }}>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-end", width: "100%", position: "relative" }}>
+                <Box
+                    ref={textFieldContainerRef}
+                    sx={{ flex: 1, position: "relative" }}
+                >
+                    <TextField
+                        ref={inputRef}
+                        fullWidth
+                        multiline
+                        maxRows={4}
+                        value={content}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        disabled={disabled || loading}
+                        placeholder={placeholder}
+                        variant="outlined"
+                        size="small"
+                    />
 
-                {/* Mentions Dropdown */}
-                <Popper
+                    {/* Mentions Dropdown */}
+                    <Popper
                     open={showMentions && filteredMembers.length > 0}
                     anchorEl={inputRef.current}
                     placement="top-start"
@@ -246,14 +276,52 @@ export default function CommentInput({
                 </Popper>
             </Box>
 
+            {/* File input (hidden) */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                style={{ display: "none" }}
+                onChange={handleFileSelect}
+            />
+
+            {/* Attach file button */}
+            <IconButton
+                color="default"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading || disabled}
+                size="small"
+            >
+                <AttachFileOutlined />
+            </IconButton>
+
+            {/* Submit button */}
             <IconButton
                 color="primary"
                 onClick={handleSubmit}
-                disabled={!content.trim() || loading || disabled}
+                disabled={(!content.trim() && selectedFiles.length === 0) || loading || disabled}
                 size="small"
             >
                 {loading ? <CircularProgress size={24} /> : <SendOutlined />}
             </IconButton>
         </Box>
+
+        {/* Preview selected files */}
+        {selectedFiles.length > 0 && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
+                {selectedFiles.map((file, index) => (
+                    <Chip
+                        key={index}
+                        label={file.name}
+                        size="small"
+                        icon={<AttachFileOutlined />}
+                        onDelete={() => handleRemoveFile(index)}
+                        sx={{ maxWidth: 200 }}
+                    />
+                ))}
+            </Box>
+        )}
+    </Box>
     );
 }

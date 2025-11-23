@@ -53,6 +53,7 @@ import CommentAttachments from "../../components/Tarefas/CommentAttachments";
 import cardService from "../../services/cardService";
 import projectService from "../../services/projectService";
 import attachmentService from "../../services/attachmentService";
+import commentAttachmentService from "../../services/commentAttachmentService";
 import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn, Attachment } from "../../types";
 
 const getPrioridadeColor = (prioridade: Card["priority"]) => {
@@ -229,7 +230,36 @@ export default function Tarefa() {
         try {
             setLoadingComments(true);
             const data = await cardService.getCardComments(Number(projectId), cardId!);
-            setComments(data);
+            console.log("📝 Comentários carregados (total):", data.length);
+
+            // Backend não retorna attachments automaticamente, buscar separadamente
+            console.log("📎 Buscando anexos para cada comentário...");
+            const commentsWithAttachments = await Promise.all(
+                data.map(async (comment) => {
+                    try {
+                        const attachmentsResponse = await commentAttachmentService.getCommentAttachments(
+                            Number(projectId),
+                            Number(cardId),
+                            comment.id
+                        );
+                        console.log(`📎 Comment ${comment.id}: ${attachmentsResponse.attachments.length} anexos`);
+                        return {
+                            ...comment,
+                            attachments: attachmentsResponse.attachments
+                        };
+                    } catch (error) {
+                        console.warn(`Erro ao buscar anexos do comentário ${comment.id}:`, error);
+                        return comment; // Retorna comentário sem anexos em caso de erro
+                    }
+                })
+            );
+
+            console.log("📎 Anexos carregados:", commentsWithAttachments.map(c => ({
+                id: c.id,
+                attachmentCount: c.attachments?.length || 0
+            })));
+
+            setComments(commentsWithAttachments);
         } catch (error: any) {
             console.error("Erro ao carregar comentários:", error);
             setSnackbar({
@@ -291,19 +321,74 @@ export default function Tarefa() {
         navigate(`/projetos/${projectId}`);
     };
 
-    const handleEnviarComentario = async (content: string) => {
-        if (!content.trim()) return;
+    const handleEnviarComentario = async (content: string, files?: File[]) => {
+        if (!content.trim() && (!files || files.length === 0)) return;
 
         try {
             setSubmittingComment(true);
-            await cardService.createComment(Number(projectId), cardId!, content);
-            setSnackbar({
-                open: true,
-                message: "Comentário adicionado com sucesso!",
-                severity: "success",
-            });
-            // Recarregar comentários e histórico
-            loadComments();
+
+            // Criar comentário (permite comentário vazio se houver arquivos)
+            const commentText = content.trim() || "(anexo)";
+            const newComment = await cardService.createComment(Number(projectId), cardId!, commentText);
+            console.log("📝 Comentário criado:", newComment);
+            console.log(`📝 Comment ID: ${newComment.id}`);
+
+            // Se houver arquivos, fazer upload de TODOS em paralelo
+            if (files && files.length > 0) {
+                console.log(`📎 Fazendo upload de ${files.length} arquivo(s) para o comentário ${newComment.id}...`);
+                console.log(`📎 URL base: /api/projects/${Number(projectId)}/cards/${Number(cardId)}/comments/${newComment.id}/attachments`);
+
+                const uploadPromises = files.map(async (file) => {
+                    try {
+                        console.log(`📎 Iniciando upload de ${file.name} (${file.size} bytes)...`);
+                        const uploadedAttachment = await commentAttachmentService.uploadAttachment(
+                            Number(projectId),
+                            Number(cardId),
+                            newComment.id,
+                            file
+                        );
+                        console.log(`✓ Arquivo ${file.name} enviado com sucesso:`, uploadedAttachment);
+                        return { success: true, filename: file.name, attachment: uploadedAttachment };
+                    } catch (error: any) {
+                        console.error(`✗ Erro ao enviar arquivo ${file.name}:`, error);
+                        console.error(`✗ Detalhes do erro:`, error.response?.data);
+                        return { success: false, filename: file.name, error };
+                    }
+                });
+
+                // Aguardar todos os uploads finalizarem
+                const results = await Promise.all(uploadPromises);
+                const successCount = results.filter(r => r.success).length;
+                const failCount = results.filter(r => !r.success).length;
+
+                console.log(`📎 Upload finalizado: ${successCount} sucesso, ${failCount} falhas`);
+                console.log("📎 Resultados:", results);
+
+                if (failCount > 0) {
+                    setSnackbar({
+                        open: true,
+                        message: `Comentário criado. ${successCount} arquivo(s) enviado(s), ${failCount} falhou(aram).`,
+                        severity: "info",
+                    });
+                } else {
+                    setSnackbar({
+                        open: true,
+                        message: `Comentário e ${successCount} arquivo(s) adicionados com sucesso!`,
+                        severity: "success",
+                    });
+                }
+            } else {
+                setSnackbar({
+                    open: true,
+                    message: "Comentário adicionado com sucesso!",
+                    severity: "success",
+                });
+            }
+
+            // Recarregar comentários e histórico APÓS todos os uploads terminarem
+            // Pequeno delay para garantir que o backend processou tudo
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await loadComments();
             loadHistory(1);
         } catch (error: any) {
             console.error("Erro ao criar comentário:", error);
@@ -918,6 +1003,8 @@ export default function Tarefa() {
                                                             </Typography>
                                                         </>
                                                     }
+                                                    primaryTypographyProps={{ component: "div" }}
+                                                    secondaryTypographyProps={{ component: "div" }}
                                                 />
                                             </ListItem>
                                         ))}
