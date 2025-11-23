@@ -18,6 +18,7 @@ import Tarefa from "../pages/Tarefas/Tarefa";
 import Notificacoes from "../pages/Notificacoes/Notificacoes";
 import Perfil from "../pages/Perfil/Perfil";
 import Configuracoes from "../pages/Configuracoes/Configuracoes";
+import NotFound from "../pages/NotFound/NotFound";
 
 import { useAuth } from "../contexts/AuthContext";
 
@@ -104,8 +105,8 @@ export default function AppRoutes() {
                     </Route>
                 </Route>
 
-                {/* fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                {/* fallback - 404 */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </BrowserRouter>
     );

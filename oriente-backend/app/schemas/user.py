@@ -198,14 +198,14 @@ class UserRoleUpdateRequest(BaseModel):
     role: str = Field(
         ...,
         description="Nova role do usuario",
-        pattern="^(ADMIN|USER)$"
+        pattern="^(ADMIN|USER|MANAGER)$"
     )
 
     @field_validator('role')
     @classmethod
     def validate_role(cls, v):
-        if v not in ['ADMIN', 'USER']:
-            raise ValueError('Role inexistente')
+        if v not in ['ADMIN', 'USER', 'MANAGER']:
+            raise ValueError('Role inexistente. Valores aceitos: ADMIN, USER, MANAGER')
         return v
 
     class Config:

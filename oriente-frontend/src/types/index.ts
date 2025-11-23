@@ -415,3 +415,17 @@ export interface ProjectStorageInfo {
 export type PriorityLabel = "Urgente" | "Alta" | "Média" | "Baixa";
 export type RoleLabel = "Administrador" | "Usuário";
 export type StatusLabel = "Ativo" | "Inativo";
+
+// ========================================
+// TASK LINK PREVIEW TYPES
+// ========================================
+
+export interface TaskCardPreviewData {
+    id: number;
+    title: string;
+    description: string;
+    priority: CardPriority;
+    status: string;
+    due_date?: string;
+    assignees: CardAssignee[];
+}

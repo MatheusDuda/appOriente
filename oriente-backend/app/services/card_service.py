@@ -277,15 +277,17 @@ class CardService:
 
     @staticmethod
     def delete_card(db: Session, card_id: int, user_id: int) -> bool:
-        """Deletar tarefa"""
+        """Deletar tarefa (apenas ADMIN)"""
+        from app.models.user import UserRole
 
         card = CardService.get_card_by_id(db, card_id, user_id)
 
-        # Verificar permissão de edição
-        if not ProjectService.user_can_edit_project(db, card.project_id, user_id):
+        # Verificar permissão - apenas ADMIN pode deletar tarefas
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sem permissão para deletar esta tarefa"
+                detail="Apenas administradores podem deletar tarefas"
             )
 
         column_id = card.column_id

@@ -107,9 +107,33 @@ class ReportService:
         # Verificar permissões: usuário pode ver apenas o próprio relatório
         # ou relatórios de projetos onde tem acesso
         if current_user_id != user_id:
-            # Permitir se for admin ou se tiver acesso ao projeto filtrado
+            # Permitir se for admin, manager com projetos gerenciados, ou se tiver acesso ao projeto filtrado
             current_user = db.query(User).filter(User.id == current_user_id).first()
-            if current_user.role != "ADMIN":
+            from app.models.user import UserRole
+
+            if current_user.role == UserRole.ADMIN:
+                # Admin pode ver qualquer relatório
+                pass
+            elif current_user.role == UserRole.MANAGER:
+                # Manager pode ver relatórios de usuários em projetos que gerencia (owner)
+                # Verificar se o user_id está em algum projeto onde current_user é owner
+                managed_projects = db.query(Project).filter(Project.owner_id == current_user_id).all()
+
+                # Verificar se o usuário alvo é membro de algum projeto gerenciado
+                user_in_managed_project = False
+                for proj in managed_projects:
+                    target_user = db.query(User).filter(User.id == user_id).first()
+                    if target_user in proj.members or proj.owner_id == user_id:
+                        user_in_managed_project = True
+                        break
+
+                if not user_in_managed_project:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Sem permissão para visualizar este relatório. Manager pode ver apenas relatórios de membros de projetos que gerencia."
+                    )
+            else:
+                # USER comum - só pode ver relatórios de projetos específicos onde tem acesso
                 if project_id:
                     if not ProjectService.user_can_access_project(db, project_id, current_user_id):
                         raise HTTPException(
