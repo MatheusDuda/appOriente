@@ -368,7 +368,7 @@ export default function Tarefa() {
                     setSnackbar({
                         open: true,
                         message: `Comentário criado. ${successCount} arquivo(s) enviado(s), ${failCount} falhou(aram).`,
-                        severity: "warning",
+                        severity: "info",
                     });
                 } else {
                     setSnackbar({
