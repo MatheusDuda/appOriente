@@ -17,12 +17,12 @@ class TeamService:
     def create_team(db: Session, team_data: TeamCreateRequest, current_user_id: int) -> Team:
         """Criar nova equipe com validações e auto-adicionar lider como membro"""
 
-        # Verificar se o usuário tem permissão (Só Admin pode criar equipes)
+        # Verificar se o usuário tem permissão (Admin ou Manager podem criar equipes)
         current_user = db.query(User).filter(User.id == current_user_id).first()
-        if not current_user or current_user.role != UserRole.ADMIN:
+        if not current_user or current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas administradores podem criar equipes"
+                detail="Apenas administradores e gestores podem criar equipes"
             )
 
         # Verificar se líder existe
@@ -108,8 +108,8 @@ class TeamService:
                 detail="Usuário não encontrado"
             )
 
-        # Admin ou líder pode ver qualquer equipe
-        if current_user.role == UserRole.ADMIN or team.leader_id == current_user_id:
+        # Admin, Manager ou líder pode ver qualquer equipe
+        if current_user.role in [UserRole.ADMIN, UserRole.MANAGER] or team.leader_id == current_user_id:
             return team
 
         # Verificar se é membro da equipe
@@ -127,12 +127,16 @@ class TeamService:
 
         team = TeamService.get_team_by_id(db, team_id, current_user_id)
 
-        # Verificar permissão de edição (líder da equipe ou admin)
+        # Verificar permissão de edição (líder da equipe, admin ou manager se for líder)
         current_user = db.query(User).filter(User.id == current_user_id).first()
-        if not (current_user.role == UserRole.ADMIN or team.leader_id == current_user_id):
+        is_team_leader = team.leader_id == current_user_id
+        is_admin = current_user.role == UserRole.ADMIN
+        is_manager_and_leader = current_user.role == UserRole.MANAGER and is_team_leader
+
+        if not (is_admin or is_team_leader or is_manager_and_leader):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas o líder da equipe ou administradores podem editá-la"
+                detail="Apenas o líder da equipe, administradores ou gestores (se forem líderes) podem editá-la"
             )
 
         # Atualizar campos básicos
@@ -208,12 +212,16 @@ class TeamService:
 
         team = TeamService.get_team_by_id(db, team_id, current_user_id)
 
-        # Verificar permissão (líder da equipe ou admin)
+        # Verificar permissão (líder da equipe, admin ou manager se for líder)
         current_user = db.query(User).filter(User.id == current_user_id).first()
-        if not (current_user.role == UserRole.ADMIN or team.leader_id == current_user_id):
+        is_team_leader = team.leader_id == current_user_id
+        is_admin = current_user.role == UserRole.ADMIN
+        is_manager_and_leader = current_user.role == UserRole.MANAGER and is_team_leader
+
+        if not (is_admin or is_team_leader or is_manager_and_leader):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas o líder da equipe ou administradores podem adicionar membros"
+                detail="Apenas o líder da equipe, administradores ou gestores (se forem líderes) podem adicionar membros"
             )
 
         # Buscar usuários
@@ -245,12 +253,16 @@ class TeamService:
 
         team = TeamService.get_team_by_id(db, team_id, current_user_id)
 
-        # Verificar permissão (líder da equipe ou admin)
+        # Verificar permissão (líder da equipe, admin ou manager se for líder)
         current_user = db.query(User).filter(User.id == current_user_id).first()
-        if not (current_user.role == UserRole.ADMIN or team.leader_id == current_user_id):
+        is_team_leader = team.leader_id == current_user_id
+        is_admin = current_user.role == UserRole.ADMIN
+        is_manager_and_leader = current_user.role == UserRole.MANAGER and is_team_leader
+
+        if not (is_admin or is_team_leader or is_manager_and_leader):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas o líder da equipe ou administradores podem remover membros"
+                detail="Apenas o líder da equipe, administradores ou gestores (se forem líderes) podem remover membros"
             )
 
         # Não permitir remover o líder
