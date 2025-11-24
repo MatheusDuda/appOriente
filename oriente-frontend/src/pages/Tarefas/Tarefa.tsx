@@ -42,6 +42,8 @@ import {
     EditOutlined,
     DeleteOutlined,
     AttachFileOutlined,
+    CheckCircle,
+    Replay,
 } from "@mui/icons-material";
 import Opcoes from "../../components/Tarefas/Opcoes";
 import EditTask from "../../components/Tarefas/EditTask";
@@ -55,6 +57,7 @@ import projectService from "../../services/projectService";
 import attachmentService from "../../services/attachmentService";
 import commentAttachmentService from "../../services/commentAttachmentService";
 import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn, Attachment } from "../../types";
+import { useCardColumnActions } from "../../hooks/useCardColumnActions";
 
 const getPrioridadeColor = (prioridade: Card["priority"]) => {
     switch (prioridade) {
@@ -196,6 +199,35 @@ export default function Tarefa() {
         open: false,
         message: "",
         severity: "success",
+    });
+
+    // Hook de ações de coluna
+    const {
+        completeTask,
+        resumeTask,
+        canComplete,
+        canResume,
+        isLoading: isLoadingColumnAction
+    } = useCardColumnActions({
+        card: card!,
+        columns,
+        projectId: Number(projectId),
+        onSuccess: async () => {
+            await loadCard();
+            await loadHistory(1);
+            setSnackbar({
+                open: true,
+                message: canResume ? "Tarefa retomada com sucesso!" : "Tarefa concluída com sucesso!",
+                severity: "success"
+            });
+        },
+        onError: (error) => {
+            setSnackbar({
+                open: true,
+                message: error,
+                severity: "error"
+            });
+        }
     });
 
     // Carregar dados do card
@@ -1042,6 +1074,38 @@ export default function Tarefa() {
                                 </Typography>
                             </Box>
                             <Chip label={card.status} color="primary" />
+
+                            {/* Botões de ação rápida */}
+                            {(canComplete || canResume) && (
+                                <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                                    {canComplete && (
+                                        <Button
+                                            variant="contained"
+                                            color="success"
+                                            size="small"
+                                            startIcon={<CheckCircle />}
+                                            onClick={completeTask}
+                                            disabled={isLoadingColumnAction}
+                                            fullWidth
+                                        >
+                                            {isLoadingColumnAction ? "Processando..." : "Concluir Tarefa"}
+                                        </Button>
+                                    )}
+                                    {canResume && (
+                                        <Button
+                                            variant="outlined"
+                                            color="warning"
+                                            size="small"
+                                            startIcon={<Replay />}
+                                            onClick={resumeTask}
+                                            disabled={isLoadingColumnAction}
+                                            fullWidth
+                                        >
+                                            {isLoadingColumnAction ? "Processando..." : "Retomar Tarefa"}
+                                        </Button>
+                                    )}
+                                </Box>
+                            )}
                         </Box>
 
                         <Divider sx={{ mb: 3 }} />
