@@ -16,10 +16,6 @@ import api from "../../services/api";
 import type { ProjectSummary, User, UserRole } from "../../types";
 import { UserStatus } from "../../types";
 
-type FiltrosProps = {
-    onClose?: () => void;
-};
-
 const statusOptions = [
     "Todos",
     "Concluído",
@@ -27,7 +23,7 @@ const statusOptions = [
     "Pendente",
 ];
 
-export default function Filtros({ onClose }: FiltrosProps) {
+export default function Filtros() {
     const [projetos, setProjetos] = useState<ProjectSummary[]>([]);
     const [usuarios, setUsuarios] = useState<User[]>([]);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
