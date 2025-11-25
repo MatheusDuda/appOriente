@@ -66,6 +66,7 @@ import type {
 import { CardPriority } from "@/types";
 import projectService from "../../services/projectService";
 import cardService from "../../services/cardService";
+import { useCardColumnActions } from "../../hooks/useCardColumnActions";
 
 const getPriorityColor = (priority: CardPriority) => {
     switch (priority) {
@@ -321,6 +322,35 @@ export default function Projects() {
         open: false,
         message: "",
         severity: "success",
+    });
+
+    // Hook de ações de coluna para o card selecionado
+    const {
+        completeTask,
+        resumeTask,
+        canComplete,
+        canResume,
+    } = useCardColumnActions({
+        card: selectedCard,
+        columns,
+        projectId: selectedProject?.id || 0,
+        onSuccess: async () => {
+            if (selectedProject) {
+                loadProjectBoard(selectedProject.id);
+            }
+            setSnackbar({
+                open: true,
+                message: canResume ? "Tarefa retomada com sucesso!" : "Tarefa concluída com sucesso!",
+                severity: "success"
+            });
+        },
+        onError: (error) => {
+            setSnackbar({
+                open: true,
+                message: error,
+                severity: "error"
+            });
+        }
     });
 
     const sensors = useSensors(
@@ -1506,8 +1536,18 @@ export default function Projects() {
                             });
                         }
                     }}
+                    onConcluirTarefa={() => {
+                        handleCloseCardMenu();
+                        completeTask();
+                    }}
+                    onRetomarTarefa={() => {
+                        handleCloseCardMenu();
+                        resumeTask();
+                    }}
                     columns={columns}
                     currentColumnId={selectedCard.column_id}
+                    canComplete={canComplete}
+                    canResume={canResume}
                 />
             )}
 

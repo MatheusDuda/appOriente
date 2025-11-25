@@ -8,6 +8,8 @@ import {
     CalendarTodayOutlined,
     DriveFileMoveOutlined,
     ChevronRightOutlined,
+    CheckCircle,
+    Replay,
 } from "@mui/icons-material";
 import type { KanbanColumn } from "../../types";
 
@@ -21,8 +23,12 @@ type OpcoesProps = {
     onAlterarData: () => void;
     onExcluir: () => void;
     onMoverParaColuna?: (columnId: number) => void;
+    onConcluirTarefa?: () => void;
+    onRetomarTarefa?: () => void;
     columns?: KanbanColumn[];
     currentColumnId?: number;
+    canComplete?: boolean;
+    canResume?: boolean;
 };
 
 export default function Opcoes({
@@ -35,8 +41,12 @@ export default function Opcoes({
     onAlterarData,
     onExcluir,
     onMoverParaColuna,
+    onConcluirTarefa,
+    onRetomarTarefa,
     columns,
     currentColumnId,
+    canComplete,
+    canResume,
 }: OpcoesProps) {
     const [moveMenuAnchorEl, setMoveMenuAnchorEl] = useState<null | HTMLElement>(null);
     const moveMenuOpen = Boolean(moveMenuAnchorEl);
@@ -113,6 +123,36 @@ export default function Opcoes({
                     </ListItemIcon>
                     <ListItemText>Mover para...</ListItemText>
                     <ChevronRightOutlined fontSize="small" sx={{ ml: 1 }} />
+                </MenuItem>
+            )}
+
+            {canComplete && onConcluirTarefa && (
+                <MenuItem
+                    onClick={() => {
+                        onConcluirTarefa();
+                        onClose();
+                    }}
+                    sx={{ color: "success.main" }}
+                >
+                    <ListItemIcon>
+                        <CheckCircle fontSize="small" color="success" />
+                    </ListItemIcon>
+                    <ListItemText>Concluir tarefa</ListItemText>
+                </MenuItem>
+            )}
+
+            {canResume && onRetomarTarefa && (
+                <MenuItem
+                    onClick={() => {
+                        onRetomarTarefa();
+                        onClose();
+                    }}
+                    sx={{ color: "warning.main" }}
+                >
+                    <ListItemIcon>
+                        <Replay fontSize="small" color="warning" />
+                    </ListItemIcon>
+                    <ListItemText>Retomar tarefa</ListItemText>
                 </MenuItem>
             )}
 

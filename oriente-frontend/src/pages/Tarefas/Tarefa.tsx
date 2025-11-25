@@ -42,6 +42,8 @@ import {
     EditOutlined,
     DeleteOutlined,
     AttachFileOutlined,
+    CheckCircle,
+    Replay,
 } from "@mui/icons-material";
 import Opcoes from "../../components/Tarefas/Opcoes";
 import EditTask from "../../components/Tarefas/EditTask";
@@ -55,6 +57,7 @@ import projectService from "../../services/projectService";
 import attachmentService from "../../services/attachmentService";
 import commentAttachmentService from "../../services/commentAttachmentService";
 import type { Card, Comment, CardHistory, CardHistoryAction, KanbanColumn, Attachment } from "../../types";
+import { useCardColumnActions } from "../../hooks/useCardColumnActions";
 
 const getPrioridadeColor = (prioridade: Card["priority"]) => {
     switch (prioridade) {
@@ -83,6 +86,45 @@ const getPrioridadeLabel = (prioridade: Card["priority"]) => {
             return "Baixa";
         default:
             return prioridade;
+    }
+};
+
+/**
+ * Determina o status da tarefa baseado em qual coluna ela está
+ * Primeira coluna = Pendente, Colunas do meio = Em Andamento, Última coluna = Concluído
+ */
+const getDynamicStatusLabel = (columnId: number | string, columns: KanbanColumn[]): string => {
+    if (columns.length === 0) return "Pendente";
+
+    const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
+    const firstColumnId = sortedColumns[0].id;
+    const lastColumnId = sortedColumns[sortedColumns.length - 1].id;
+
+    if (columnId === firstColumnId) {
+        return "Pendente";
+    } else if (columnId === lastColumnId) {
+        return "Concluído";
+    } else {
+        return "Em Andamento";
+    }
+};
+
+/**
+ * Determina a cor do status baseado em qual coluna a tarefa está
+ */
+const getDynamicStatusColor = (columnId: number | string, columns: KanbanColumn[]): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
+    if (columns.length === 0) return "warning";
+
+    const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
+    const firstColumnId = sortedColumns[0].id;
+    const lastColumnId = sortedColumns[sortedColumns.length - 1].id;
+
+    if (columnId === firstColumnId) {
+        return "warning";
+    } else if (columnId === lastColumnId) {
+        return "success";
+    } else {
+        return "info";
     }
 };
 
@@ -196,6 +238,35 @@ export default function Tarefa() {
         open: false,
         message: "",
         severity: "success",
+    });
+
+    // Hook de ações de coluna
+    const {
+        completeTask,
+        resumeTask,
+        canComplete,
+        canResume,
+        isLoading: isLoadingColumnAction
+    } = useCardColumnActions({
+        card: card!,
+        columns,
+        projectId: Number(projectId),
+        onSuccess: async () => {
+            await loadCard();
+            await loadHistory(1);
+            setSnackbar({
+                open: true,
+                message: canResume ? "Tarefa retomada com sucesso!" : "Tarefa concluída com sucesso!",
+                severity: "success"
+            });
+        },
+        onError: (error) => {
+            setSnackbar({
+                open: true,
+                message: error,
+                severity: "error"
+            });
+        }
     });
 
     // Carregar dados do card
@@ -1041,7 +1112,39 @@ export default function Tarefa() {
                                     STATUS
                                 </Typography>
                             </Box>
-                            <Chip label={card.status} color="primary" />
+                            <Chip label={getDynamicStatusLabel(card.column_id, columns)} color={getDynamicStatusColor(card.column_id, columns)} />
+
+                            {/* Botões de ação rápida */}
+                            {(canComplete || canResume) && (
+                                <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                                    {canComplete && (
+                                        <Button
+                                            variant="contained"
+                                            color="success"
+                                            size="small"
+                                            startIcon={<CheckCircle />}
+                                            onClick={completeTask}
+                                            disabled={isLoadingColumnAction}
+                                            fullWidth
+                                        >
+                                            {isLoadingColumnAction ? "Processando..." : "Concluir Tarefa"}
+                                        </Button>
+                                    )}
+                                    {canResume && (
+                                        <Button
+                                            variant="outlined"
+                                            color="warning"
+                                            size="small"
+                                            startIcon={<Replay />}
+                                            onClick={resumeTask}
+                                            disabled={isLoadingColumnAction}
+                                            fullWidth
+                                        >
+                                            {isLoadingColumnAction ? "Processando..." : "Retomar Tarefa"}
+                                        </Button>
+                                    )}
+                                </Box>
+                            )}
                         </Box>
 
                         <Divider sx={{ mb: 3 }} />

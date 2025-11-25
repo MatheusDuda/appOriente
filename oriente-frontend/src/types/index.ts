@@ -347,13 +347,8 @@ export interface CardUpdateRequest {
     assignee_ids?: number[];
 }
 
-export interface CardMoveRequest {
-    column_id: number;
-    new_position: number;
-}
-
 export interface CardStatusUpdateRequest {
-    status: "active" | "archived" | "deleted";
+    status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
 }
 
 export interface ProjectBoard {
