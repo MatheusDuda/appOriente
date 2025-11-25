@@ -4,7 +4,7 @@ import type { KanbanColumn } from '../types';
 import cardService from '../services/cardService';
 
 interface UseCardColumnActionsProps {
-    card: Card;
+    card: Card | null;
     columns: KanbanColumn[];
     projectId: number;
     onSuccess?: () => void;
@@ -36,9 +36,9 @@ export const useCardColumnActions = ({
     const firstColumn = sortedColumns[0];
     const lastColumn = sortedColumns[sortedColumns.length - 1];
 
-    // Verificar posição atual da tarefa
-    const isFirstColumn = card.column_id === firstColumn?.id;
-    const isLastColumn = card.column_id === lastColumn?.id;
+    // Verificar posição atual da tarefa - com validação para null
+    const isFirstColumn = card && firstColumn ? card.column_id === firstColumn.id : false;
+    const isLastColumn = card && lastColumn ? card.column_id === lastColumn.id : false;
 
     // Botão "Concluir" aparece se NÃO está na última coluna
     const canComplete = !isLastColumn && sortedColumns.length > 0;
@@ -50,7 +50,7 @@ export const useCardColumnActions = ({
      * Move a tarefa para a última coluna (concluir)
      */
     const completeTask = async () => {
-        if (!canComplete || !lastColumn) return;
+        if (!canComplete || !lastColumn || !card) return;
 
         setIsLoading(true);
         try {
@@ -70,7 +70,7 @@ export const useCardColumnActions = ({
      * Move a tarefa para a primeira coluna (retomar)
      */
     const resumeTask = async () => {
-        if (!canResume || !firstColumn) return;
+        if (!canResume || !firstColumn || !card) return;
 
         setIsLoading(true);
         try {

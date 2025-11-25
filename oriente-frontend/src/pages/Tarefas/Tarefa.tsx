@@ -89,6 +89,45 @@ const getPrioridadeLabel = (prioridade: Card["priority"]) => {
     }
 };
 
+/**
+ * Determina o status da tarefa baseado em qual coluna ela está
+ * Primeira coluna = Pendente, Colunas do meio = Em Andamento, Última coluna = Concluído
+ */
+const getDynamicStatusLabel = (columnId: number | string, columns: KanbanColumn[]): string => {
+    if (columns.length === 0) return "Pendente";
+
+    const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
+    const firstColumnId = sortedColumns[0].id;
+    const lastColumnId = sortedColumns[sortedColumns.length - 1].id;
+
+    if (columnId === firstColumnId) {
+        return "Pendente";
+    } else if (columnId === lastColumnId) {
+        return "Concluído";
+    } else {
+        return "Em Andamento";
+    }
+};
+
+/**
+ * Determina a cor do status baseado em qual coluna a tarefa está
+ */
+const getDynamicStatusColor = (columnId: number | string, columns: KanbanColumn[]): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
+    if (columns.length === 0) return "warning";
+
+    const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
+    const firstColumnId = sortedColumns[0].id;
+    const lastColumnId = sortedColumns[sortedColumns.length - 1].id;
+
+    if (columnId === firstColumnId) {
+        return "warning";
+    } else if (columnId === lastColumnId) {
+        return "success";
+    } else {
+        return "info";
+    }
+};
+
 const getHistoryActionLabel = (action: CardHistoryAction): string => {
     const labels: Record<CardHistoryAction, string> = {
         CREATED: "Criado",
@@ -1073,7 +1112,7 @@ export default function Tarefa() {
                                     STATUS
                                 </Typography>
                             </Box>
-                            <Chip label={card.status} color="primary" />
+                            <Chip label={getDynamicStatusLabel(card.column_id, columns)} color={getDynamicStatusColor(card.column_id, columns)} />
 
                             {/* Botões de ação rápida */}
                             {(canComplete || canResume) && (

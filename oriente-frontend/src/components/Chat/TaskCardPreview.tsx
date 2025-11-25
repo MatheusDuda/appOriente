@@ -26,6 +26,16 @@ const priorityConfig: Record<CardPriority, { label: string; color: "error" | "wa
   low: { label: "Baixa", color: "success" },
 };
 
+const statusConfig: Record<string, { label: string; color: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" }> = {
+  PENDING: { label: "Pendente", color: "warning" },
+  IN_PROGRESS: { label: "Em Andamento", color: "info" },
+  COMPLETED: { label: "Concluído", color: "success" },
+  // Mapeamento dos status antigos
+  active: { label: "Pendente", color: "warning" },
+  archived: { label: "Arquivado", color: "error" },
+  deleted: { label: "Deletado", color: "error" },
+};
+
 export default function TaskCardPreview({ projectId, cardId }: TaskCardPreviewProps) {
   const [cardData, setCardData] = useState<TaskCardPreviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -207,12 +217,12 @@ export default function TaskCardPreview({ projectId, cardId }: TaskCardPreviewPr
 
             {/* Status */}
             <Chip
-              label={cardData.status}
+              label={statusConfig[cardData.status]?.label || cardData.status}
               size="small"
-              variant="outlined"
+              color={statusConfig[cardData.status]?.color || "default"}
+              variant="filled"
               sx={{
                 height: 26,
-                textTransform: "capitalize",
                 fontWeight: 500,
                 fontSize: "0.75rem",
               }}

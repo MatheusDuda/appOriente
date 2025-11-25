@@ -1,9 +1,16 @@
+// Enum para status de card
+export enum CardStatus {
+    PENDING = "PENDING",
+    IN_PROGRESS = "IN_PROGRESS",
+    COMPLETED = "COMPLETED",
+}
+
 // Tipos para Card
 export interface Card {
     id: string;
     title: string;
     description: string;
-    status: string;
+    status: CardStatus | string;
     priority: "urgent" | "high" | "medium" | "low";
     project_id: number;
     column_id: string;

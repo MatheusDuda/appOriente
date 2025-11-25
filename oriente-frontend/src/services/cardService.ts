@@ -153,16 +153,16 @@ const cardService = {
     },
 
     /**
-     * Atualiza o status de um card (arquivar/restaurar)
+     * Atualiza o status de um card
      * @param projectId - ID do projeto
      * @param cardId - ID do card
-     * @param status - Novo status (active, archived, deleted)
+     * @param status - Novo status (PENDING, IN_PROGRESS, COMPLETED)
      * @returns Card atualizado
      */
     async updateCardStatus(
         projectId: number,
         cardId: string,
-        status: "active" | "archived" | "deleted"
+        status: "PENDING" | "IN_PROGRESS" | "COMPLETED"
     ): Promise<Card> {
         const payload: CardStatusUpdateRequest = { status };
         const response = await api.patch<Card>(

@@ -331,7 +331,7 @@ export default function Projects() {
         canComplete,
         canResume,
     } = useCardColumnActions({
-        card: selectedCard!,
+        card: selectedCard,
         columns,
         projectId: selectedProject?.id || 0,
         onSuccess: async () => {
