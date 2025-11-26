@@ -16,7 +16,6 @@ import {
 import {
     NotificationsOutlined,
     PaletteOutlined,
-    SecurityOutlined,
     SaveOutlined,
 } from "@mui/icons-material";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -31,10 +30,6 @@ type Configuracoes = {
     aparencia: {
         tema: "light" | "dark" | "auto";
     };
-    privacidade: {
-        mostrarEmail: boolean;
-        mostrarTelefone: boolean;
-    };
 };
 
 const configPadrao: Configuracoes = {
@@ -46,10 +41,6 @@ const configPadrao: Configuracoes = {
     },
     aparencia: {
         tema: "light",
-    },
-    privacidade: {
-        mostrarEmail: false,
-        mostrarTelefone: false,
     },
 };
 
@@ -271,89 +262,6 @@ export default function Configuracoes() {
                 </Box>
             </Paper>
 
-            {/* Privacidade */}
-            <Paper sx={{ p: 3, borderRadius: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-                    <SecurityOutlined color="primary" />
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                        Privacidade
-                    </Typography>
-                </Box>
-
-                <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
-                    Controle quem pode ver suas informações pessoais
-                </Typography>
-
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={config.privacidade.mostrarEmail}
-                                onChange={(e) =>
-                                    handleToggle("privacidade", "mostrarEmail", e.target.checked)
-                                }
-                            />
-                        }
-                        label={
-                            <Box>
-                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                    Mostrar e-mail
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                    Exibir seu e-mail no perfil público
-                                </Typography>
-                            </Box>
-                        }
-                    />
-
-                    <Divider />
-
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={config.privacidade.mostrarTelefone}
-                                onChange={(e) =>
-                                    handleToggle("privacidade", "mostrarTelefone", e.target.checked)
-                                }
-                            />
-                        }
-                        label={
-                            <Box>
-                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                    Mostrar telefone
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                    Exibir seu telefone no perfil público
-                                </Typography>
-                            </Box>
-                        }
-                    />
-                </Box>
-            </Paper>
-
-            {/* Zona de Perigo */}
-            <Paper sx={{ p: 3, borderRadius: 3, border: 1, borderColor: "error.main" }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: "error.main", mb: 1 }}>
-                    Zona de Perigo
-                </Typography>
-                <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
-                    Ações sensíveis que afetam sua conta
-                </Typography>
-
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                            Alterar senha
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            Modifique sua senha de acesso ao sistema
-                        </Typography>
-                    </Box>
-                    <Button variant="outlined" color="primary">
-                        Alterar
-                    </Button>
-                </Box>
-            </Paper>
         </Box>
     );
 }
