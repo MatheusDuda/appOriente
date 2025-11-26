@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routers import auth, projects, users, teams, notifications, reports, attachments, chat, chat_ws
+from app.routers import auth, projects, users, teams, notifications, reports, attachments, chat, chat_ws, cards_ws
 from app.routers import Columns as columns, Cards as cards, comments, card_history, comment_attachments, chat_message_attachments
 
 # Criar tabelas no banco de dados
@@ -51,6 +51,9 @@ app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(chat.router, prefix="/api", tags=["Chat"])
 app.include_router(chat_ws.router, prefix="/ws", tags=["WebSocket"])
 app.include_router(chat_message_attachments.router, prefix="/api/chats", tags=["Chat Message Attachments"])
+
+# Router WebSocket para Cards/Tarefas
+app.include_router(cards_ws.router, prefix="/ws", tags=["WebSocket Cards"])
 
 
 @app.get("/")
