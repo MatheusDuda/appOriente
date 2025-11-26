@@ -350,10 +350,15 @@ class CardService:
             card.column_id = new_column_id
             card.position = new_position
 
-            # Se moveu para "Concluído", marcar data de conclusão
-            if target_column.title.lower() in ["concluído", "done", "finalizado"]:
+            # Verificar se moveu para última coluna (tarefa concluída)
+            # Usa position da coluna ao invés de verificar nomes específicos
+            last_column = CardService._get_last_column(db, card.project_id)
+
+            if last_column and target_column.id == last_column.id:
+                # Moveu para última coluna - marcar como concluída
                 card.completed_at = datetime.utcnow()
             else:
+                # Não está na última coluna - limpar data de conclusão
                 card.completed_at = None
 
         # Se mudou apenas a posição na mesma coluna
@@ -402,6 +407,27 @@ class CardService:
         return card
 
     # === MÉTODOS AUXILIARES ===
+
+    @staticmethod
+    def _get_last_column(db: Session, project_id: int) -> Optional[KanbanColumn]:
+        """
+        Retorna a última coluna de um projeto (coluna com maior position)
+
+        Args:
+            db: Sessão do banco de dados
+            project_id: ID do projeto
+
+        Returns:
+            Última coluna do projeto ou None se projeto não tem colunas
+        """
+        last_column = db.query(KanbanColumn).filter(
+            KanbanColumn.project_id == project_id
+        ).order_by(
+            KanbanColumn.position.desc(),
+            KanbanColumn.id.desc()  # Desempate por ID
+        ).first()
+
+        return last_column
 
     @staticmethod
     def _add_assignees(db: Session, card: Card, assignee_ids: List[int], project_id: int):
