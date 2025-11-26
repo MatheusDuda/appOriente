@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { Avatar, Box, Paper, Stack, Typography, CircularProgress, Chip, List, ListItem, ListItemText, ListItemIcon, Divider } from "@mui/material";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { Avatar, Box, Paper, Stack, Typography, Chip, List, ListItem, ListItemText, ListItemIcon, Divider } from "@mui/material";
 import { AssignmentOutlined, WarningOutlined, CheckCircleOutlined, AccessTimeOutlined } from "@mui/icons-material";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { authService, type UserData } from "../../services/authService";
 import api from "../../services/api";
+import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 type TaskData = {
     id: number;
@@ -11,16 +12,11 @@ type TaskData = {
     status: string;
     priority: string;
     due_date?: string;
+    completed_at?: string;
     created_at: string;
     column_id: number;
     project_id?: number;
     project_name?: string;
-};
-
-type ChartData = {
-    name: string;
-    value: number;
-    color?: string;
 };
 
 type TaskWithProject = TaskData & {
@@ -28,14 +24,17 @@ type TaskWithProject = TaskData & {
 };
 
 export default function Dashboard() {
+    const navigate = useNavigate();
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     const [userData, setUserData] = useState<UserData | null>(null);
-    const [tasksByStatus, setTasksByStatus] = useState<ChartData[]>([]);
-    const [tasksByProject, setTasksByProject] = useState<ChartData[]>([]);
     const [statusCounts, setStatusCounts] = useState({ pendente: 0, andamento: 0, concluido: 0 });
     const [overdueTasks, setOverdueTasks] = useState<TaskWithProject[]>([]);
     const [urgentTasks, setUrgentTasks] = useState<TaskWithProject[]>([]);
     const [recentTasks, setRecentTasks] = useState<TaskWithProject[]>([]);
-    const [loadingCharts, setLoadingCharts] = useState(true);
+    const [taskStatusData, setTaskStatusData] = useState<Array<{ name: string; value: number; fill: string }>>([]);
+    const [taskPriorityData, setTaskPriorityData] = useState<Array<{ name: string; value: number; fill: string }>>([]);
 
     // Buscar dados do usuário logado
     useEffect(() => {
@@ -53,157 +52,303 @@ export default function Dashboard() {
         fetchUserData();
     }, []);
 
-    // Buscar estatísticas e dados para gráficos
-    useEffect(() => {
-        const fetchStats = async () => {
-            const token = localStorage.getItem("auth_token");
-            if (!token || !userData) return; // Aguardar userData estar carregado
-
-            try {
-                setLoadingCharts(true);
-
-                // Buscar projetos do usuário
-                const projectsResponse = await api.get("/api/projects");
-                const projects = Array.isArray(projectsResponse.data)
-                    ? projectsResponse.data
-                    : projectsResponse.data?.data || [];
-
-                // Buscar todas as tarefas do usuário em todos os projetos
-                const allTasks: TaskWithProject[] = [];
-                const projectTaskCount: { [key: string]: number } = {};
-
-                for (const project of projects) {
-                    try {
-                        // Buscar tarefas do projeto
-                        const tasksResponse = await api.get(`/api/projects/${project.id}/cards`);
-                        let tasks = tasksResponse.data?.cards || tasksResponse.data || [];
-
-                        if (Array.isArray(tasks)) {
-                            // Filtrar apenas tarefas atribuídas ao usuário logado
-                            const tasksForUser = tasks.filter((task: any) => {
-                                if (!task.assignees || task.assignees.length === 0) return false;
-                                // Verificar se o usuário atual está atribuído
-                                return task.assignees.some((assignee: any) =>
-                                    assignee.email === userData?.email || assignee.id === userData?.id
-                                );
-                            });
-
-                            const tasksWithProject = tasksForUser.map((t: any) => ({
-                                ...t,
-                                project_name: project.name,
-                                project_id: project.id
-                            }));
-                            allTasks.push(...tasksWithProject);
-                            projectTaskCount[project.name] = tasksForUser.length;
-                        }
-                    } catch (error) {
-                        console.error(`Erro ao buscar tarefas do projeto ${project.id}:`, error);
-                    }
-                }
-
-                // Processar dados para gráficos
-                processTasks(allTasks, projectTaskCount);
-            } catch (error) {
-                console.error("Erro ao buscar estatísticas:", error);
-            } finally {
-                setLoadingCharts(false);
-            }
-        };
-        fetchStats();
-    }, [userData]);
-
     // Processar tarefas e gerar dados para os gráficos
-    const processTasks = (tasks: TaskWithProject[], projectTaskCount: { [key: string]: number }) => {
+    const processTasks = useCallback((tasks: TaskWithProject[], columnMap?: { [projectId: number]: { pending: number | null; inProgress: number[]; completed: number | null } }) => {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
+
+        console.log("Processando tarefas:", tasks);
 
         // Contadores
         let pendente = 0;
         let andamento = 0;
         let concluidas = 0;
-        let ativas = 0;
-        let vencidas = 0;
-        let hojeVence = 0;
-        let proximosSeteDias = 0;
-        let futuras = 0;
+        let urgentCount = 0;
+        let highCount = 0;
+        let mediumCount = 0;
+        let lowCount = 0;
 
-        const priorityCount = { low: 0, medium: 0, high: 0, urgent: 0 };
         const overdueTasksList: TaskWithProject[] = [];
         const urgentTasksList: TaskWithProject[] = [];
 
         tasks.forEach((task) => {
-            // Categorizar por status (suportar both old e new status values)
-            if (task.status === 'PENDING' || task.status === 'active') {
-                pendente++;
-                ativas++;
-            } else if (task.status === 'IN_PROGRESS') {
-                andamento++;
-                ativas++;
-            } else if (task.status === 'COMPLETED') {
+            // DEBUG: Log cada tarefa para ver seus campos
+            console.log(`Tarefa: ${task.title}`, {
+                id: task.id,
+                project_id: task.project_id,
+                status: task.status,
+                completed_at: task.completed_at,
+                column_id: task.column_id,
+                priority: task.priority
+            });
+
+            // Obter os column_ids especiais do projeto
+            const projectColumnIds = columnMap ? columnMap[task.project_id || 0] : null;
+            const pendingColumnId = projectColumnIds?.pending;
+            const inProgressColumnIds = projectColumnIds?.inProgress || [];
+            const completedColumnId = projectColumnIds?.completed;
+
+            // Determinar status baseado no column_id
+            const isConcluded = completedColumnId && task.column_id === completedColumnId;
+            const isInProgress = inProgressColumnIds.includes(task.column_id);
+            const isPending = pendingColumnId && task.column_id === pendingColumnId;
+
+            console.log(`  Pendente col: ${pendingColumnId}, Em Andamento cols: ${inProgressColumnIds}, Concluído col: ${completedColumnId}, Task col: ${task.column_id}`);
+            console.log(`  Status: Pendente=${isPending}, Em Andamento=${isInProgress}, Concluída=${isConcluded}`);
+
+            if (isConcluded) {
                 concluidas++;
+                console.log(`  ✓ Contando como CONCLUÍDA`);
+            } else if (isInProgress) {
+                andamento++;
+                console.log(`  ⏳ Contando como EM ANDAMENTO`);
+            } else if (isPending) {
+                pendente++;
+                console.log(`  → Contando como PENDENTE`);
+            } else {
+                // Fallback: se não conseguiu identificar, contar como pendente
+                pendente++;
+                console.log(`  → Contando como PENDENTE (fallback)`);
             }
 
-            // Categorizar por prioridade
-            if (task.priority) {
-                const priority = task.priority.toLowerCase() as keyof typeof priorityCount;
-                if (priorityCount[priority] !== undefined) {
-                    priorityCount[priority]++;
+            // Contar por prioridade (apenas tarefas ativas - não concluídas)
+            if (!isConcluded && task.priority) {
+                const priority = task.priority.toLowerCase();
+                switch (priority) {
+                    case 'urgent':
+                        urgentCount++;
+                        break;
+                    case 'high':
+                        highCount++;
+                        break;
+                    case 'medium':
+                        mediumCount++;
+                        break;
+                    case 'low':
+                        lowCount++;
+                        break;
                 }
             }
 
-            // Tarefas urgentes (prioridade urgent ou high)
-            if ((task.status === 'PENDING' || task.status === 'active' || task.status === 'IN_PROGRESS') &&
-                (task.priority === 'urgent' || task.priority === 'high')) {
-                urgentTasksList.push(task);
+            // Categorizar por prioridade (apenas tarefas não concluídas)
+            if (task.priority && !isConcluded) {
+                const priority = task.priority.toLowerCase();
+                // Tarefas urgentes (prioridade urgent ou high)
+                if (priority === 'urgent' || priority === 'high') {
+                    urgentTasksList.push(task);
+                }
             }
 
-            // Categorizar por prazo (apenas tarefas ativas - PENDING ou IN_PROGRESS ou active)
-            if ((task.status === 'PENDING' || task.status === 'active' || task.status === 'IN_PROGRESS') && task.due_date) {
+            // Tarefas vencidas (apenas tarefas não concluídas)
+            if (!isConcluded && task.due_date) {
                 const dueDate = new Date(task.due_date);
                 dueDate.setHours(0, 0, 0, 0);
                 const diffTime = dueDate.getTime() - hoje.getTime();
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                 if (diffDays < 0) {
-                    vencidas++;
                     overdueTasksList.push(task);
-                } else if (diffDays === 0) {
-                    hojeVence++;
-                } else if (diffDays <= 7) {
-                    proximosSeteDias++;
-                } else {
-                    futuras++;
                 }
             }
         });
 
-        // Ordenar tarefas recentes (últimas criadas)
-        const recentList = [...tasks]
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 5);
-        setRecentTasks(recentList);
+        console.log("Contadores:", { pendente, andamento, concluidas });
+        console.log("Tarefas vencidas:", overdueTasksList);
+        console.log("Tarefas urgentes:", urgentTasksList);
+        console.log("Contadores de prioridade:", { urgentCount, highCount, mediumCount, lowCount });
 
         // Definir contadores de status
         setStatusCounts({ pendente, andamento, concluido: concluidas });
+
+        // Definir dados para gráfico de status (rosquinha)
+        const statusChartData = [
+            { name: "Pendente", value: pendente, fill: "#FFA726" },
+            { name: "Em Andamento", value: andamento, fill: "#42A5F5" },
+            { name: "Concluído", value: concluidas, fill: "#66BB6A" }
+        ].filter(item => item.value > 0);
+        setTaskStatusData(statusChartData);
+
+        // Definir dados para gráfico de prioridade (barra)
+        const priorityChartData = [
+            { name: "Urgente", value: urgentCount, fill: "#EF5350" },
+            { name: "Alta", value: highCount, fill: "#FF9800" },
+            { name: "Média", value: mediumCount, fill: "#FDD835" },
+            { name: "Baixa", value: lowCount, fill: "#90A4AE" }
+        ].filter(item => item.value > 0);
+        setTaskPriorityData(priorityChartData);
 
         // Definir tarefas vencidas e urgentes
         setOverdueTasks(overdueTasksList.slice(0, 5));
         setUrgentTasks(urgentTasksList.slice(0, 5));
 
-        // Dados para gráfico A2: Status das Tarefas (Pie)
-        setTasksByStatus([
-            { name: 'Pendente', value: pendente, color: '#FFA726' },
-            { name: 'Em Andamento', value: andamento, color: '#42A5F5' },
-            { name: 'Concluído', value: concluidas, color: '#66BB6A' },
-        ]);
+    }, []);
 
-        // Dados para gráfico B2: Tarefas por Projeto (Bar Horizontal)
-        const projectData = Object.entries(projectTaskCount)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value);
-        setTasksByProject(projectData);
+    // Função reutilizável para buscar estatísticas
+    const fetchStats = useCallback(async () => {
+        const token = localStorage.getItem("auth_token");
+        if (!token || !userData) return; // Aguardar userData estar carregado
 
-    };
+        // Cancelar requisição anterior se existir
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
+        try {
+            // Buscar projetos do usuário
+            const projectsResponse = await api.get("/api/projects", {
+                signal: abortControllerRef.current.signal
+            });
+            const projects = Array.isArray(projectsResponse.data)
+                ? projectsResponse.data
+                : projectsResponse.data?.data || [];
+
+            // Mapa para armazenar os column_ids especiais de cada projeto
+            const columnIdsMap: {
+                [projectId: number]: {
+                    pending: number | null;
+                    inProgress: number[];
+                    completed: number | null
+                }
+            } = {};
+
+            // Buscar colunas de cada projeto para identificar "Pendente", "Em Andamento" e "Concluído"
+            for (const project of projects) {
+                try {
+                    const columnsResponse = await api.get(`/api/projects/${project.id}/columns`, {
+                        signal: abortControllerRef.current.signal
+                    });
+                    const columns = columnsResponse.data?.columns || columnsResponse.data || [];
+
+                    let pendingColumnId: number | null = null;
+                    let inProgressColumnIds: number[] = [];
+                    let completedColumnId: number | null = null;
+
+                    if (Array.isArray(columns) && columns.length > 0) {
+                        // Log de todas as colunas para debug
+                        console.log(`Colunas do projeto ${project.name}:`, columns);
+
+                        // Lógica: primeira coluna = pendente, última = concluído, as do meio = em andamento
+                        pendingColumnId = columns[0].id;
+                        completedColumnId = columns[columns.length - 1].id;
+
+                        // Colunas do meio são "em andamento"
+                        if (columns.length > 2) {
+                            inProgressColumnIds = columns.slice(1, columns.length - 1).map((col: any) => col.id);
+                        }
+
+                        console.log(`Projeto ${project.name}: Pendente=${pendingColumnId}, Em Andamento=${inProgressColumnIds}, Concluído=${completedColumnId}`);
+                    }
+
+                    columnIdsMap[project.id] = {
+                        pending: pendingColumnId,
+                        inProgress: inProgressColumnIds,
+                        completed: completedColumnId
+                    };
+                } catch (error) {
+                    // Se falhar, não ter colunas especiais
+                    columnIdsMap[project.id] = {
+                        pending: null,
+                        inProgress: [],
+                        completed: null
+                    };
+                }
+            }
+
+            // Buscar todas as tarefas do usuário em todos os projetos
+            const allTasks: TaskWithProject[] = [];
+            const userTasks: TaskWithProject[] = []; // Apenas tarefas atribuídas ao usuário
+
+            for (const project of projects) {
+                try {
+                    // Buscar tarefas do projeto
+                    const tasksResponse = await api.get(`/api/projects/${project.id}/cards`, {
+                        signal: abortControllerRef.current.signal
+                    });
+                    let tasks = tasksResponse.data?.cards || tasksResponse.data || [];
+
+                    if (Array.isArray(tasks)) {
+                        // DEBUG: Log dos campos da primeira tarefa
+                        if (tasks.length > 0) {
+                            console.log(`DEBUG: Primeira tarefa do projeto ${project.name}:`, tasks[0]);
+                        }
+
+                        // TODAS as tarefas com projeto info (para listar)
+                        const tasksWithProject = tasks.map((t: any) => ({
+                            ...t,
+                            project_name: project.name,
+                            project_id: project.id
+                        }));
+                        allTasks.push(...tasksWithProject);
+
+                        // APENAS tarefas atribuídas ao usuário (para contadores)
+                        const userAssignedTasks = tasksWithProject.filter((task: any) => {
+                            if (!task.assignees || task.assignees.length === 0) return false;
+                            return task.assignees.some((assignee: any) =>
+                                assignee.email === userData?.email || assignee.id === userData?.id
+                            );
+                        });
+                        userTasks.push(...userAssignedTasks);
+                    }
+                } catch (error) {
+                    // Ignorar erro de AbortController e erros de cancelamento
+                    if ((error as any).name !== 'AbortError' && (error as any).code !== 'ERR_CANCELED') {
+                        console.error(`Erro ao buscar tarefas do projeto ${project.id}:`, error);
+                    }
+                }
+            }
+
+            console.log("Todas as tarefas (para listar):", allTasks);
+            console.log("Tarefas do usuário (para contadores):", userTasks);
+            console.log("Mapa de colunas:", columnIdsMap);
+
+            // Processar dados para gráficos (usando apenas tarefas do usuário)
+            processTasks(userTasks, columnIdsMap);
+
+            // Atualizar listas de tarefas recentes com APENAS tarefas do usuário
+            const recentListUser = [...userTasks]
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 5);
+            setRecentTasks(recentListUser);
+        } catch (error) {
+            // Ignorar erro de AbortController e erros de cancelamento
+            if ((error as any).name !== 'AbortError' && (error as any).code !== 'ERR_CANCELED') {
+                console.error("Erro ao buscar estatísticas:", error);
+            }
+        } finally {
+            // Nothing to clean up
+        }
+    }, [userData, processTasks]);
+
+    // Buscar estatísticas e dados para gráficos - Primeira vez
+    useEffect(() => {
+        if (userData) {
+            fetchStats();
+        }
+    }, [userData, fetchStats]);
+
+    // Setup polling automático a cada 30 segundos
+    useEffect(() => {
+        if (!userData) return;
+
+        // Fazer fetch inicial
+        fetchStats();
+
+        // Configurar polling
+        pollingIntervalRef.current = setInterval(() => {
+            fetchStats(); // Fazer fetch a cada 30 segundos
+        }, 30000); // 30 segundos
+
+        // Cleanup ao desmontar
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+            }
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [userData, fetchStats]);
 
     // Obter saudação baseada no horário
     const getSaudacao = (): string => {
@@ -235,6 +380,13 @@ export default function Dashboard() {
         due.setHours(0, 0, 0, 0);
         const diff = due.getTime() - today.getTime();
         return Math.ceil(diff / (1000 * 60 * 60 * 24));
+    };
+
+    // Navegar para a tarefa detalhada
+    const handleTaskClick = (task: TaskWithProject) => {
+        if (task.project_id) {
+            navigate(`/projetos/${task.project_id}/tarefas/${task.id}`);
+        }
     };
 
     // Cor de prioridade
@@ -356,170 +508,208 @@ export default function Dashboard() {
                 ))}
             </Box>
 
-            {loadingCharts ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-                    <CircularProgress />
-                </Box>
-            ) : (
-                <>
-                    <Box
-                        sx={{
-                            display: "grid",
-                            gap: 3,
-                            gridTemplateColumns: {
-                                xs: "1fr",
-                                md: "repeat(2, minmax(0, 1fr))",
-                            },
-                        }}
-                    >
-                        {/* Gráfico A2: Status das Tarefas (Pie) */}
+            {/* Gráficos de Análise */}
+            {(taskStatusData.length > 0 || taskPriorityData.length > 0) && (
+                <Box
+                    sx={{
+                        display: "grid",
+                        gap: 3,
+                        gridTemplateColumns: {
+                            xs: "1fr",
+                            md: "repeat(2, minmax(0, 1fr))",
+                        },
+                    }}
+                >
+                    {/* Gráfico de Rosquinha - Status das Tarefas */}
+                    {taskStatusData.length > 0 && (
                         <Paper sx={{ p: 3, borderRadius: 3 }}>
                             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                                📊 Tarefas por Status
+                                📊 Status das Tarefas
                             </Typography>
-                            <ResponsiveContainer width="100%" height={280}>
+                            <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
                                     <Pie
-                                        data={tasksByStatus}
+                                        data={taskStatusData}
                                         cx="50%"
                                         cy="50%"
-                                        labelLine={false}
-                                        label={(entry: any) => `${entry.name}: ${entry.value}`}
-                                        outerRadius={80}
-                                        fill="#8884d8"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={5}
                                         dataKey="value"
+                                        label={({ name, value }) => `${name}: ${value}`}
                                     >
-                                        {tasksByStatus.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        {taskStatusData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
-                                    <Legend />
+                                    <Tooltip formatter={(value) => `${value} tarefa${value !== 1 ? 's' : ''}`} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </Paper>
+                    )}
 
-                        {/* Gráfico B2: Tarefas por Projeto (Bar Horizontal) */}
+                    {/* Gráfico de Barra - Tarefas por Prioridade */}
+                    {taskPriorityData.length > 0 && (
                         <Paper sx={{ p: 3, borderRadius: 3 }}>
                             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                                📁 Tarefas por Projeto
+                                🎯 Tarefas por Prioridade
                             </Typography>
-                            <ResponsiveContainer width="100%" height={280}>
-                                <BarChart data={tasksByProject} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis type="number" stroke="#666" style={{ fontSize: 12 }} />
-                                    <YAxis type="category" dataKey="name" stroke="#666" style={{ fontSize: 12 }} width={120} />
-                                    <Tooltip
-                                        contentStyle={{ borderRadius: 8, border: "1px solid #e0e0e0" }}
-                                        labelStyle={{ fontWeight: 600 }}
-                                    />
-                                    <Bar dataKey="value" fill="#42A5F5" radius={[0, 8, 8, 0]} />
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={taskPriorityData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip formatter={(value) => `${value} tarefa${value !== 1 ? 's' : ''}`} />
+                                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                                        {taskPriorityData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                                        ))}
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </Paper>
-                    </Box>
+                    )}
+                </Box>
+            )}
 
-                    {/* Tarefas Vencidas */}
-                    {overdueTasks.length > 0 && (
-                        <Paper sx={{ p: 3, borderRadius: 3, bgcolor: "#ffebee" }}>
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: "#c62828" }}>
-                                ⚠️ Tarefas Vencidas ({overdueTasks.length})
-                            </Typography>
-                            <List sx={{ p: 0 }}>
-                                {overdueTasks.map((task, index) => (
-                                    <Box key={task.id}>
-                                        <ListItem sx={{ px: 0, py: 1.5 }}>
-                                            <ListItemIcon sx={{ minWidth: 40 }}>
-                                                <WarningOutlined sx={{ color: "#d32f2f" }} />
-                                            </ListItemIcon>
+            {/* Tarefas Vencidas */}
+            {overdueTasks.length > 0 && (
+                <Paper sx={{ p: 3, borderRadius: 3, bgcolor: "#ffebee" }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: "#c62828" }}>
+                        ⚠️ Tarefas Vencidas ({overdueTasks.length})
+                    </Typography>
+                    <List sx={{ p: 0 }}>
+                        {overdueTasks.map((task, index) => (
+                            <Box key={task.id}>
+                                <ListItem
+                                    onClick={() => handleTaskClick(task)}
+                                    sx={{
+                                        px: 0,
+                                        py: 1.5,
+                                        cursor: "pointer",
+                                        transition: "background-color 0.2s",
+                                        "&:hover": {
+                                            backgroundColor: "rgba(211, 47, 47, 0.08)",
+                                            borderRadius: 1,
+                                            px: 1,
+                                        }
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 40 }}>
+                                        <WarningOutlined sx={{ color: "#d32f2f" }} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={task.title}
+                                        secondary={`${task.project_name} • ${formatDate(task.due_date)}`}
+                                        primaryTypographyProps={{ variant: "body2", fontWeight: 500 }}
+                                        secondaryTypographyProps={{ variant: "caption" }}
+                                    />
+                                    <Chip
+                                        label={getPriorityLabel(task.priority)}
+                                        size="small"
+                                        color={getPriorityColor(task.priority)}
+                                    />
+                                </ListItem>
+                                {index < overdueTasks.length - 1 && <Divider />}
+                            </Box>
+                        ))}
+                    </List>
+                </Paper>
+            )}
+
+            {/* Tarefas Urgentes */}
+            {urgentTasks.length > 0 && (
+                <Paper sx={{ p: 3, borderRadius: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: "#d32f2f" }}>
+                        🔴 Tarefas Urgentes/Altas ({urgentTasks.length})
+                    </Typography>
+                    <List sx={{ p: 0 }}>
+                        {urgentTasks.map((task, index) => {
+                            const daysRemaining = getDaysRemaining(task.due_date);
+                            return (
+                                <Box key={task.id}>
+                                    <ListItem
+                                        onClick={() => handleTaskClick(task)}
+                                        sx={{
+                                            px: 0,
+                                            py: 1.5,
+                                            cursor: "pointer",
+                                            transition: "background-color 0.2s",
+                                            "&:hover": {
+                                                backgroundColor: "rgba(211, 47, 47, 0.08)",
+                                                borderRadius: 1,
+                                                px: 1,
+                                            }
+                                        }}
+                                    >
+                                        <ListItemIcon sx={{ minWidth: 40 }}>
+                                            <AssignmentOutlined sx={{ color: "#d32f2f" }} />
+                                        </ListItemIcon>
+                                        <Box sx={{ flex: 1 }}>
                                             <ListItemText
                                                 primary={task.title}
-                                                secondary={`${task.project_name} • ${formatDate(task.due_date)}`}
+                                                secondary={`${task.project_name} • ${daysRemaining !== null ? `${daysRemaining} dia${daysRemaining !== 1 ? 's' : ''}` : 'Sem prazo'}`}
                                                 primaryTypographyProps={{ variant: "body2", fontWeight: 500 }}
                                                 secondaryTypographyProps={{ variant: "caption" }}
                                             />
-                                            <Chip
-                                                label={getPriorityLabel(task.priority)}
-                                                size="small"
-                                                color={getPriorityColor(task.priority)}
-                                            />
-                                        </ListItem>
-                                        {index < overdueTasks.length - 1 && <Divider />}
-                                    </Box>
-                                ))}
-                            </List>
-                        </Paper>
-                    )}
-
-                    {/* Tarefas Urgentes */}
-                    {urgentTasks.length > 0 && (
-                        <Paper sx={{ p: 3, borderRadius: 3 }}>
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: "#d32f2f" }}>
-                                🔴 Tarefas Urgentes/Altas ({urgentTasks.length})
-                            </Typography>
-                            <List sx={{ p: 0 }}>
-                                {urgentTasks.map((task, index) => {
-                                    const daysRemaining = getDaysRemaining(task.due_date);
-                                    return (
-                                        <Box key={task.id}>
-                                            <ListItem sx={{ px: 0, py: 1.5 }}>
-                                                <ListItemIcon sx={{ minWidth: 40 }}>
-                                                    <AssignmentOutlined sx={{ color: "#d32f2f" }} />
-                                                </ListItemIcon>
-                                                <Box sx={{ flex: 1 }}>
-                                                    <ListItemText
-                                                        primary={task.title}
-                                                        secondary={`${task.project_name} • ${daysRemaining !== null ? `${daysRemaining} dia${daysRemaining !== 1 ? 's' : ''}` : 'Sem prazo'}`}
-                                                        primaryTypographyProps={{ variant: "body2", fontWeight: 500 }}
-                                                        secondaryTypographyProps={{ variant: "caption" }}
-                                                    />
-                                                </Box>
-                                                <Chip
-                                                    label={getPriorityLabel(task.priority)}
-                                                    size="small"
-                                                    color={getPriorityColor(task.priority)}
-                                                />
-                                            </ListItem>
-                                            {index < urgentTasks.length - 1 && <Divider />}
                                         </Box>
-                                    );
-                                })}
-                            </List>
-                        </Paper>
-                    )}
+                                        <Chip
+                                            label={getPriorityLabel(task.priority)}
+                                            size="small"
+                                            color={getPriorityColor(task.priority)}
+                                        />
+                                    </ListItem>
+                                    {index < urgentTasks.length - 1 && <Divider />}
+                                </Box>
+                            );
+                        })}
+                    </List>
+                </Paper>
+            )}
 
-                    {/* Tarefas Recentes */}
-                    {recentTasks.length > 0 && (
-                        <Paper sx={{ p: 3, borderRadius: 3 }}>
-                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                                📋 Últimas Tarefas Criadas
-                            </Typography>
-                            <List sx={{ p: 0 }}>
-                                {recentTasks.map((task, index) => (
-                                    <Box key={task.id}>
-                                        <ListItem sx={{ px: 0, py: 1.5 }}>
-                                            <ListItemIcon sx={{ minWidth: 40 }}>
-                                                <AssignmentOutlined sx={{ color: "primary.main" }} />
-                                            </ListItemIcon>
-                                            <ListItemText
-                                                primary={task.title}
-                                                secondary={`${task.project_name} • ${formatDate(task.created_at)}`}
-                                                primaryTypographyProps={{ variant: "body2", fontWeight: 500 }}
-                                                secondaryTypographyProps={{ variant: "caption" }}
-                                            />
-                                            <Chip
-                                                label={getPriorityLabel(task.priority)}
-                                                size="small"
-                                                color={getPriorityColor(task.priority)}
-                                            />
-                                        </ListItem>
-                                        {index < recentTasks.length - 1 && <Divider />}
-                                    </Box>
-                                ))}
-                            </List>
-                        </Paper>
-                    )}
-                </>
+            {/* Tarefas Recentes */}
+            {recentTasks.length > 0 && (
+                <Paper sx={{ p: 3, borderRadius: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                        📋 Últimas Tarefas Criadas
+                    </Typography>
+                    <List sx={{ p: 0 }}>
+                        {recentTasks.map((task, index) => (
+                            <Box key={task.id}>
+                                <ListItem
+                                    onClick={() => handleTaskClick(task)}
+                                    sx={{
+                                        px: 0,
+                                        py: 1.5,
+                                        cursor: "pointer",
+                                        transition: "background-color 0.2s",
+                                        "&:hover": {
+                                            backgroundColor: "rgba(66, 165, 245, 0.08)",
+                                            borderRadius: 1,
+                                            px: 1,
+                                        }
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 40 }}>
+                                        <AssignmentOutlined sx={{ color: "primary.main" }} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={task.title}
+                                        secondary={`${task.project_name} • ${formatDate(task.created_at)}`}
+                                        primaryTypographyProps={{ variant: "body2", fontWeight: 500 }}
+                                        secondaryTypographyProps={{ variant: "caption" }}
+                                    />
+                                    <Chip
+                                        label={getPriorityLabel(task.priority)}
+                                        size="small"
+                                        color={getPriorityColor(task.priority)}
+                                    />
+                                </ListItem>
+                                {index < recentTasks.length - 1 && <Divider />}
+                            </Box>
+                        ))}
+                    </List>
+                </Paper>
             )}
         </Box>
     );
