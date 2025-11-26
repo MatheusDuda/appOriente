@@ -2,17 +2,17 @@
 
 > **Note**: Este diagrama complementa o `uml-diagram.md` incluindo os métodos existentes nas classes do sistema.
 >
-> Geração manual - Última atualização: 2025-11-20
+> Geração manual - Última atualização: 2025-11-25
 
 ```mermaid
 classDiagram
     class User {
         +int id
-        +str email
-        +str hashed_password
         +str name
-        +UserRole role
+        +str email
+        +str password_hash
         +UserStatus status
+        +UserRole role
         +datetime created_at
         +datetime updated_at
         +__repr__() str
@@ -33,8 +33,8 @@ classDiagram
         +int id
         +str name
         +str description
-        +int leader_id
         +TeamStatus status
+        +int leader_id
         +datetime created_at
         +datetime updated_at
         +__repr__() str
@@ -57,6 +57,7 @@ classDiagram
         +int id
         +str name
         +str description
+        +int owner_id
         +int team_id
         +datetime created_at
         +datetime updated_at
@@ -80,9 +81,11 @@ classDiagram
 
     class KanbanColumn {
         +int id
-        +str name
+        +str title
+        +str description
         +int project_id
         +int position
+        +str color
         +datetime created_at
         +datetime updated_at
         +__repr__() str
@@ -103,12 +106,14 @@ classDiagram
         +int id
         +str title
         +str description
-        +int column_id
-        +int assigned_user_id
+        +int position
         +CardPriority priority
         +CardStatus status
-        +date due_date
-        +int position
+        +datetime due_date
+        +datetime completed_at
+        +int column_id
+        +int project_id
+        +int created_by_id
         +datetime created_at
         +datetime updated_at
         +__repr__() str
@@ -123,17 +128,6 @@ classDiagram
         +delete_card(card_id: int, current_user_id: int)$ None
         +move_card(card_id: int, move_data: CardMove, current_user_id: int)$ CardResponse
         +update_card_status(card_id: int, status_data: CardStatusUpdate, current_user_id: int)$ CardResponse
-        +create_tag(project_id: int, tag_data: TagCreate, current_user_id: int)$ TagResponse
-        +get_project_tags(project_id: int, current_user_id: int)$ List[TagResponse]
-    }
-
-    class Tag {
-        +int id
-        +str name
-        +str color
-        +int project_id
-        +datetime created_at
-        +__repr__() str
     }
 
     class Comment {
@@ -143,7 +137,6 @@ classDiagram
         +int user_id
         +datetime created_at
         +datetime updated_at
-        +bool is_deleted
         +__repr__() str
     }
 
@@ -165,12 +158,15 @@ classDiagram
         +__repr__() str
     }
 
-    class CommentAudit {
+    class CommentAttachment {
         +int id
         +int comment_id
-        +str content
-        +int deleted_by_user_id
-        +datetime deleted_at
+        +str filename
+        +str file_path
+        +str file_type
+        +int file_size
+        +int uploaded_by_user_id
+        +datetime uploaded_at
         +__repr__() str
     }
 
@@ -331,19 +327,21 @@ classDiagram
 
     %% Relationships
     User "1" --> "*" Team : leads
+    User "1" --> "*" Project : owns
     Team "1" --> "*" Project : has
     User "*" --> "*" Team : members
+    User "*" --> "*" Project : members
     Project "1" --> "*" KanbanColumn : has
     KanbanColumn "1" --> "*" Card : contains
-    User "1" --> "*" Card : assigned
-    Card "*" --> "*" Tag : tagged
-    Project "1" --> "*" Tag : has
+    Project "1" --> "*" Card : has
+    User "*" --> "*" Card : assigned
+    User "1" --> "*" Card : created_by
     Card "1" --> "*" Comment : has
     User "1" --> "*" Comment : writes
     Comment "1" --> "*" CommentMention : has
     User "1" --> "*" CommentMention : mentioned
-    Comment "1" --> "0..1" CommentAudit : audited
-    User "1" --> "*" CommentAudit : deleted_by
+    Comment "1" --> "*" CommentAttachment : has
+    User "1" --> "*" CommentAttachment : uploads
     Card "1" --> "*" Attachment : has
     User "1" --> "*" Attachment : uploads
     Card "1" --> "*" CardHistory : history
@@ -364,6 +362,7 @@ classDiagram
         <<enumeration>>
         ADMIN
         USER
+        MANAGER
     }
 
     class UserStatus {
@@ -382,9 +381,9 @@ classDiagram
 
     class CardStatus {
         <<enumeration>>
-        TODO
-        IN_PROGRESS
-        DONE
+        ACTIVE
+        ARCHIVED
+        DELETED
     }
 
     class TeamStatus {
@@ -430,7 +429,7 @@ As classes marcadas com `<<service>>` implementam a lógica de negócio e opera�
 
 #### UserService
 CRUD completo de usuários com operações especiais:
-- Gerenciamento de roles (ADMIN/USER)
+- Gerenciamento de roles (ADMIN/USER/MANAGER)
 - Ativação/desativação de contas
 - Alteração de senha com validações
 
@@ -453,11 +452,11 @@ Gerenciamento de colunas Kanban:
 - Criação automática de colunas padrão
 
 #### CardService
-Gerenciamento de cards e tags:
+Gerenciamento de cards:
 - CRUD completo de cards
 - Movimentação entre colunas
 - Filtros avançados
-- Gerenciamento de tags
+- Atualização de status
 
 #### CommentService
 Gerenciamento de comentários:
